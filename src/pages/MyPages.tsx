@@ -1,16 +1,23 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ArrowLeft, User } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { LogOut, ArrowLeft } from 'lucide-react';
+import { AddCompanyForm } from '@/components/AddCompanyForm';
+import { TrackedPagesList } from '@/components/TrackedPagesList';
 
 const MyPages = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleFormSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['tracked-pages'] });
   };
 
   return (
@@ -25,54 +32,28 @@ const MyPages = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Changelog
           </Button>
-          
-          <Button
-            variant="outline"
-            onClick={handleSignOut}
-            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-zinc-400">{user?.email}</span>
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <header className="space-y-3">
           <h1 className="text-3xl font-bold text-zinc-100">My Pages</h1>
-          <p className="text-zinc-400">Your personal dashboard</p>
+          <p className="text-zinc-400">Manage your tracked company pages</p>
         </header>
 
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <CardTitle className="text-zinc-100 flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Account Info
-            </CardTitle>
-            <CardDescription className="text-zinc-400">
-              Your account details
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-zinc-500">Email</p>
-              <p className="text-zinc-100">{user?.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500">User ID</p>
-              <p className="text-zinc-400 text-sm font-mono">{user?.id}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500">Last Sign In</p>
-              <p className="text-zinc-400 text-sm">
-                {user?.last_sign_in_at 
-                  ? new Date(user.last_sign_in_at).toLocaleString()
-                  : 'N/A'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center py-8 text-zinc-500">
-          <p>More features coming soon...</p>
+        <div className="space-y-6">
+          <AddCompanyForm onSuccess={handleFormSuccess} />
+          <TrackedPagesList />
         </div>
       </div>
     </div>
