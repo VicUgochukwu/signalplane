@@ -5,6 +5,7 @@ import { WeekSection } from '@/components/WeekSection';
 import { TagLegend } from '@/components/TagBadge';
 import { AuthNavLink } from '@/components/AuthNavLink';
 import { HeroSection } from '@/components/HeroSection';
+import { Footer } from '@/components/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
@@ -53,9 +54,8 @@ const Index = () => {
 
         <HeroSection />
 
-        <div className="border-t border-zinc-800 pt-8 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-zinc-100">Recent Changes</h2>
             <TagLegend />
           </div>
 
@@ -107,6 +107,8 @@ const Index = () => {
             ))}
           </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );
