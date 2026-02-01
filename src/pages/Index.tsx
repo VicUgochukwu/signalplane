@@ -54,8 +54,9 @@ const Index = () => {
 
         <HeroSection />
 
-        <div className="space-y-4">
+        <div className="border-t border-zinc-800 pt-8 space-y-4">
           <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-zinc-100">Recent Changes</h2>
             <TagLegend />
           </div>
 
