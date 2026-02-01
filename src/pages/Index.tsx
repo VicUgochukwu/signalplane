@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useChangelog } from '@/hooks/useChangelog';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
+import { TagLegend } from '@/components/TagBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
@@ -44,9 +45,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-zinc-900">
       <div className="container py-8 space-y-8">
-        <header className="space-y-2">
+        <header className="space-y-3">
           <h1 className="text-3xl font-bold text-zinc-100">Messaging Diff Tracker</h1>
-          <p className="text-zinc-400">Track messaging changes across companies</p>
+          <div className="flex items-center justify-between">
+            <p className="text-zinc-400">Track messaging changes across companies</p>
+            <TagLegend />
+          </div>
         </header>
 
         <FilterBar
