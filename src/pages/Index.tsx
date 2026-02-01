@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useChangelog } from '@/hooks/useChangelog';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
-import { TagLegend } from '@/components/TagBadge';
+
 import { AuthNavLink } from '@/components/AuthNavLink';
 import { HeroSection } from '@/components/HeroSection';
 import { Footer } from '@/components/Footer';
@@ -55,10 +55,7 @@ const Index = () => {
         <HeroSection />
 
         <div className="border-t border-zinc-800 pt-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-zinc-100">Recent Changes</h2>
-            <TagLegend />
-          </div>
+          <h2 className="text-2xl font-bold text-zinc-100">Recent Changes</h2>
 
           <FilterBar
             companies={companies}
