@@ -4,6 +4,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
 import { TagLegend } from '@/components/TagBadge';
 import { AuthNavLink } from '@/components/AuthNavLink';
+import { HeroSection } from '@/components/HeroSection';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
@@ -46,63 +47,65 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-zinc-900">
       <div className="container py-8 space-y-8">
-        <header className="space-y-3">
+        <div className="flex justify-end">
+          <AuthNavLink />
+        </div>
+
+        <HeroSection />
+
+        <div className="border-t border-zinc-800 pt-8 space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-zinc-100">Messaging Diff Tracker</h1>
-            <AuthNavLink />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-zinc-400">Track messaging changes across companies</p>
+            <h2 className="text-2xl font-bold text-zinc-100">Recent Changes</h2>
             <TagLegend />
           </div>
-        </header>
 
-        <FilterBar
-          companies={companies}
-          tags={tags}
-          selectedCompany={selectedCompany}
-          selectedTag={selectedTag}
-          selectedMagnitude={selectedMagnitude}
-          onCompanyChange={setSelectedCompany}
-          onTagChange={setSelectedTag}
-          onMagnitudeChange={setSelectedMagnitude}
-        />
+          <FilterBar
+            companies={companies}
+            tags={tags}
+            selectedCompany={selectedCompany}
+            selectedTag={selectedTag}
+            selectedMagnitude={selectedMagnitude}
+            onCompanyChange={setSelectedCompany}
+            onTagChange={setSelectedTag}
+            onMagnitudeChange={setSelectedMagnitude}
+          />
 
-        {isLoading && (
-          <div className="space-y-8">
-            {[1, 2].map((week) => (
-              <div key={week} className="space-y-4">
-                <Skeleton className="h-8 w-64 bg-zinc-800" />
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {[1, 2, 3].map((card) => (
-                    <Skeleton key={card} className="h-48 bg-zinc-800" />
-                  ))}
+          {isLoading && (
+            <div className="space-y-8">
+              {[1, 2].map((week) => (
+                <div key={week} className="space-y-4">
+                  <Skeleton className="h-8 w-64 bg-zinc-800" />
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3].map((card) => (
+                      <Skeleton key={card} className="h-48 bg-zinc-800" />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-4 text-rose-400">
+              <p className="font-medium">Error loading changelog</p>
+              <p className="text-sm mt-1">{error.message}</p>
+              <p className="text-sm mt-2 text-zinc-400">
+                Make sure to configure your Supabase URL and anon key in src/integrations/supabase/client.ts
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && groupedByWeek.length === 0 && (
+            <div className="text-center py-12 text-zinc-500">
+              No changes found matching your filters.
+            </div>
+          )}
+
+          <div className="space-y-8">
+            {groupedByWeek.map(([weekStart, weekEntries]) => (
+              <WeekSection key={weekStart} weekStart={weekStart} entries={weekEntries} />
             ))}
           </div>
-        )}
-
-        {error && (
-          <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-4 text-rose-400">
-            <p className="font-medium">Error loading changelog</p>
-            <p className="text-sm mt-1">{error.message}</p>
-            <p className="text-sm mt-2 text-zinc-400">
-              Make sure to configure your Supabase URL and anon key in src/integrations/supabase/client.ts
-            </p>
-          </div>
-        )}
-
-        {!isLoading && !error && groupedByWeek.length === 0 && (
-          <div className="text-center py-12 text-zinc-500">
-            No changes found matching your filters.
-          </div>
-        )}
-
-        <div className="space-y-8">
-          {groupedByWeek.map(([weekStart, weekEntries]) => (
-            <WeekSection key={weekStart} weekStart={weekStart} entries={weekEntries} />
-          ))}
         </div>
       </div>
     </div>
