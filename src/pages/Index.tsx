@@ -3,6 +3,7 @@ import { useChangelog } from '@/hooks/useChangelog';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
 import { TagLegend } from '@/components/TagBadge';
+import { AuthNavLink } from '@/components/AuthNavLink';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
@@ -46,7 +47,10 @@ const Index = () => {
     <div className="min-h-screen bg-zinc-900">
       <div className="container py-8 space-y-8">
         <header className="space-y-3">
-          <h1 className="text-3xl font-bold text-zinc-100">Messaging Diff Tracker</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-zinc-100">Messaging Diff Tracker</h1>
+            <AuthNavLink />
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-zinc-400">Track messaging changes across companies</p>
             <TagLegend />
