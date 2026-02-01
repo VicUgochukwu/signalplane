@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MagnitudeBadge } from './MagnitudeBadge';
 import { ConfidenceBar } from './ConfidenceBar';
+import { TagBadge } from './TagBadge';
 import { ExternalLink } from 'lucide-react';
 import type { ChangelogEntry } from '@/types/changelog';
 
@@ -26,13 +27,11 @@ export function ChangelogCard({ entry }: ChangelogCardProps) {
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="text-xs border-zinc-600 text-zinc-400">
                 {entry.url_type}
               </Badge>
-              <Badge variant="outline" className="text-xs border-zinc-600 text-zinc-400">
-                {entry.primary_tag}
-              </Badge>
+              <TagBadge tag={entry.primary_tag} />
             </div>
           </div>
           <MagnitudeBadge magnitude={entry.change_magnitude} />
