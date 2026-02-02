@@ -79,23 +79,41 @@ export function useDeliveryPreferences() {
     }
   };
 
-  const connectNotion = async () => {
-    setIsConnecting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('notion-oauth-start');
+  const saveNotionConfig = useMutation({
+    mutationFn: async ({ apiToken, databaseId }: { apiToken: string; databaseId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase.from('delivery_preferences').upsert(
+        {
+          user_id: user.id,
+          channel_type: 'notion',
+          channel_config: {
+            access_token: apiToken,
+            database_id: databaseId,
+          },
+          enabled: true,
+        },
+        { onConflict: 'user_id,channel_type' }
+      );
       if (error) throw error;
-      window.location.href = data.url;
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to start Notion connection', variant: 'destructive' });
-      setIsConnecting(false);
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-preferences'] });
+      toast({ title: 'Notion connected', description: 'Your Notion integration has been saved.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
 
   return {
     preferences,
     isLoading,
     connectSlack,
-    connectNotion,
+    saveNotionConfig: (apiToken: string, databaseId: string) =>
+      saveNotionConfig.mutate({ apiToken, databaseId }),
+    isSavingNotion: saveNotionConfig.isPending,
     disconnectChannel: (channelType: string) => disconnectMutation.mutate(channelType),
     toggleChannel: (channelType: string, enabled: boolean) =>
       toggleMutation.mutate({ channelType, enabled }),
