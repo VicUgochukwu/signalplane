@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, ArrowLeft } from 'lucide-react';
-import { AddCompanyForm } from '@/components/AddCompanyForm';
+import { AddCompanyWizard } from '@/components/AddCompanyWizard';
 import { TrackedPagesList } from '@/components/TrackedPagesList';
 
 const MyPages = () => {
@@ -52,7 +52,7 @@ const MyPages = () => {
         </header>
 
         <div className="space-y-6">
-          <AddCompanyForm onSuccess={handleFormSuccess} />
+          <AddCompanyWizard onSuccess={handleFormSuccess} />
           <TrackedPagesList />
         </div>
       </div>
