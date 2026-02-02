@@ -13,12 +13,10 @@ export function DeliveryIntegrations() {
   const {
     preferences,
     isLoading,
-    connectSlack,
     saveNotionConfig,
     isSavingNotion,
     disconnectChannel,
     toggleChannel,
-    isConnecting,
   } = useDeliveryPreferences();
 
   const [notionToken, setNotionToken] = useState('');
@@ -59,68 +57,20 @@ export function DeliveryIntegrations() {
                 Receive reports in a Slack channel or DM
               </CardDescription>
             </div>
-            {slackPref && (
-              <Switch
-                checked={slackPref.enabled}
-                onCheckedChange={() => toggleChannel('slack', !slackPref.enabled)}
-                className="data-[state=checked]:bg-purple-600"
-                aria-label="Toggle Slack delivery"
-              />
-            )}
+            <span className="text-xs text-zinc-600 bg-zinc-700 px-2 py-1 rounded">Soon</span>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {slackPref ? (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-zinc-900 p-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">Workspace</span>
-                  <span className="text-zinc-100">
-                    {slackPref.channel_config.team_name || 'Connected'}
-                  </span>
-                </div>
-                {slackPref.channel_config.channel_name && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-zinc-400">Channel</span>
-                    <span className="text-zinc-100">
-                      #{slackPref.channel_config.channel_name}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">Status</span>
-                  <span className={slackPref.enabled ? 'text-emerald-400' : 'text-zinc-500'}>
-                    {slackPref.enabled ? 'Active' : 'Paused'}
-                  </span>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => disconnectChannel('slack')}
-                className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-              >
-                Disconnect Slack
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={connectSlack}
-              disabled={isConnecting}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              {isConnecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Add to Slack
-                </>
-              )}
-            </Button>
-          )}
+          <Button
+            disabled
+            className="w-full bg-zinc-700 text-zinc-500 cursor-not-allowed"
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Coming Soon
+          </Button>
+          <p className="text-xs text-zinc-600 text-center">
+            Slack delivery will be available in a future update.
+          </p>
         </CardContent>
       </Card>
 
