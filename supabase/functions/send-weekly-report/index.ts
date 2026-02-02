@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from '../_shared/supabase.ts';
-import { corsHeaders, handleCors } from '../_shared/cors.ts';
+import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 
 interface ClassifiedChange {
   week_start_date: string;
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     if (authSecret !== Deno.env.get('N8N_WEBHOOK_SECRET')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -53,20 +53,20 @@ Deno.serve(async (req) => {
     if (weekChanges.length === 0) {
       return new Response(
         JSON.stringify({ message: 'No changes for this week', week_start_date }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
     // 2. Fetch all enabled delivery preferences
     const { data: preferences, error: prefsError } = await supabase.rpc(
-      'get_enabled_delivery_channels'
+      'get_decrypted_delivery_channels'
     );
     if (prefsError) throw prefsError;
 
     if (!preferences || preferences.length === 0) {
       return new Response(
         JSON.stringify({ message: 'No delivery preferences configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -108,13 +108,13 @@ Deno.serve(async (req) => {
         changes_count: weekChanges.length,
         results,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Send weekly report error:', error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

@@ -1,11 +1,26 @@
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://id-preview--efb47ff1-8e14-4553-be86-98df6575af9e.lovable.app',
+  'https://efb47ff1-8e14-4553-be86-98df6575af9e.lovableproject.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+export function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-n8n-secret',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  };
+}
+
+// Keep backward compat for imports that use corsHeaders directly
+export const corsHeaders = getCorsHeaders();
 
 export function handleCors(req: Request): Response | null {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
   return null;
 }

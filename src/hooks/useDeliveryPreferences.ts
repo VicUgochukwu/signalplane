@@ -81,21 +81,21 @@ export function useDeliveryPreferences() {
 
   const saveNotionConfig = useMutation({
     mutationFn: async ({ apiToken, databaseId }: { apiToken: string; databaseId: string }) => {
+      // Server-side validation
+      const token = apiToken.trim();
+      const dbId = databaseId.trim();
+      if (!token || token.length < 10) throw new Error('Invalid Notion integration token');
+      if (!dbId || dbId.length < 10) throw new Error('Invalid Notion database ID');
+      if (!/^(ntn_|secret_)/.test(token)) throw new Error('Notion token must start with ntn_ or secret_');
+      if (!/^[a-f0-9-]{32,}$/i.test(dbId.replace(/-/g, ''))) throw new Error('Invalid database ID format');
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase.from('delivery_preferences').upsert(
-        {
-          user_id: user.id,
-          channel_type: 'notion',
-          channel_config: {
-            access_token: apiToken,
-            database_id: databaseId,
-          },
-          enabled: true,
-        },
-        { onConflict: 'user_id,channel_type' }
-      );
+      const { error } = await supabase.rpc('save_notion_config', {
+        p_api_token: token,
+        p_database_id: dbId,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
