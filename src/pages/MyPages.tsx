@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, ArrowLeft } from 'lucide-react';
+import { LogOut, ArrowLeft, Settings } from 'lucide-react';
 import { AddCompanyWizard } from '@/components/AddCompanyWizard';
 import { TrackedPagesList } from '@/components/TrackedPagesList';
 
@@ -35,6 +35,14 @@ const MyPages = () => {
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-400">{user?.email}</span>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/settings')}
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
             <Button
               variant="outline"
               onClick={handleSignOut}
