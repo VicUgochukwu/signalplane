@@ -24,13 +24,13 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<'company' | 'pages'>('company');
   const [companyName, setCompanyName] = useState('');
-  const [companySlug, setCompanySlug] = useState('');
+  const [companyDomain, setCompanyDomain] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const [pages, setPages] = useState<PageSelection[]>([]);
 
-  // Auto-generate slug from company name
+  // Auto-generate domain from company name (user can edit)
   useEffect(() => {
     const slug = companyName
       .toLowerCase()
@@ -38,15 +38,19 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
-    setCompanySlug(slug);
+    if (slug) {
+      setCompanyDomain(`${slug}.com`);
+    } else {
+      setCompanyDomain('');
+    }
   }, [companyName]);
 
   // Initialize page selections when entering step 2
-  const initializePages = (slug: string) => {
+  const initializePages = (domain: string) => {
     setPages(
       URL_TYPES.map((type) => ({
         type,
-        url: generatePageUrl(slug, type),
+        url: generatePageUrl(domain, type),
         selected: false,
       }))
     );
@@ -61,15 +65,15 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
       setNameError('Company name is required');
       return;
     }
-    if (!companySlug) {
-      setNameError('Company slug is required');
+    if (!companyDomain) {
+      setNameError('Website domain is required');
       return;
     }
 
     setIsLoading(true);
     const { data, error } = await supabase.rpc('add_company', {
       p_company_name: trimmedName,
-      p_company_slug: companySlug,
+      p_company_slug: companyDomain,
     });
     setIsLoading(false);
 
@@ -80,7 +84,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
 
     if (data && data.length > 0) {
       setCompanyId(data[0].company_id);
-      initializePages(companySlug);
+      initializePages(companyDomain);
       setStep('pages');
     }
   };
@@ -140,7 +144,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
     // Reset wizard
     setStep('company');
     setCompanyName('');
-    setCompanySlug('');
+    setCompanyDomain('');
     setCompanyId(null);
     setPages([]);
     onSuccess();
@@ -193,19 +197,19 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                 {nameError && <p className="text-sm text-rose-400">{nameError}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="companySlug" className="text-zinc-200">
-                  Domain Slug
+                <Label htmlFor="companyDomain" className="text-zinc-200">
+                  Website Domain
                 </Label>
                 <Input
-                  id="companySlug"
-                  placeholder="intercom"
-                  value={companySlug}
-                  onChange={(e) => setCompanySlug(e.target.value)}
+                  id="companyDomain"
+                  placeholder="apollo.io"
+                  value={companyDomain}
+                  onChange={(e) => setCompanyDomain(e.target.value)}
                   className="bg-zinc-900 border-zinc-600 text-zinc-100"
                   disabled={isLoading}
                 />
                 <p className="text-xs text-zinc-500">
-                  Used to generate URLs: www.{companySlug || '...'}.com
+                  Used to generate URLs: www.{companyDomain || '...'}
                 </p>
               </div>
             </div>

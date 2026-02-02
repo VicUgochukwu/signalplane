@@ -33,9 +33,9 @@ const URL_TYPE_LABELS: Record<UrlType, string> = {
   integrations: 'Integrations',
 };
 
-export function generatePageUrl(slug: string, type: UrlType): string {
+export function generatePageUrl(domain: string, type: UrlType): string {
   const path = URL_TYPE_PATHS[type] || '';
-  return `https://www.${slug}.com${path}`;
+  return `https://www.${domain}${path}`;
 }
 
 export function getUrlTypeLabel(type: string): string {
