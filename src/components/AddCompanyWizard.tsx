@@ -79,7 +79,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
     }
 
     if (data && data.length > 0) {
-      setCompanyId(data[0].id);
+      setCompanyId(data[0].company_id);
       initializePages(companySlug);
       setStep('pages');
     }
