@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import MyPages from "./pages/MyPages";
 import Settings from "./pages/Settings";
+import ControlPlane from "./pages/ControlPlane";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/control-plane" element={<ControlPlane />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/my-pages"
