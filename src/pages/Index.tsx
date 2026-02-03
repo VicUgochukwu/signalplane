@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useChangelog } from '@/hooks/useChangelog';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
@@ -7,6 +8,7 @@ import { AuthNavLink } from '@/components/AuthNavLink';
 import { HeroSection } from '@/components/HeroSection';
 import { Footer } from '@/components/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LayoutDashboard } from 'lucide-react';
 
 const Index = () => {
   const { data: entries, isLoading, error } = useChangelog();
@@ -48,7 +50,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-zinc-900">
       <div className="container py-8 space-y-8">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <Link
+            to="/control-plane"
+            className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Control Plane
+          </Link>
           <AuthNavLink />
         </div>
 
