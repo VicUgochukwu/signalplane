@@ -1,6 +1,7 @@
-import { corsHeaders, handleCors } from '../_shared/cors.ts';
+import { corsHeaders, handleCors, getCorsHeaders } from '../_shared/cors.ts';
 import { createSupabaseClient } from '../_shared/supabase.ts';
 import { buildNotionOAuthUrl } from '../_shared/oauth-helpers.ts';
+import { createSignedState } from '../_shared/oauth-state.ts';
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -16,27 +17,22 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
-    const state = btoa(
-      JSON.stringify({
-        user_id: user.id,
-        timestamp: Date.now(),
-        nonce: crypto.randomUUID(),
-      })
-    );
-
-    const authUrl = buildNotionOAuthUrl(state);
+    // Create cryptographically signed state to prevent CSRF/tampering
+    const signedState = await createSignedState(user.id);
+    const authUrl = buildNotionOAuthUrl(signedState);
 
     return new Response(JSON.stringify({ url: authUrl }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    console.error('Notion OAuth start error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to initiate OAuth' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });
