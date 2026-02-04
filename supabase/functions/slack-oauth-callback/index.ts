@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '../_shared/supabase.ts';
+import { verifySignedState } from '../_shared/oauth-state.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -9,17 +10,19 @@ Deno.serve(async (req) => {
     const frontendUrl = Deno.env.get('FRONTEND_URL') || '';
 
     if (error) {
+      console.error('Slack OAuth error from provider:', error);
       return new Response(null, {
         status: 302,
-        headers: { Location: `${frontendUrl}/settings?slack_error=${error}` },
+        headers: { Location: `${frontendUrl}/settings?slack_error=connection_failed` },
       });
     }
 
     if (!code || !state) {
-      throw new Error('Missing code or state');
+      throw new Error('Missing authorization code');
     }
 
-    const stateData = JSON.parse(atob(state));
+    // Verify cryptographic signature and extract user ID
+    const stateData = await verifySignedState(state);
     const userId = stateData.user_id;
 
     // Exchange code for access token
@@ -41,7 +44,8 @@ Deno.serve(async (req) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenData.ok) {
-      throw new Error(tokenData.error || 'Slack OAuth failed');
+      console.error('Slack token exchange failed:', tokenData.error);
+      throw new Error('Token exchange failed');
     }
 
     // Store credentials in delivery_preferences
@@ -75,10 +79,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Slack OAuth callback error:', error);
     const frontendUrl = Deno.env.get('FRONTEND_URL') || '';
+    // Return generic error to avoid information leakage
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `${frontendUrl}/settings?slack_error=${encodeURIComponent((error as Error).message)}`,
+        Location: `${frontendUrl}/settings?slack_error=connection_failed`,
       },
     });
   }
