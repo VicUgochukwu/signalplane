@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserCheck, UserPlus, Shield, ArrowRight } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Users, UserCheck, UserPlus, Shield, ArrowRight, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -21,6 +22,14 @@ interface UserGrowthStats {
 interface DailySignup {
   signup_date: string;
   count: number;
+}
+
+interface SystemSummary {
+  total_apis: number;
+  healthy_apis: number;
+  degraded_apis: number;
+  down_apis: number;
+  avg_response_time_ms: number;
 }
 
 export default function AdminDashboard() {
@@ -45,6 +54,15 @@ export default function AdminDashboard() {
     },
   });
 
+  const { data: systemSummary, isLoading: systemLoading } = useQuery({
+    queryKey: ['admin-system-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_get_system_summary');
+      if (error) throw error;
+      return data as SystemSummary;
+    },
+  });
+
   const statCards = [
     { label: 'Total Users', value: stats?.total_users ?? 0, icon: Users, color: 'text-blue-400' },
     { label: 'Active Users', value: stats?.active_users ?? 0, icon: UserCheck, color: 'text-emerald-400' },
@@ -56,7 +74,12 @@ export default function AdminDashboard() {
     { label: 'Manage Users', to: '/admin/users' },
     { label: 'Feature Flags', to: '/admin/feature-flags' },
     { label: 'Audit Log', to: '/admin/audit-log' },
+    { label: 'System Overview', to: '/admin/system' },
   ];
+
+  const healthPercentage = systemSummary 
+    ? Math.round((systemSummary.healthy_apis / Math.max(systemSummary.total_apis, 1)) * 100)
+    : 0;
 
   return (
     <AdminLayout>
@@ -142,6 +165,65 @@ export default function AdminDashboard() {
             </Link>
           ))}
         </div>
+
+        {/* System Health Summary */}
+        <Card className="bg-zinc-800/50 border-zinc-700">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Activity className="h-5 w-5 text-emerald-400" />
+              System Health
+            </CardTitle>
+            <Link 
+              to="/admin/system" 
+              className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+            >
+              View details <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {systemLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-32 bg-zinc-700" />
+                <Skeleton className="h-2 w-full bg-zinc-700" />
+                <Skeleton className="h-4 w-24 bg-zinc-700" />
+              </div>
+            ) : systemSummary ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-foreground">
+                    {systemSummary.healthy_apis}/{systemSummary.total_apis} APIs healthy
+                  </span>
+                  <span className="text-muted-foreground">{healthPercentage}%</span>
+                </div>
+                <div className="relative h-2 bg-zinc-700 rounded-full overflow-hidden">
+                  <div 
+                    className="absolute left-0 top-0 h-full bg-emerald-500 rounded-full transition-all"
+                    style={{ width: `${(systemSummary.healthy_apis / Math.max(systemSummary.total_apis, 1)) * 100}%` }}
+                  />
+                  <div 
+                    className="absolute top-0 h-full bg-amber-500"
+                    style={{ 
+                      left: `${(systemSummary.healthy_apis / Math.max(systemSummary.total_apis, 1)) * 100}%`,
+                      width: `${(systemSummary.degraded_apis / Math.max(systemSummary.total_apis, 1)) * 100}%` 
+                    }}
+                  />
+                  <div 
+                    className="absolute top-0 h-full bg-red-500 rounded-r-full"
+                    style={{ 
+                      left: `${((systemSummary.healthy_apis + systemSummary.degraded_apis) / Math.max(systemSummary.total_apis, 1)) * 100}%`,
+                      width: `${(systemSummary.down_apis / Math.max(systemSummary.total_apis, 1)) * 100}%` 
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Avg latency: {systemSummary.avg_response_time_ms}ms
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No system data available</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );
