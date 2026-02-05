@@ -20,6 +20,8 @@ import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
 import AdminSystemOverview from "./pages/admin/AdminSystemOverview";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
 import AdminApiHealth from "./pages/admin/AdminApiHealth";
+import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
+import AdminUsageReports from "./pages/admin/AdminUsageReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,6 +91,22 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminApiHealth />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/csv-upload"
+              element={
+                <AdminRoute>
+                  <AdminCsvUpload />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/usage"
+              element={
+                <AdminRoute>
+                  <AdminUsageReports />
                 </AdminRoute>
               }
             />
