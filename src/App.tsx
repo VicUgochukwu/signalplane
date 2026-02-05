@@ -17,6 +17,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
+import AdminSystemOverview from "./pages/admin/AdminSystemOverview";
+import AdminWorkflows from "./pages/admin/AdminWorkflows";
+import AdminApiHealth from "./pages/admin/AdminApiHealth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +65,30 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminFeatureFlags />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/system"
+              element={
+                <AdminRoute>
+                  <AdminSystemOverview />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/workflows"
+              element={
+                <AdminRoute>
+                  <AdminWorkflows />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/api-health"
+              element={
+                <AdminRoute>
+                  <AdminApiHealth />
                 </AdminRoute>
               }
             />

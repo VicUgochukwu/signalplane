@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -12,6 +12,9 @@ const navItems = [
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/feature-flags', label: 'Feature Flags', icon: ToggleLeft },
   { to: '/admin/audit-log', label: 'Audit Log', icon: ScrollText },
+  { to: '/admin/system', label: 'System Overview', icon: Activity },
+  { to: '/admin/workflows', label: 'Workflows', icon: GitBranch },
+  { to: '/admin/api-health', label: 'API Health', icon: Wifi },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
