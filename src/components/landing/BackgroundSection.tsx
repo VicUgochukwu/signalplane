@@ -13,7 +13,7 @@ const skills = [
 
 export function BackgroundSection() {
   return (
-    <section id="background" className="py-20 px-6 border-t border-border">
+ <section id="background" className="py-12 px-6 border-t border-border">
       <div className="max-w-content mx-auto">
         <h2 className="text-xl font-semibold text-foreground mb-8">
           Background
@@ -26,7 +26,7 @@ export function BackgroundSection() {
         </p>
 
         {/* Skills */}
-        <div className="mb-10">
+         <div className="mb-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-4">
             Focus areas
           </h3>

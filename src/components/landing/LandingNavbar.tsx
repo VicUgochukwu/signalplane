@@ -1,11 +1,6 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
-
-const appLinks = [
-  { label: "Messaging Diff", to: "/messaging-diff" },
-  { label: "Control Plane", to: "/control-plane" },
-];
+ import { useState, useEffect } from "react";
+ import { Link } from "react-router-dom";
+ import signalPlaneLogo from "@/assets/signal-plane-logo.png";
 
 const sectionLinks = [
   { label: "Work", href: "#work" },
@@ -34,19 +29,12 @@ export function LandingNavbar() {
     >
       <div className="max-w-content mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="font-mono font-semibold text-foreground">
-          Signal Plane
+           <span className="flex items-center gap-2">
+             <img src={signalPlaneLogo} alt="Signal Plane" className="w-6 h-6" />
+             Signal Plane
+           </span>
         </Link>
         <div className="hidden sm:flex items-center gap-8">
-          {appLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-            >
-              {link.label}
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          ))}
           {sectionLinks.map((link) => (
             <a
               key={link.href}
