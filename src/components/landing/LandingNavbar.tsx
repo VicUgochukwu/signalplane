@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 
-const navLinks = [
+const appLinks = [
+  { label: "Messaging Diff", to: "/messaging-diff" },
+  { label: "Control Plane", to: "/control-plane" },
+];
+
+const sectionLinks = [
   { label: "Work", href: "#work" },
   { label: "Approach", href: "#approach" },
   { label: "Background", href: "#background" },
@@ -31,7 +37,17 @@ export function LandingNavbar() {
           Signal Plane
         </Link>
         <div className="hidden sm:flex items-center gap-8">
-          {navLinks.map((link) => (
+          {appLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+            >
+              {link.label}
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          ))}
+          {sectionLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}

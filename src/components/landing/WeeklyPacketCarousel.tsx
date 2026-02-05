@@ -1,18 +1,102 @@
-import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { ChevronLeft, ChevronRight, TrendingUp, AlertTriangle, MessageSquare, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { packets } from "@/data/packets";
+import { packets as staticPackets, WeeklyPacket } from "@/data/packets";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { ChangelogEntry } from "@/types/changelog";
+import { format, parseISO, addDays } from "date-fns";
 
 const AUTO_ROTATE_INTERVAL = 6000; // 6 seconds
 
-export function WeeklyPacketCarousel() {
+// Map icons for dynamic key shifts
+const shiftIcons = [TrendingUp, AlertTriangle, MessageSquare, Target];
+
+interface WeeklyPacketCarouselProps {
+  entries?: ChangelogEntry[];
+  isLoading?: boolean;
+}
+
+export function WeeklyPacketCarousel({ entries, isLoading }: WeeklyPacketCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Transform real data into packet format or fall back to static
+  const packets = useMemo(() => {
+    if (!entries || entries.length === 0) return staticPackets;
+
+    // Group entries by week
+    const groups: Record<string, ChangelogEntry[]> = {};
+    entries.forEach((entry) => {
+      if (!groups[entry.week_start_date]) {
+        groups[entry.week_start_date] = [];
+      }
+      groups[entry.week_start_date].push(entry);
+    });
+
+    // Transform to packet format
+    return Object.entries(groups)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 6) // Limit to 6 most recent weeks
+      .map(([weekStart, weekEntries], index) => {
+        const weekDate = parseISO(weekStart);
+        const weekEnd = addDays(weekDate, 6);
+        const weekNum = Object.keys(groups).length - index;
+
+        // Get unique companies and tags
+        const companies = [...new Set(weekEntries.map(e => e.company_name))];
+        const tagCounts: Record<string, number> = {};
+        weekEntries.forEach(e => {
+          tagCounts[e.primary_tag] = (tagCounts[e.primary_tag] || 0) + 1;
+        });
+
+        // Get major and moderate changes as key shifts
+        const keyChanges = weekEntries
+          .filter(e => e.change_magnitude === 'major' || e.change_magnitude === 'moderate')
+          .slice(0, 3);
+
+        // Create summary from implications
+        const majorChanges = weekEntries.filter(e => e.change_magnitude === 'major');
+        const summary = majorChanges.length > 0
+          ? majorChanges.slice(0, 2).map(e => e.implication).join(' ')
+          : weekEntries.slice(0, 2).map(e => e.implication).join(' ');
+
+        // Generate open questions from entries
+        const openQuestions = weekEntries
+          .filter(e => e.change_magnitude === 'major')
+          .slice(0, 2)
+          .map(e => `What does ${e.company_name}'s ${e.primary_tag.toLowerCase()} change imply for our positioning?`);
+
+        const packet: WeeklyPacket = {
+          id: index + 1,
+          week: `Week ${weekNum}`,
+          title: `Week of ${format(weekDate, 'MMM d')}: ${companies.slice(0, 2).join(' & ')} Activity`,
+          date: format(weekEnd, 'MMM d, yyyy'),
+          dateRange: `${format(weekDate, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`,
+          status: index === 0 ? 'live' : index < 3 ? 'published' : 'archived',
+          summary: summary || 'Multiple signals detected across tracked competitors.',
+          signalsDetected: weekEntries.length,
+          avgConfidence: Math.round(weekEntries.reduce((acc, e) => acc + e.confidence, 0) / weekEntries.length),
+          keyInsights: Math.min(5, Math.ceil(weekEntries.length / 2)),
+          keyShifts: keyChanges.length > 0 ? keyChanges.map((e, i) => ({
+            icon: shiftIcons[i % shiftIcons.length],
+            text: `${e.company_name}: ${e.diff_summary}`,
+          })) : [{ icon: TrendingUp, text: 'Monitoring ongoing changes across competitors' }],
+          openQuestions: openQuestions.length > 0 ? openQuestions : ['What patterns are emerging across competitors?'],
+          highlights: weekEntries
+            .filter(e => e.change_magnitude === 'major')
+            .slice(0, 3)
+            .map(e => `${e.company_name} ${e.primary_tag.toLowerCase()} update detected`),
+        };
+
+        return packet;
+      });
+  }, [entries]);
+
   const currentPacket = packets[currentIndex];
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === packets.length - 1 ? 0 : prev + 1));
-  }, []);
+  }, [packets.length]);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev === 0 ? packets.length - 1 : prev - 1));
@@ -26,6 +110,25 @@ export function WeeklyPacketCarousel() {
     return () => clearInterval(interval);
   }, [isPaused, goToNext]);
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="h-4 w-32" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-8 w-8 rounded" />
+          </div>
+        </div>
+        <Skeleton className="h-80 w-full rounded-lg" />
+      </div>
+    );
+  }
+
+  const hasRealData = entries && entries.length > 0;
+
   return (
     <div
       className="mb-8"
@@ -35,7 +138,7 @@ export function WeeklyPacketCarousel() {
       {/* Carousel header */}
       <div className="flex items-center justify-between mb-4">
         <p className="font-mono text-sm text-muted-foreground">
-          Sample Weekly Packets
+          {hasRealData ? "Recent Weekly Packets" : "Sample Weekly Packets"}
         </p>
         <div className="flex items-center gap-2">
           <Button

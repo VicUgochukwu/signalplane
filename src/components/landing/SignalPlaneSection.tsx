@@ -1,6 +1,7 @@
 import { ArrowRight, Activity, LineChart, Users, Radar, AlertTriangle, TrendingDown, DollarSign, Shield, Share2, Briefcase } from "lucide-react";
 import { Link } from "react-router-dom";
 import { WeeklyPacketCarousel } from "./WeeklyPacketCarousel";
+import { useChangelog } from "@/hooks/useChangelog";
 
 const coreSignalSources = [
   {
@@ -73,7 +74,7 @@ export function SignalPlaneSection() {
         </div>
 
         {/* Weekly Packet Carousel */}
-        <WeeklyPacketCarousel />
+        <WeeklyPacketCarouselWithData />
 
         {/* Control Plane description */}
         <p className="text-muted-foreground leading-relaxed mb-12 max-w-2xl">
@@ -136,5 +137,17 @@ export function SignalPlaneSection() {
         </Link>
       </div>
     </section>
+  );
+}
+
+// Wrapper component that fetches data and passes to carousel
+function WeeklyPacketCarouselWithData() {
+  const { data: entries, isLoading } = useChangelog();
+  
+  return (
+    <WeeklyPacketCarousel 
+      entries={entries} 
+      isLoading={isLoading} 
+    />
   );
 }
