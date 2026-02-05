@@ -1,4 +1,6 @@
 const ALLOWED_ORIGINS = [
+  'https://signalplane.dev',
+  'https://www.signalplane.dev',
   'https://id-preview--efb47ff1-8e14-4553-be86-98df6575af9e.lovable.app',
   'https://efb47ff1-8e14-4553-be86-98df6575af9e.lovableproject.com',
   'http://localhost:5173',

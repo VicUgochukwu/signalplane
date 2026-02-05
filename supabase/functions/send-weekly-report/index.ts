@@ -40,6 +40,16 @@ Deno.serve(async (req) => {
       throw new Error('week_start_date is required');
     }
 
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(week_start_date)) {
+      throw new Error('week_start_date must be in YYYY-MM-DD format');
+    }
+    const parsedDate = new Date(week_start_date);
+    if (isNaN(parsedDate.getTime())) {
+      throw new Error('week_start_date is not a valid date');
+    }
+
     const supabase = createServiceRoleClient();
 
     // 1. Fetch classified changes for the week
