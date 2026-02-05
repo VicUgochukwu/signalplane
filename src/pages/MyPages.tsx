@@ -26,7 +26,7 @@ const MyPages = () => {
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/messaging-diff')}
             className="text-zinc-400 hover:text-zinc-100"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
