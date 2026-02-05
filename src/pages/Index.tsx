@@ -7,6 +7,7 @@ import { AuthNavLink } from '@/components/AuthNavLink';
 import { HeroSection } from '@/components/HeroSection';
 import { Footer } from '@/components/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppNavigation } from '@/components/control-plane/AppNavigation';
 
 const Index = () => {
   const { data: entries, isLoading, error } = useChangelog();
@@ -47,6 +48,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-zinc-900">
+      <AppNavigation />
       <div className="container py-8 space-y-8">
         <div className="flex items-center justify-end">
           <AuthNavLink />

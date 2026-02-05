@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { BarChart3, FileText, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import signalPlaneLogo from '@/assets/signal-plane-logo.png';
 
 const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: BarChart3 },
@@ -15,8 +16,9 @@ export function AppNavigation() {
     <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container max-w-6xl mx-auto px-4">
         <div className="flex h-14 items-center gap-6">
-          <Link to="/" className="font-semibold text-foreground">
-            Control Plane
+          <Link to="/" className="flex items-center gap-2 font-mono font-semibold text-foreground">
+            <img src={signalPlaneLogo} alt="Signal Plane" className="w-8 h-8" />
+            Signal Plane
           </Link>
           <div className="flex items-center gap-1">
             {navItems.map((item) => {
