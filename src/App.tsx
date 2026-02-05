@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
 import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -12,6 +13,10 @@ import MyPages from "./pages/MyPages";
 import Settings from "./pages/Settings";
 import ControlPlane from "./pages/ControlPlane";
 import Artifacts from "./pages/Artifacts";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminAuditLog from "./pages/admin/AdminAuditLog";
+import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +33,38 @@ const App = () => (
             <Route path="/messaging-diff" element={<Index />} />
             <Route path="/control-plane" element={<ControlPlane />} />
             <Route path="/control-plane/artifacts" element={<Artifacts />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/audit-log"
+              element={
+                <AdminRoute>
+                  <AdminAuditLog />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/feature-flags"
+              element={
+                <AdminRoute>
+                  <AdminFeatureFlags />
+                </AdminRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route
               path="/my-pages"
