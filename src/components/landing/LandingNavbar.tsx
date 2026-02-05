@@ -58,18 +58,20 @@ export function LandingNavbar() {
             </button>
 
             {demosOpen && (
-              <div className="absolute top-full mt-2 bg-card border border-border rounded-lg shadow-lg p-2 min-w-[220px] z-50">
-                {demoItems.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
-                    onClick={() => setDemosOpen(false)}
-                  >
-                    <div className="text-sm font-medium text-foreground">{item.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
-                  </Link>
-                ))}
+              <div className="absolute top-full left-0 pt-2 z-50">
+                <div className="bg-card border border-border rounded-lg shadow-lg p-2 min-w-[220px]">
+                  {demoItems.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
+                      onClick={() => setDemosOpen(false)}
+                    >
+                      <div className="text-sm font-medium text-foreground">{item.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
