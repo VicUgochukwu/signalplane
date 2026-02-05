@@ -80,17 +80,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Send reports
+    // 3. Send personalized reports — each user only gets changes for their tracked companies
     const results = [];
 
     for (const pref of preferences as DeliveryPref[]) {
       try {
+        // Fetch this user's tracked company slugs
+        const { data: trackedPages, error: trackedError } = await supabase
+          .from('tracked_pages')
+          .select('company_slug')
+          .eq('user_id', pref.user_id)
+          .eq('enabled', true)
+          .schema('core');
+
+        if (trackedError) {
+          console.error(`Failed to fetch tracked pages for user ${pref.user_id}:`, trackedError);
+          continue;
+        }
+
+        const userSlugs = new Set(
+          (trackedPages || []).map((tp: { company_slug: string }) => tp.company_slug)
+        );
+
+        // Filter changes to only this user's tracked companies
+        const userChanges = weekChanges.filter((c) => userSlugs.has(c.company_slug));
+
+        if (userChanges.length === 0) {
+          results.push({
+            user_id: pref.user_id,
+            channel: pref.channel_type,
+            status: 'skipped',
+            reason: 'no matching changes',
+          });
+          continue;
+        }
+
         if (pref.channel_type === 'slack') {
-          await sendSlackReport(supabase, pref, weekChanges, week_start_date);
-          results.push({ user_id: pref.user_id, channel: 'slack', status: 'success' });
+          await sendSlackReport(supabase, pref, userChanges, week_start_date);
+          results.push({ user_id: pref.user_id, channel: 'slack', status: 'success', changes_sent: userChanges.length });
         } else if (pref.channel_type === 'notion') {
-          await sendNotionReport(supabase, pref, weekChanges, week_start_date);
-          results.push({ user_id: pref.user_id, channel: 'notion', status: 'success' });
+          await sendNotionReport(supabase, pref, userChanges, week_start_date);
+          results.push({ user_id: pref.user_id, channel: 'notion', status: 'success', changes_sent: userChanges.length });
         }
       } catch (error) {
         console.error(`Failed to send to ${pref.channel_type}:`, error);
