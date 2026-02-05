@@ -13,7 +13,7 @@ const MyPages = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/messaging-diff');
   };
 
   const handleFormSuccess = () => {
@@ -30,7 +30,7 @@ const MyPages = () => {
             className="text-zinc-400 hover:text-zinc-100"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Changelog
+            Back to Feed
           </Button>
 
           <div className="flex items-center gap-4">

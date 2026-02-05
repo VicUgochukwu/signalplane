@@ -62,11 +62,11 @@ const Login = () => {
       <div className="w-full max-w-md space-y-4">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/messaging-diff')}
           className="text-zinc-400 hover:text-zinc-100"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Changelog
+          Back to Feed
         </Button>
 
         <Card className="bg-zinc-800 border-zinc-700">

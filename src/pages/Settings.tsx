@@ -51,7 +51,7 @@ const Settings = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/messaging-diff');
   };
 
   return (
