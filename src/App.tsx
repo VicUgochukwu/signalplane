@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import MyPages from "./pages/MyPages";
 import Settings from "./pages/Settings";
 import ControlPlane from "./pages/ControlPlane";
+import Artifacts from "./pages/Artifacts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/messaging-diff" element={<Index />} />
             <Route path="/control-plane" element={<ControlPlane />} />
+            <Route path="/control-plane/artifacts" element={<Artifacts />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/my-pages"
