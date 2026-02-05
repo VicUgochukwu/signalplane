@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogOut, ArrowLeft } from 'lucide-react';
 import { DeliveryIntegrations } from '@/components/DeliveryIntegrations';
 import { useEffect } from 'react';
@@ -10,44 +10,43 @@ const Settings = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-
-    if (params.get('slack_success')) {
+    if (searchParams.get('slack_success')) {
       toast({
         title: 'Slack Connected',
         description: 'Your Slack workspace has been connected successfully.',
       });
-      window.history.replaceState({}, '', '/settings');
+      setSearchParams({});
     }
 
-    if (params.get('slack_error')) {
+    if (searchParams.get('slack_error')) {
       toast({
         title: 'Slack Connection Failed',
-        description: params.get('slack_error') || 'Unable to connect to Slack',
+        description: searchParams.get('slack_error') || 'Unable to connect to Slack',
         variant: 'destructive',
       });
-      window.history.replaceState({}, '', '/settings');
+      setSearchParams({});
     }
 
-    if (params.get('notion_success')) {
+    if (searchParams.get('notion_success')) {
       toast({
         title: 'Notion Connected',
         description: 'Your Notion workspace has been connected successfully.',
       });
-      window.history.replaceState({}, '', '/settings');
+      setSearchParams({});
     }
 
-    if (params.get('notion_error')) {
+    if (searchParams.get('notion_error')) {
       toast({
         title: 'Notion Connection Failed',
-        description: params.get('notion_error') || 'Unable to connect to Notion',
+        description: searchParams.get('notion_error') || 'Unable to connect to Notion',
         variant: 'destructive',
       });
-      window.history.replaceState({}, '', '/settings');
+      setSearchParams({});
     }
-  }, [toast]);
+  }, [toast, searchParams, setSearchParams]);
 
   const handleSignOut = async () => {
     await signOut();
