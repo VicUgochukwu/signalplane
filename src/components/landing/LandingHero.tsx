@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import victorProfile from "@/assets/victor-profile.jpeg";
+import victorProfile from "@/assets/victor-profile.png";
 
 export function LandingHero() {
   return (
