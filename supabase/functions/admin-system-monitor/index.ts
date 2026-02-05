@@ -134,6 +134,20 @@ async function authenticateRequest(
     return { authType: 'n8n' };
   }
 
+  // Check for service_role JWT (internal/CLI calls)
+  const authHeader = req.headers.get('Authorization');
+  if (authHeader) {
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role === 'service_role') {
+        return { authType: 'n8n' }; // Treat service_role as trusted like n8n
+      }
+    } catch {
+      // Not a valid JWT, continue to user auth
+    }
+  }
+
   // Check admin JWT
   const supabase = createSupabaseClient(req);
   const {
