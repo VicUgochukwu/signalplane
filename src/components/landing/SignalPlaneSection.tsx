@@ -39,7 +39,7 @@ export function SignalPlaneSection() {
         {/* Section header */}
          <div className="mb-8">
           <h2 className="font-mono text-2xl font-bold text-foreground mb-3">
-            Signal Plane
+            Control Plane
           </h2>
           <p className="text-muted-foreground max-w-2xl">
              12+ live systems feeding one weekly decision packet. Signals detected, ranked, synthesized, and turned into artifacts your team can use Monday morning.

@@ -20,7 +20,7 @@ export function BackgroundSection() {
         </h2>
 
         <p className="text-muted-foreground leading-relaxed mb-8 max-w-2xl">
-          10+ years in B2B marketing and product marketing across SaaS, developer tools,
+          6+ years in B2B marketing and product marketing across SaaS, developer tools,
           and enterprise software. Experience spans early-stage startups through scaled
           GTM organizations. Based in Lagos, Nigeria, working remotely with global teams.
         </p>
