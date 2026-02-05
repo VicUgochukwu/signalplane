@@ -30,7 +30,7 @@ export function LandingNavbar() {
       <div className="max-w-content mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="font-mono font-semibold text-foreground">
            <span className="flex items-center gap-2">
-             <img src={signalPlaneLogo} alt="Signal Plane" className="w-6 h-6" />
+             <img src={signalPlaneLogo} alt="Signal Plane" className="w-10 h-10" />
              Signal Plane
            </span>
         </Link>
