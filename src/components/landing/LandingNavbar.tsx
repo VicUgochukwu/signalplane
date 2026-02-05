@@ -27,7 +27,7 @@ export function LandingNavbar() {
         scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : ""
       }`}
     >
-      <div className="max-w-content mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="font-mono font-semibold text-foreground">
            <span className="flex items-center gap-3">
              <img src={signalPlaneLogo} alt="Signal Plane" className="w-14 h-14" />

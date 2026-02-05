@@ -18,7 +18,7 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       maxWidth: {
-        'content': '800px',
+        'content': '1100px',
       },
       colors: {
         border: "hsl(var(--border))",
