@@ -1,16 +1,32 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import signalPlaneLogo from "@/assets/signal-plane-logo.png";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const demoItems = [
   { to: "/control-plane", label: "Control Plane", subtitle: "Weekly intel packets" },
   { to: "/messaging-diff", label: "Messaging Diff", subtitle: "Competitor tracking" },
 ];
 
+const anchorLinks = [
+  { label: "Work", href: "#work" },
+  { label: "Approach", href: "#approach" },
+  { label: "Background", href: "#background" },
+  { label: "Contact", href: "#contact" },
+];
+
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [demosOpen, setDemosOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileDemosOpen, setMobileDemosOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +36,11 @@ export function LandingNavbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setMobileDemosOpen(false);
+  };
 
   return (
     <nav
@@ -34,6 +55,8 @@ export function LandingNavbar() {
              <span className="text-lg">Signal Plane</span>
            </span>
         </Link>
+
+        {/* Desktop Navigation */}
         <div className="hidden sm:flex items-center gap-8">
           {/* Work link */}
           <a
@@ -96,6 +119,69 @@ export function LandingNavbar() {
             Contact
           </a>
         </div>
+
+        {/* Mobile Hamburger Menu */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <button className="sm:hidden p-2 text-foreground hover:bg-muted rounded-md transition-colors">
+              <Menu className="w-6 h-6" />
+              <span className="sr-only">Open menu</span>
+            </button>
+          </SheetTrigger>
+          <SheetContent side="top" className="bg-background border-border">
+            <SheetHeader>
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            </SheetHeader>
+            <nav className="flex flex-col gap-2 mt-4">
+              {/* Work */}
+              <a
+                href="#work"
+                onClick={closeMobileMenu}
+                className="px-4 py-3 text-foreground hover:bg-muted rounded-md transition-colors"
+              >
+                Work
+              </a>
+
+              {/* Live Demos accordion */}
+              <div>
+                <button
+                  onClick={() => setMobileDemosOpen(!mobileDemosOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <span>Live Demos</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${mobileDemosOpen ? "rotate-180" : ""}`} />
+                </button>
+                {mobileDemosOpen && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {demoItems.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={closeMobileMenu}
+                        className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
+                      >
+                        <div className="text-sm font-medium text-foreground">{item.label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Remaining anchor links */}
+              {anchorLinks.slice(1).map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMobileMenu}
+                  className="px-4 py-3 text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );

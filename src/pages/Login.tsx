@@ -20,7 +20,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/my-pages', { replace: true });
+      navigate('/my-pages');
     }
   }, [user, loading, navigate]);
 
