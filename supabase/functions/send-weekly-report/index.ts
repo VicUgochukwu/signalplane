@@ -87,11 +87,11 @@ Deno.serve(async (req) => {
       try {
         // Fetch this user's tracked company slugs
         const { data: trackedPages, error: trackedError } = await supabase
+          .schema('core')
           .from('tracked_pages')
           .select('company_slug')
           .eq('user_id', pref.user_id)
-          .eq('enabled', true)
-          .schema('core');
+          .eq('enabled', true);
 
         if (trackedError) {
           console.error(`Failed to fetch tracked pages for user ${pref.user_id}:`, trackedError);
