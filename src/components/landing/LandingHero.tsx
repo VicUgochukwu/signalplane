@@ -3,7 +3,7 @@ import victorProfile from "@/assets/victor-profile.jpeg";
 
 export function LandingHero() {
   return (
-    <section className="pt-32 pb-20 px-6">
+ <section className="pt-32 pb-12 px-6">
       <div className="max-w-content mx-auto">
         <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
           {/* Text content */}
@@ -12,10 +12,10 @@ export function LandingHero() {
               Victor Ugochukwu
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8">
-              I build systems that turn public signals into weekly GTM decisions.
-              Competitive shifts, narrative drift, ICP changes, pricing moves,
-              launch patterns, hiring signals — tracked, classified, and synthesized
-              so teams stop guessing.
+               I build systems that turn public signals into weekly GTM decisions and operational artifacts.
+             </p>
+             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8">
+               Competitive shifts, narrative drift, ICP changes, pricing moves, objection patterns, hiring signals — detected, synthesized, and turned into battlecards, objection libraries, and buyer language files so teams act instead of guess.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <Button asChild size="lg">

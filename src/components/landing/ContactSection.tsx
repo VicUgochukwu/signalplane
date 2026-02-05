@@ -1,5 +1,4 @@
-import { Mail, Linkedin, Calendar } from "lucide-react";
-import { InlineWidget } from "react-calendly";
+ import { Mail, Linkedin, Calendar } from "lucide-react";
 
 const contactMethods = [
   {
@@ -14,11 +13,17 @@ const contactMethods = [
     value: "Connect on LinkedIn",
     href: "https://linkedin.com/in/victor-ugochukwu",
   },
+   {
+     icon: Calendar,
+     label: "Book a call",
+     value: "Schedule on Calendly",
+     href: "https://calendly.com/victorugochukwu",
+   },
 ];
 
 export function ContactSection() {
   return (
-    <section id="contact" className="py-20 px-6 border-t border-border">
+     <section id="contact" className="py-12 px-6 border-t border-border">
       <div className="max-w-content mx-auto text-center">
         <h2 className="text-2xl font-semibold text-foreground mb-4">
           Let's talk
@@ -27,7 +32,7 @@ export function ContactSection() {
           If this is the kind of thinking your team needs, I'd like to hear what you're building.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
+         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           {contactMethods.map((method) => (
             <a
               key={method.label}
@@ -40,20 +45,6 @@ export function ContactSection() {
               <span className="text-foreground">{method.label}</span>
             </a>
           ))}
-        </div>
-
-        {/* Calendly embed using official React component */}
-        <div className="mt-8">
-          <h3 className="text-lg font-medium text-foreground mb-4 flex items-center justify-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            Book a call
-          </h3>
-          <div className="rounded-lg overflow-hidden">
-            <InlineWidget
-              url="https://calendly.com/victorugochukwu"
-              styles={{ height: '700px', minWidth: '320px' }}
-            />
-          </div>
         </div>
       </div>
     </section>

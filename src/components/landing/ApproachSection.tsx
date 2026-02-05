@@ -1,16 +1,14 @@
 const principles = [
   "Competitive intelligence should be infrastructure, not a quarterly deck that goes stale the week it ships.",
-  "I default to evidence over instinct, and I build systems that enforce that default at the workflow level.",
-  "The best PMM work is invisible. If the sales team and the exec team are making better decisions and they are not sure why, positioning is doing its job.",
   "I treat every claim as a hypothesis. If it cannot be traced to a source, it does not go in the packet.",
   "Shipping matters more than planning. I would rather show you a working system on Tuesday than a strategy deck on Friday.",
 ];
 
 export function ApproachSection() {
   return (
-    <section id="approach" className="py-20 px-6 border-t border-border">
+ <section id="approach" className="py-12 px-6 border-t border-border">
       <div className="max-w-content mx-auto">
-        <h2 className="text-xl font-semibold text-foreground mb-10">
+         <h2 className="text-xl font-semibold text-foreground mb-8">
           How I think about GTM
         </h2>
 

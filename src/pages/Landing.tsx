@@ -1,7 +1,6 @@
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { SignalPlaneSection } from "@/components/landing/SignalPlaneSection";
-import { BuildingNowSection } from "@/components/landing/BuildingNowSection";
 import { ApproachSection } from "@/components/landing/ApproachSection";
 import { BackgroundSection } from "@/components/landing/BackgroundSection";
 import { ContactSection } from "@/components/landing/ContactSection";
@@ -20,9 +19,6 @@ const Landing = () => {
         </div>
         <div className="animate-on-scroll">
           <SignalPlaneSection />
-        </div>
-        <div className="animate-on-scroll">
-          <BuildingNowSection />
         </div>
         <div className="animate-on-scroll">
           <ApproachSection />
