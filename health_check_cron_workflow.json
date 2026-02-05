@@ -1,0 +1,141 @@
+{
+  "name": "Health Check Cron (Every 3 Hours)",
+  "active": false,
+  "tags": [],
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 3 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/functions/v1/admin-system-monitor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret",
+              "value": "<N8N_WEBHOOK_SECRET>"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"action\": \"run_health_checks\"}",
+        "options": {
+          "timeout": 30000,
+          "neverError": true
+        }
+      },
+      "id": "http-health-check",
+      "name": "Run Health Checks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-http-success",
+              "leftValue": "={{ $json.statusCode || 200 }}",
+              "rightValue": 299,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-response",
+      "name": "Response OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [600, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log successful health check\nconst data = $('Run Health Checks').first().json;\nconst results = data.data || [];\nconst summary = results.map(r => `${r.api_slug}: ${r.status} (${r.response_time_ms}ms)`).join(', ');\nconsole.log(`Health checks passed: ${summary}`);\nreturn [{ json: { success: true, timestamp: new Date().toISOString(), summary, results } }];"
+      },
+      "id": "log-success",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log failed health check for investigation\nconst data = $('Run Health Checks').first().json;\nconsole.error('Health check failed:', JSON.stringify(data));\nreturn [{ json: { success: false, timestamp: new Date().toISOString(), error: data.error || 'Unknown error', raw: data } }];"
+      },
+      "id": "log-failure",
+      "name": "Log Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    }
+  ],
+  "connections": {
+    "Every 3 Hours": {
+      "main": [
+        [{ "node": "Run Health Checks", "type": "main", "index": 0 }]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [{ "node": "Run Health Checks", "type": "main", "index": 0 }]
+      ]
+    },
+    "Run Health Checks": {
+      "main": [
+        [{ "node": "Response OK?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Response OK?": {
+      "main": [
+        [{ "node": "Log Success", "type": "main", "index": 0 }],
+        [{ "node": "Log Failure", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 3600
+  },
+  "staticData": null,
+  "triggerCount": 2
+}
