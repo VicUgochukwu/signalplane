@@ -55,11 +55,11 @@ const ControlPlane = () => {
       <div className="container py-8 space-y-8">
         <div className="flex items-center justify-between">
           <Link
-            to="/messaging-diff"
+            to="/"
             className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Feed
+            Back to Signal Plane
           </Link>
           <AuthNavLink />
         </div>
