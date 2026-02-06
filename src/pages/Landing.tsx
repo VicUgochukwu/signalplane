@@ -9,7 +9,7 @@ import { ArtifactsSection } from "@/components/landing/ArtifactsSection";
 import { CompoundingSection } from "@/components/landing/CompoundingSection";
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { ApproachSection } from "@/components/landing/ApproachSection";
-import { BackgroundSection } from "@/components/landing/BackgroundSection";
+import { AboutSection } from "@/components/landing/AboutSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
