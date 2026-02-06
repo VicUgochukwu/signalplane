@@ -18,7 +18,7 @@ const demoItems = [
 const anchorLinks = [
   { label: "Intelligence", href: "#intelligence" },
   { label: "Approach", href: "#approach" },
-  { label: "Background", href: "#background" },
+  { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
 ];
 
