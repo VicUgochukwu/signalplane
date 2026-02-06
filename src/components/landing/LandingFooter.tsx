@@ -1,4 +1,4 @@
-import signalPlaneLogo from "@/assets/signal-plane-logo.png";
+import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 
 export function LandingFooter() {
   return (
