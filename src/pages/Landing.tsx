@@ -1,6 +1,10 @@
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
-import { LandingHero } from "@/components/landing/LandingHero";
-import { SignalPlaneSection } from "@/components/landing/SignalPlaneSection";
+import { ProductHero } from "@/components/landing/ProductHero";
+import { ArchitectBar } from "@/components/landing/ArchitectBar";
+import { WeeklyPacketSection } from "@/components/landing/WeeklyPacketSection";
+import { IntelligenceEngineSection } from "@/components/landing/IntelligenceEngineSection";
+import { ArtifactsSection } from "@/components/landing/ArtifactsSection";
+import { CompoundingSection } from "@/components/landing/CompoundingSection";
 import { ApproachSection } from "@/components/landing/ApproachSection";
 import { BackgroundSection } from "@/components/landing/BackgroundSection";
 import { ContactSection } from "@/components/landing/ContactSection";
@@ -15,10 +19,22 @@ const Landing = () => {
       <LandingNavbar />
       <main>
         <div className="animate-on-scroll">
-          <LandingHero />
+          <ProductHero />
         </div>
         <div className="animate-on-scroll">
-          <SignalPlaneSection />
+          <ArchitectBar />
+        </div>
+        <div className="animate-on-scroll">
+          <WeeklyPacketSection />
+        </div>
+        <div className="animate-on-scroll">
+          <IntelligenceEngineSection />
+        </div>
+        <div className="animate-on-scroll">
+          <ArtifactsSection />
+        </div>
+        <div className="animate-on-scroll">
+          <CompoundingSection />
         </div>
         <div className="animate-on-scroll">
           <ApproachSection />
