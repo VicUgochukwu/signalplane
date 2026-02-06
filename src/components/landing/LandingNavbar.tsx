@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, Menu } from "lucide-react";
-import signalPlaneLogo from "@/assets/signal-plane-logo.png";
+import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 import {
   Sheet,
   SheetContent,
