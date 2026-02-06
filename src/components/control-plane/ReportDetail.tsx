@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ArrowLeft, Radio, Zap, Shield, HelpCircle, Lightbulb, Crosshair, TrendingUp, Globe, Target } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { MarketWinnersCard } from './MarketWinnersCard';
+import { MarketWinner } from '@/types/controlPlane';
 
 interface ReportDetailProps {
   report: IntelPacket;
@@ -261,6 +263,14 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             </ul>
           </CardContent>
         </Card>
+      )}
+
+      {/* Market Winners */}
+      {report.market_winners && (
+        <MarketWinnersCard 
+          proven={report.market_winners.proven || []}
+          emerging={report.market_winners.emerging || []}
+        />
       )}
     </div>
   );

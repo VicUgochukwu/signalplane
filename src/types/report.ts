@@ -1,3 +1,5 @@
+import { MarketWinner } from './controlPlane';
+
 export type PacketStatus = 'live' | 'published' | 'draft' | 'archived';
 
 export interface IntelSection {
@@ -9,6 +11,11 @@ export interface Bet {
   hypothesis: string;
   confidence: number; // 0-100
   signal_ids: string[];
+}
+
+export interface MarketWinnersData {
+  proven: MarketWinner[];
+  emerging: MarketWinner[];
 }
 
 export interface IntelPacket {
@@ -23,6 +30,7 @@ export interface IntelPacket {
   bets: Bet[];
   status: PacketStatus;
   created_at: string;
+  market_winners?: MarketWinnersData;
   metrics?: {
     signals_detected?: number;
     confidence_score?: number;

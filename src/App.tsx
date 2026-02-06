@@ -22,6 +22,7 @@ import AdminWorkflows from "./pages/admin/AdminWorkflows";
 import AdminApiHealth from "./pages/admin/AdminApiHealth";
 import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
 import AdminUsageReports from "./pages/admin/AdminUsageReports";
+import AdminCostDashboard from "./pages/admin/AdminCostDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -107,6 +108,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminUsageReports />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/costs"
+              element={
+                <AdminRoute>
+                  <AdminCostDashboard />
                 </AdminRoute>
               }
             />
