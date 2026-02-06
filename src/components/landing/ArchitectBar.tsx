@@ -18,8 +18,8 @@ export function ArchitectBar() {
             <span className="text-muted-foreground">Signal Plane</span>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground text-center sm:text-right">
-          Open to senior PMM, GTM strategy & fractional roles
+        <p className="font-mono text-xs uppercase tracking-wider text-primary/60 text-center sm:text-right">
+          GTM Decision Infrastructure
         </p>
       </div>
     </div>

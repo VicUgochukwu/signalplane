@@ -29,12 +29,12 @@ const faqs = [
   {
     question: "Is AI involved? How much is automated vs. human judgment?",
     answer:
-      "Control Plane uses Claude (Anthropic's AI) for signal analysis and synthesis within each workflow. The scoring formula, category caps, and decision routing are deterministic — they follow fixed rules, not AI guesswork. The AI generates the narrative synthesis (the executive summary, the interpretation of what a signal means). The human judgment comes from Victor, who designed the scoring weights, the category structure, and the editorial standards. The system is automated infrastructure with human-designed editorial judgment built in.",
+      "Control Plane uses LLM Agents for signal analysis and synthesis within each workflow. The scoring formula, category caps, and decision routing are deterministic — they follow fixed rules, not AI guesswork. The AI generates the narrative synthesis (the executive summary, the interpretation of what a signal means). The human judgment comes in, and can be customized based on preference covering the scoring weights, the category structure, and the editorial standards. The system is automated infrastructure with human-designed editorial judgment built in.",
   },
   {
-    question: "One person built and operates this. What happens if I need it for my team?",
+    question: "How do I bring Control Plane to my team?",
     answer:
-      "That's the fractional consulting offer. Victor can stand up a Control Plane instance for your GTM team in 60 days. Week 1, you get your first competitive messaging snapshot. By week 8, you have a self-running intelligence product producing weekly packets, auto-updating battlecards, and a prediction accuracy record. The system runs autonomously after setup — it doesn't require a full-time operator.",
+      "Signal Plane can stand up a Control Plane instance for your GTM team in 60 days. Week 1, you get your first competitive messaging snapshot. By week 8, you have a self-running intelligence product producing weekly packets, auto-updating battlecards, and a prediction accuracy record. The system runs autonomously after setup — it does not require a full-time operator.",
   },
   {
     question: "Can I see a sample decision packet?",
@@ -42,9 +42,9 @@ const faqs = [
       "Yes. Scroll up to the Weekly Decision Packet section and browse through sample packets. You can also view all published packets on the Control Plane page. The packets show real structure: executive summary, key shifts, open questions, 90-day hypotheses, and signal detail. The format is what your team would receive every Monday.",
   },
   {
-    question: "What's the tech stack?",
+    question: "How does internal company data plug in?",
     answer:
-      "React and TypeScript frontend, Supabase (PostgreSQL) for persistence and auth, n8n for workflow orchestration, Anthropic Claude for AI-powered analysis, and Tailwind CSS with shadcn/ui for the interface. The signal scoring engine, decision routing, and artifact builders are custom-built. The full system is approximately 33,000 lines of code across 289 files.",
+      "Control Plane synthesizes data packets from its different systems. It can plug into your existing CRM and knowledge base setups. Your internal data becomes one of the input packets that feeds Control Plane. This means that beyond the customization you get from Control Plane based on your settings, its output is entirely customized to your needs and becomes even more unique and relevant due to your internal data packets.",
   },
 ];
 

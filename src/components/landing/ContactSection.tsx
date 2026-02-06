@@ -25,23 +25,23 @@ export function ContactSection() {
   return (
     <section id="contact" className="py-12 px-6 border-t border-border">
       <div className="max-w-content mx-auto">
-        {/* Fractional consulting callout */}
+        {/* Consultation callout */}
         <div className="bg-card border border-primary/30 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-semibold text-foreground mb-3">
-            Bring Control Plane to your team
+            Bring Control Plane to Your Team
           </h3>
           <p className="text-muted-foreground leading-relaxed">
-            I can stand up Control Plane for your GTM team in 60 days. Week 1, you get your first competitive messaging snapshot. By week 8, you have a self-running intelligence product producing weekly packets, auto-updating battlecards, and a prediction accuracy record.
+            Signal Plane can stand up Control Plane for your GTM team in 60 days. Week 1, your first competitive messaging snapshot. By week 8, a self-running intelligence product producing weekly packets, auto-updating battlecards, and a prediction accuracy record.
           </p>
         </div>
 
         {/* Contact methods */}
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-foreground mb-4">
-            Let's talk
+            Get in Touch
           </h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            If this is the kind of thinking your team needs, I'd like to hear what you're building.
+            Ready to bring evidence-grade competitive intelligence to your team? Reach out to discuss how Control Plane can support your GTM strategy.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
