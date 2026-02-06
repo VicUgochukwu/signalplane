@@ -18,7 +18,7 @@ const demoItems = [
 const anchorLinks = [
   { label: "Intelligence", href: "#intelligence" },
   { label: "Approach", href: "#approach" },
-  { label: "Background", href: "#background" },
+  { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -107,10 +107,10 @@ export function LandingNavbar() {
             Approach
           </a>
           <a
-            href="#background"
+            href="#faq"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Background
+            FAQ
           </a>
           <a
             href="#contact"
