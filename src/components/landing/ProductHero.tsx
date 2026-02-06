@@ -17,8 +17,8 @@ export function ProductHero() {
           <Button asChild size="lg">
             <a href="#intelligence">See the intelligence</a>
           </Button>
-          <Button variant="outline" size="lg" asChild>
-            <a href="#contact">Talk to Victor</a>
+        <Button variant="outline" size="lg" asChild>
+            <a href="#contact">Request a Demo</a>
           </Button>
         </div>
       </div>

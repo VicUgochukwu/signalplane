@@ -49,7 +49,7 @@ const Landing = () => {
           <ApproachSection />
         </div>
         <div className="animate-on-scroll">
-          <BackgroundSection />
+          <AboutSection />
         </div>
         <div className="animate-on-scroll">
           <FAQSection />
