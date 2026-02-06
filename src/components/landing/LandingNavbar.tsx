@@ -107,10 +107,10 @@ export function LandingNavbar() {
             Approach
           </a>
           <a
-            href="#background"
+            href="#faq"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Background
+            FAQ
           </a>
           <a
             href="#contact"
