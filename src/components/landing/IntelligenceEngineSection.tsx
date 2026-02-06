@@ -77,7 +77,7 @@ export function IntelligenceEngineSection() {
             Control Plane's Intelligence Engine
           </h2>
           <p className="text-muted-foreground max-w-2xl leading-relaxed">
-            10 automated systems feeding the weekly packet. Four core monitors run the primary intelligence loop. Six extended systems add depth and compounding value.
+            12+ automated systems feeding the weekly packet. Four core monitors run the primary intelligence loop. Six extended systems add depth and compounding value.
           </p>
         </div>
 

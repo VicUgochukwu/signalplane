@@ -11,7 +11,7 @@ export function ProductHero() {
           Control Plane replaces hearsay with evidence.
         </p>
         <p className="text-lg text-muted-foreground max-w-2xl mb-8 leading-relaxed">
-          10 automated monitors. One weekly decision packet. Every claim evidence-linked. Every prediction tracked.
+          12+ automated monitors. One weekly decision packet. Every claim evidence-linked. Every prediction tracked.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button asChild size="lg">
