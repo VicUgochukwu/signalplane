@@ -5,6 +5,7 @@ import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { UserMenu } from './UserMenu';
 
 const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: BarChart3 },
@@ -80,6 +81,11 @@ export function AppNavigation() {
             </div>
             <ScrollBar orientation="horizontal" className="invisible" />
           </ScrollArea>
+
+          {/* User menu - avatar dropdown with settings, my pages, sign out */}
+          <div className="flex-shrink-0">
+            <UserMenu />
+          </div>
         </div>
       </div>
     </nav>
