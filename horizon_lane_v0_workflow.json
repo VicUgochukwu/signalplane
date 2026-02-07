@@ -1,0 +1,706 @@
+{
+  "name": "Horizon_Lane_v0 (Anthropic)",
+  "active": false,
+  "tags": [],
+  "nodes": [
+    {
+      "name": "Cron Daily 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Load Enabled Horizon Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id as source_id, name, source_type, channel, feed_url, tags, domain_focus, cadence, trust_weight, noise_level, keywords\nFROM horizon.sources\nWHERE enabled = true;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "name": "Split Sources",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        200
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "name": "Should Run Today?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// cadence gating:\n// - daily: run every day\n// - weekly: run Monday\n// - 2x_weekly: run Monday + Thursday\nconst d = new Date();\nconst day = d.getDay(); // 0 Sun ... 1 Mon ... 4 Thu\nconst cadence = ($json.cadence || 'weekly').toLowerCase();\nlet shouldRun = false;\nif (cadence === 'daily') shouldRun = true;\nif (cadence === 'weekly') shouldRun = (day === 1);\nif (cadence === '2x_weekly' || cadence === '2x-weekly' || cadence === 'twice_weekly') shouldRun = (day === 1 || day === 4);\nreturn [{...$json, shouldRun}];\n"
+      }
+    },
+    {
+      "name": "IF shouldRun",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.shouldRun}}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Switch by Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        200
+      ],
+      "parameters": {
+        "value1": "={{$json.channel}}",
+        "rules": [
+          {
+            "operation": "equal",
+            "value2": "rss"
+          },
+          {
+            "operation": "equal",
+            "value2": "url"
+          },
+          {
+            "operation": "equal",
+            "value2": "api"
+          },
+          {
+            "operation": "equal",
+            "value2": "email"
+          },
+          {
+            "operation": "equal",
+            "value2": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        60
+      ],
+      "parameters": {
+        "url": "={{$json.feed_url}}"
+      }
+    },
+    {
+      "name": "Normalize RSS Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        60
+      ],
+      "parameters": {
+        "jsCode": "// Map RSS items to per-item records with the source context.\nconst src = $json;\n// rssFeedRead outputs items in $items() context; use all incoming items.\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  out.push({\n    source_id: src.source_id,\n    source_name: src.name,\n    source_type: src.source_type,\n    channel: src.channel,\n    tags: src.tags,\n    domain_focus: src.domain_focus,\n    title: j.title || null,\n    url: j.link || j.url || null,\n    published_at: j.isoDate || j.pubDate || null,\n    content_text: (j.contentSnippet || j.content || j.summary || '').toString().slice(0, 20000),\n    raw: j\n  });\n}\nreturn out.map(x => ({json: x}));\n"
+      }
+    },
+    {
+      "name": "Fetch URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        200
+      ],
+      "parameters": {
+        "url": "={{$json.feed_url}}",
+        "responseFormat": "string",
+        "options": {
+          "timeout": 60000,
+          "followRedirect": true
+        }
+      }
+    },
+    {
+      "name": "HTML → Text (simple)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// Lightweight HTML to text: remove scripts/styles/tags, collapse whitespace.\nconst html = ($json.body || '').toString();\nconst src = $json;\nconst stripped = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<noscript[\\s\\S]*?<\\/noscript>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 20000);\nreturn [{\n  ...src,\n  title: src.name,\n  url: src.feed_url,\n  published_at: null,\n  content_text: stripped,\n  raw: { fetched_url: src.feed_url }\n}];\n"
+      }
+    },
+    {
+      "name": "IF API URL is concrete",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        340
+      ],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.feed_url}}",
+              "operation": "notContains",
+              "value2": "{company}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Fetch API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        340
+      ],
+      "parameters": {
+        "url": "={{$json.feed_url}}",
+        "responseFormat": "json",
+        "options": {
+          "timeout": 60000,
+          "followRedirect": true
+        }
+      }
+    },
+    {
+      "name": "API → Text Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        340
+      ],
+      "parameters": {
+        "jsCode": "// Store as a snapshot item (hash will dedupe if unchanged).\nconst src = $json;\nconst payload = src.body ?? src;\nconst text = JSON.stringify(payload).slice(0, 20000);\nreturn [{\n  ...src,\n  title: src.name,\n  url: src.feed_url,\n  published_at: null,\n  content_text: text,\n  raw: payload\n}];\n"
+      }
+    },
+    {
+      "name": "Compute Item Hash",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        200
+      ],
+      "parameters": {
+        "operation": "hash",
+        "type": "sha256",
+        "value": "={{JSON.stringify({t:$json.title,u:$json.url,p:$json.published_at,c:$json.content_text}).slice(0,50000)}}"
+      }
+    },
+    {
+      "name": "Upsert horizon.items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2440,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO horizon.items (source_id, published_at, title, url, content_text, raw, item_hash)\nVALUES ('{{ $json.source_id }}', {{ $json.published_at ? \"'\" + $json.published_at + \"'\" : 'NULL' }}, '{{ $json.title?.replace(/'/g, \"''\") }}', '{{ $json.url?.replace(/'/g, \"''\") || '' }}', '{{ ($json.content_text || '').replace(/'/g, \"''\").slice(0, 20000) }}', '{{ JSON.stringify($json.raw || {}).replace(/'/g, \"''\") }}'::jsonb, '{{ $json.hash }}')\nON CONFLICT (source_id, item_hash) DO NOTHING\nRETURNING id as item_id;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "name": "IF Inserted New Item",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.item_id}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Anthropic Classify (Messages API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "options": {
+          "timeout": 60000
+        },
+        "headerParametersJson": "{\"x-api-key\": \"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\", \"anthropic-version\": \"2023-06-01\", \"content-type\": \"application/json\"}",
+        "bodyParametersJson": "={{{\n  \"model\": \"claude-3-5-sonnet-latest\",\n  \"max_tokens\": 700,\n  \"temperature\": 0,\n  \"system\": \"You are classifying horizon monitoring items for a GTM/PMM control plane. Output must be strict JSON only.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Classify this item into exactly one category: platform_shift | distribution_shift | buyer_risk | category_formation.\\n\\nRules:\\n- Strict JSON only (no markdown).\\n- Observational, no recommendations.\\n- Provide: category (string), severity (1-5 int), title (short), summary (1-2 sentences), evidence_urls (string array).\\n\\nContext:\\nsource_name: {{$json.source_name}}\\nsource_type: {{$json.source_type}}\\ntags: {{$json.tags}}\\nurl: {{$json.url}}\\n\\ncontent_text:\\n{{$json.content_text}}\\n\"\n        }\n      ]\n    }\n  ]\n}}"
+      }
+    },
+    {
+      "name": "Parse Anthropic JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// Anthropic returns: { content: [ { type:'text', text:'{...json...}' } ], ... }\nconst resp = $json;\nconst text = (resp.content && resp.content[0] && resp.content[0].text) ? resp.content[0].text : '';\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (e) {\n  // Fail closed: mark as candidate category_formation with low severity.\n  parsed = {\n    category: \"category_formation\",\n    severity: 2,\n    title: \"Unparsed horizon item\",\n    summary: \"Classification failed to parse JSON output.\",\n    evidence_urls: []\n  };\n}\n// Deterministic candidate rule: only primary sources auto-promote.\nconst is_candidate = ($json.source_type || '').toLowerCase() !== 'primary';\nreturn [{\n  ...$json,\n  category: parsed.category,\n  severity: parsed.severity,\n  event_title: parsed.title,\n  summary: parsed.summary,\n  evidence_urls: parsed.evidence_urls || [],\n  is_candidate\n}];\n"
+      }
+    },
+    {
+      "name": "Insert horizon.events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3320,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO horizon.events (source_id, item_id, category, is_candidate, severity, title, summary, evidence_urls, promotion_rule)\nVALUES ('{{ $json.source_id }}', '{{ $json.item_id }}', '{{ $json.category }}', {{ $json.is_candidate }}, {{ $json.severity }}, '{{ $json.event_title?.replace(/'/g, \"''\") }}', '{{ ($json.summary || '').replace(/'/g, \"''\") }}', ARRAY[{{ ($json.evidence_urls || []).map(u => \"'\" + u.replace(/'/g, \"''\") + \"'\").join(',') }}], '{{ $json.is_candidate ? \"candidate\" : \"primary\" }}')\nRETURNING id as event_id;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "name": "Select Top 3 Promoted Events (7d)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3540,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT e.id as event_id, e.severity, e.title, e.summary, e.evidence_urls\nFROM horizon.events e\nWHERE e.is_candidate = false\n  AND e.severity >= 3\n  AND e.created_at >= now() - interval '7 days'\nORDER BY e.severity DESC, e.created_at DESC\nLIMIT 3;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "name": "Split Promoted Events",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3760,
+        200
+      ],
+      "parameters": {
+        "batchSize": 1
+      }
+    },
+    {
+      "name": "Emit control_plane.signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3980,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (signal_type, severity, title, summary, evidence_urls, source_schema, source_table, source_id)\nVALUES ('horizon', {{ $json.severity }}, '{{ $json.title?.replace(/'/g, \"''\") }}', '{{ ($json.summary || '').replace(/'/g, \"''\") }}', ARRAY[{{ ($json.evidence_urls || []).map(u => \"'\" + u.replace(/'/g, \"''\") + \"'\").join(',') }}], 'horizon', 'events', '{{ $json.event_id }}')\nON CONFLICT (signal_type, source_schema, source_table, source_id) DO UPDATE SET severity = EXCLUDED.severity, title = EXCLUDED.title, summary = EXCLUDED.summary, evidence_urls = EXCLUDED.evidence_urls;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "name": "Next Source Batch",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        360
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Cron Daily 06:00": {
+      "main": [
+        [
+          {
+            "node": "Load Enabled Horizon Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Enabled Horizon Sources": {
+      "main": [
+        [
+          {
+            "node": "Split Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Sources": {
+      "main": [
+        [
+          {
+            "node": "Should Run Today?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Top 3 Promoted Events (7d)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Run Today?": {
+      "main": [
+        [
+          {
+            "node": "IF shouldRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF shouldRun": {
+      "main": [
+        [
+          {
+            "node": "Switch by Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Next Source Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Channel": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF API URL is concrete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Next Source Batch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Next Source Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Normalize RSS Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize RSS Items": {
+      "main": [
+        [
+          {
+            "node": "Compute Item Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch URL": {
+      "main": [
+        [
+          {
+            "node": "HTML → Text (simple)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML → Text (simple)": {
+      "main": [
+        [
+          {
+            "node": "Compute Item Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF API URL is concrete": {
+      "main": [
+        [
+          {
+            "node": "Fetch API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Next Source Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch API": {
+      "main": [
+        [
+          {
+            "node": "API → Text Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API → Text Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Compute Item Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Item Hash": {
+      "main": [
+        [
+          {
+            "node": "Upsert horizon.items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert horizon.items": {
+      "main": [
+        [
+          {
+            "node": "IF Inserted New Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Inserted New Item": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Classify (Messages API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Next Source Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Classify (Messages API)": {
+      "main": [
+        [
+          {
+            "node": "Parse Anthropic JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Anthropic JSON": {
+      "main": [
+        [
+          {
+            "node": "Insert horizon.events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert horizon.events": {
+      "main": [
+        [
+          {
+            "node": "Next Source Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Source Batch": {
+      "main": [
+        [
+          {
+            "node": "Split Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Top 3 Promoted Events (7d)": {
+      "main": [
+        [
+          {
+            "node": "Split Promoted Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Promoted Events": {
+      "main": [
+        [
+          {
+            "node": "Emit control_plane.signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit control_plane.signals": {
+      "main": [
+        [
+          {
+            "node": "Split Promoted Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 3600,
+    "saveExecutionProgress": true
+  }
+}

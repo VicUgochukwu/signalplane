@@ -1,0 +1,224 @@
+{
+  "name": "ControlPlane_v1_WeeklyPacket",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeks": 1,
+              "triggerAtDay": 1,
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "cron-weekly",
+      "name": "Cron Weekly (Mon 07:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute week range: previous Monday 00:00 UTC to Sunday 23:59:59 UTC\nconst now = new Date();\nconst day = now.getUTCDay(); // 0=Sun, 1=Mon, ...\n\n// Find this Monday\nconst thisMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));\nconst diff = day === 0 ? 6 : day - 1;\nthisMonday.setUTCDate(thisMonday.getUTCDate() - diff);\n\n// Previous Monday is 7 days before this Monday\nconst prevMonday = new Date(thisMonday);\nprevMonday.setUTCDate(prevMonday.getUTCDate() - 7);\n\n// Sunday is 6 days after previous Monday\nconst prevSunday = new Date(prevMonday);\nprevSunday.setUTCDate(prevSunday.getUTCDate() + 6);\n\nconst weekStart = prevMonday.toISOString().slice(0, 10);\nconst weekEnd = prevSunday.toISOString().slice(0, 10);\n\nreturn [{ json: { week_start: weekStart, week_end: weekEnd } }];"
+      },
+      "id": "compute-week-range",
+      "name": "Compute Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  id,\n  signal_type,\n  severity,\n  confidence,\n  title,\n  summary,\n  evidence_urls,\n  source_schema,\n  source_table,\n  source_id,\n  meta,\n  created_at,\n  -- Deterministic scoring: severity * 10 + recency bonus + confidence bonus\n  (severity * 10) + \n  CASE WHEN created_at >= now() - interval '3 days' THEN 3 ELSE 0 END +\n  COALESCE(confidence * 2, 0) AS score\nFROM control_plane.signals\nWHERE created_at >= '{{ $json.week_start }}'::date\n  AND created_at < '{{ $json.week_end }}'::date + interval '1 day'\nORDER BY signal_type, score DESC, created_at DESC;"
+      },
+      "id": "load-signals",
+      "name": "Load Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [500, 100],
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Score and select top signals per section\n// Max 6 per section, max 25 total\nconst signals = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n\nconst sections = ['messaging', 'narrative', 'icp', 'horizon'];\nconst maxPerSection = 6;\nconst maxTotal = 25;\n\nconst selectedBySection = {};\nlet totalSelected = [];\n\nfor (const section of sections) {\n  const sectionSignals = signals\n    .filter(s => s.signal_type === section)\n    .slice(0, maxPerSection);\n  selectedBySection[section] = sectionSignals;\n  totalSelected = totalSelected.concat(sectionSignals);\n}\n\n// If we exceed maxTotal, trim from lowest-scoring signals\nif (totalSelected.length > maxTotal) {\n  totalSelected.sort((a, b) => b.score - a.score);\n  totalSelected = totalSelected.slice(0, maxTotal);\n}\n\n// Build signal summaries for LLM prompt\nconst signalSummaries = {};\nfor (const section of sections) {\n  signalSummaries[section] = selectedBySection[section].map(s => ({\n    id: s.id,\n    severity: s.severity,\n    title: s.title,\n    summary: s.summary\n  }));\n}\n\n// Build the Anthropic API request body\nconst systemPrompt = 'You are a GTM intelligence analyst creating weekly packets for a PMM team. Synthesize signals into actionable intelligence. Output STRICT JSON only with these fields: packet_title (string), exec_summary (array max 7 bullets), sections (object with messaging, narrative, icp, horizon - each having summary and highlights), key_questions (array 3-5), bets (array up to 3 with hypothesis, signal_ids, confidence).';\n\nconst userContent = 'Week: ' + weekRange.week_start + ' to ' + weekRange.week_end + '. Total signals: ' + signals.length + '. Selected: ' + totalSelected.length + '. MESSAGING: ' + JSON.stringify(signalSummaries.messaging) + '. NARRATIVE: ' + JSON.stringify(signalSummaries.narrative) + '. ICP: ' + JSON.stringify(signalSummaries.icp) + '. HORIZON: ' + JSON.stringify(signalSummaries.horizon) + '. Synthesize into weekly GTM intelligence packet.';\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 2000,\n  temperature: 0.3,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{ json: {\n  week_start: weekRange.week_start,\n  week_end: weekRange.week_end,\n  total_signals: signals.length,\n  selected_count: totalSelected.length,\n  selected_signals: totalSelected,\n  signal_summaries: signalSummaries,\n  anthropic_body: anthropicBody\n}}];"
+      },
+      "id": "score-select",
+      "name": "Score + Select Top Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_body) }}"
+      },
+      "id": "anthropic-synthesize",
+      "name": "Anthropic Synthesize Packet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ANTHROPIC_HEADER_AUTH_ID",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Anthropic response and extract packet JSON\nconst resp = $input.first().json;\nconst selectData = $('Score + Select Top Signals').first().json;\n\nlet packetData;\ntry {\n  const content = resp.content?.[0]?.text || '{}';\n  packetData = JSON.parse(content);\n} catch (e) {\n  // Fallback if parsing fails\n  packetData = {\n    packet_title: `Week of ${selectData.week_start}: Intelligence Packet`,\n    exec_summary: ['Signal synthesis failed - manual review required'],\n    sections: {\n      messaging: { summary: 'Parsing error', highlights: [] },\n      narrative: { summary: 'Parsing error', highlights: [] },\n      icp: { summary: 'Parsing error', highlights: [] },\n      horizon: { summary: 'Parsing error', highlights: [] }\n    },\n    key_questions: ['Review raw signals for this week'],\n    bets: []\n  };\n}\n\nreturn [{ json: {\n  ...selectData,\n  packet: packetData\n}}];"
+      },
+      "id": "parse-packet",
+      "name": "Parse Packet JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO control_plane.packets (week_start, week_end, packet_title, exec_summary, sections, key_questions, bets)\nVALUES (\n  '{{ $json.week_start }}'::date,\n  '{{ $json.week_end }}'::date,\n  '{{ $json.packet.packet_title.replace(/'/g, \"''\") }}',\n  ARRAY[{{ $json.packet.exec_summary.map(s => \"'\" + s.replace(/'/g, \"''\") + \"'\").join(',') }}],\n  '{{ JSON.stringify($json.packet.sections).replace(/'/g, \"''\") }}'::jsonb,\n  ARRAY[{{ $json.packet.key_questions.map(q => \"'\" + q.replace(/'/g, \"''\") + \"'\").join(',') }}],\n  '{{ JSON.stringify($json.packet.bets || []).replace(/'/g, \"''\") }}'::jsonb\n)\nON CONFLICT (week_start, week_end) DO UPDATE\nSET packet_title = EXCLUDED.packet_title, exec_summary = EXCLUDED.exec_summary, sections = EXCLUDED.sections, key_questions = EXCLUDED.key_questions, bets = EXCLUDED.bets\nRETURNING id;"
+      },
+      "id": "upsert-packet",
+      "name": "Upsert Packet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1500, 100],
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare packet_items for insertion\nconst packetId = $('Upsert Packet').first().json.id;\nconst selectData = $('Parse Packet JSON').first().json;\n\nconst items = selectData.selected_signals.map((signal, idx) => ({\n  packet_id: packetId,\n  signal_id: signal.id,\n  section: signal.signal_type,\n  rank: idx + 1,\n  score: signal.score\n}));\n\nreturn items.map(item => ({ json: item }));"
+      },
+      "id": "prepare-items",
+      "name": "Prepare Packet Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1750, 100]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "split-items",
+      "name": "Split Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [2000, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO control_plane.packet_items (packet_id, signal_id, section, rank, score)\nVALUES (\n  '{{ $json.packet_id }}',\n  '{{ $json.signal_id }}',\n  '{{ $json.section }}',\n  {{ $json.rank }},\n  {{ $json.score }}\n)\nON CONFLICT (packet_id, signal_id) DO UPDATE\nSET section = EXCLUDED.section, rank = EXCLUDED.rank, score = EXCLUDED.score;"
+      },
+      "id": "upsert-item",
+      "name": "Upsert Packet Items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2250, 100],
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [{ "node": "Compute Week Range", "type": "main", "index": 0 }]
+      ]
+    },
+    "Cron Weekly (Mon 07:00)": {
+      "main": [
+        [{ "node": "Compute Week Range", "type": "main", "index": 0 }]
+      ]
+    },
+    "Compute Week Range": {
+      "main": [
+        [{ "node": "Load Signals", "type": "main", "index": 0 }]
+      ]
+    },
+    "Load Signals": {
+      "main": [
+        [{ "node": "Score + Select Top Signals", "type": "main", "index": 0 }]
+      ]
+    },
+    "Score + Select Top Signals": {
+      "main": [
+        [{ "node": "Anthropic Synthesize Packet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Anthropic Synthesize Packet": {
+      "main": [
+        [{ "node": "Parse Packet JSON", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Packet JSON": {
+      "main": [
+        [{ "node": "Upsert Packet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert Packet": {
+      "main": [
+        [{ "node": "Prepare Packet Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Packet Items": {
+      "main": [
+        [{ "node": "Split Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split Items": {
+      "main": [
+        [{ "node": "Upsert Packet Items", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Upsert Packet Items": {
+      "main": [
+        [{ "node": "Split Items", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 3600
+  }
+}

@@ -1,0 +1,432 @@
+{
+  "name": "Objection Tracker v2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Run Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, source_name, source_type, url_pattern, api_endpoint, fetch_method, fetch_config, source_quality FROM objection_tracker.sources WHERE enabled = true AND (last_fetched_at IS NULL OR last_fetched_at < NOW() - (fetch_frequency_hours || ' hours')::interval)",
+        "options": {}
+      },
+      "id": "load-sources",
+      "name": "Load Active Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [220, 0],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Objection Tracker: Smart Fetcher Router\n// Routes to appropriate fetcher based on source type and fetch_method\n\nconst source = $input.first().json;\nconst sourceId = source.id;\nconst sourceName = source.source_name;\nconst sourceType = source.source_type;\nconst fetchMethod = source.fetch_method || 'manual';\nconst fetchConfig = source.fetch_config || {};\nconst urlPattern = source.url_pattern;\nconst apiEndpoint = source.api_endpoint;\n\n// Route based on fetch_method\nswitch (fetchMethod) {\n  case 'webhook':\n  case 'manual':\n    // Manual/webhook items come through separate webhook workflow\n    return [{\n      json: {\n        source_id: sourceId,\n        source_name: sourceName,\n        source_type: sourceType,\n        items: [],\n        _route: 'skip'\n      }\n    }];\n\n  case 'reddit_api':\n    return [{\n      json: {\n        source_id: sourceId,\n        source_name: sourceName,\n        source_type: sourceType,\n        fetch_method: 'reddit_api',\n        subreddit: fetchConfig.subreddit || urlPattern?.match(/r\\/(\\w+)/)?.[1] || 'sales',\n        search_terms: fetchConfig.search_terms || ['objection', 'concern', 'problem', 'issue', 'complaint'],\n        limit: fetchConfig.limit || 25,\n        time_filter: fetchConfig.time_filter || 'week',\n        _route: 'reddit'\n      }\n    }];\n\n  case 'apify':\n    return [{\n      json: {\n        source_id: sourceId,\n        source_name: sourceName,\n        source_type: sourceType,\n        fetch_method: 'apify',\n        actor_id: fetchConfig.actor_id || 'apify/web-scraper',\n        start_urls: fetchConfig.start_urls || [urlPattern],\n        max_items: fetchConfig.max_items || 50,\n        _route: 'apify'\n      }\n    }];\n\n  case 'rss':\n    return [{\n      json: {\n        source_id: sourceId,\n        source_name: sourceName,\n        source_type: sourceType,\n        fetch_method: 'rss',\n        feed_url: apiEndpoint || urlPattern,\n        _route: 'rss'\n      }\n    }];\n\n  default:\n    return [{\n      json: {\n        source_id: sourceId,\n        source_name: sourceName,\n        source_type: sourceType,\n        items: [],\n        _route: 'skip'\n      }\n    }];\n}"
+      },
+      "id": "fetch-router",
+      "name": "Smart Fetcher Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json._route }}", "rightValue": "reddit", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reddit"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json._route }}", "rightValue": "apify", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Apify"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json._route }}", "rightValue": "skip", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Skip"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-switch",
+      "name": "Route by Fetch Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Reddit API fetch\nconst input = $input.first().json;\nconst subreddit = input.subreddit || 'sales';\nconst searchTerms = input.search_terms || ['objection', 'concern', 'problem'];\nconst limit = input.limit || 25;\nconst timeFilter = input.time_filter || 'week';\n\nconst queryTerms = [\n  ...searchTerms,\n  'customer complaint',\n  'buyer hesitation',\n  'deal lost',\n  'pricing concern',\n  'too expensive',\n  'competitor better'\n];\n\nconst searchQuery = queryTerms.slice(0, 5).join(' OR ');\nconst redditUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(searchQuery)}&restrict_sr=on&sort=new&t=${timeFilter}&limit=${limit}`;\n\nreturn [{\n  json: {\n    source_id: input.source_id,\n    source_name: input.source_name,\n    source_type: input.source_type,\n    reddit_url: redditUrl,\n    subreddit: subreddit,\n    search_query: searchQuery\n  }\n}];"
+      },
+      "id": "prepare-reddit",
+      "name": "Prepare Reddit Fetch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -100]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.reddit_url }}",
+        "options": {
+          "response": { "response": { "fullResponse": true } }
+        }
+      },
+      "id": "fetch-reddit",
+      "name": "Fetch Reddit API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Reddit response\nconst httpResponse = $input.first().json;\nconst fetchData = $('Prepare Reddit Fetch').first().json;\n\nconst sourceId = fetchData.source_id;\nconst sourceName = fetchData.source_name;\nconst sourceType = fetchData.source_type;\nconst subreddit = fetchData.subreddit;\n\nconst posts = httpResponse.body?.data?.children || [];\nconst items = [];\n\nfor (const post of posts) {\n  const data = post.data;\n  const title = data.title || '';\n  const selftext = data.selftext || '';\n  const fullText = `${title}\\n\\n${selftext}`.trim();\n\n  if (!fullText || fullText.length < 20) continue;\n  if (data.removed_by_category || data.selftext === '[removed]' || data.selftext === '[deleted]') continue;\n\n  items.push({\n    external_id: `reddit-${data.id}`,\n    raw_text: fullText,\n    source_url: `https://reddit.com${data.permalink}`,\n    source_author: data.author || 'anonymous',\n    source_date: new Date(data.created_utc * 1000).toISOString(),\n    meta: {\n      subreddit: data.subreddit,\n      score: data.score,\n      num_comments: data.num_comments,\n      upvote_ratio: data.upvote_ratio,\n      flair: data.link_flair_text,\n      platform: 'reddit'\n    }\n  });\n}\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    fetch_stats: { total_fetched: posts.length, valid_items: items.length, subreddit: subreddit }\n  }\n}];"
+      },
+      "id": "parse-reddit",
+      "name": "Parse Reddit Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Apify actor run\nconst input = $input.first().json;\nconst sourceName = input.source_name;\nconst actorId = input.actor_id || 'apify/web-scraper';\nconst startUrls = input.start_urls || [];\nconst maxItems = input.max_items || 50;\n\nlet actorConfig = {};\n\nif (sourceName.toLowerCase().includes('g2')) {\n  actorConfig = {\n    actorId: actorId || 'epctex/g2-scraper',\n    input: {\n      startUrls: startUrls.map(url => ({ url })),\n      maxItems: maxItems,\n      proxy: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] }\n    }\n  };\n} else if (sourceName.toLowerCase().includes('capterra')) {\n  actorConfig = {\n    actorId: actorId || 'apify/web-scraper',\n    input: {\n      startUrls: startUrls.map(url => ({ url })),\n      maxRequestsPerCrawl: maxItems\n    }\n  };\n} else {\n  actorConfig = {\n    actorId: actorId,\n    input: {\n      startUrls: startUrls.map(url => ({ url })),\n      maxRequestsPerCrawl: maxItems\n    }\n  };\n}\n\nreturn [{\n  json: {\n    source_id: input.source_id,\n    source_name: input.source_name,\n    source_type: input.source_type,\n    apify_actor_id: actorConfig.actorId,\n    apify_input: actorConfig.input\n  }\n}];"
+      },
+      "id": "prepare-apify",
+      "name": "Prepare Apify Fetch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $json.apify_actor_id }}/runs?waitForFinish=120",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.apify_input) }}",
+        "options": {}
+      },
+      "id": "run-apify",
+      "name": "Run Apify Actor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 100],
+      "credentials": { "httpHeaderAuth": { "id": "zg9J7ZGw7o888S6t", "name": "Header Auth account" } }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-apify-results",
+      "name": "Get Apify Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 100],
+      "credentials": { "httpHeaderAuth": { "id": "zg9J7ZGw7o888S6t", "name": "Header Auth account" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Apify response\nconst httpResponse = $input.first().json;\nconst fetchData = $('Prepare Apify Fetch').first().json;\n\nconst sourceId = fetchData.source_id;\nconst sourceName = fetchData.source_name;\nconst sourceType = fetchData.source_type;\nconst actorId = fetchData.apify_actor_id;\n\nlet rawItems = Array.isArray(httpResponse) ? httpResponse : \n  (httpResponse?.items || httpResponse?.data || httpResponse?.results || []);\n\nconst items = [];\n\nfor (const raw of rawItems) {\n  const textParts = [];\n  if (raw.title || raw.reviewTitle) textParts.push(raw.title || raw.reviewTitle);\n  const reviewText = raw.text || raw.reviewText || raw.body || raw.content || raw.review || '';\n  if (reviewText) textParts.push(reviewText);\n  if (raw.pros) textParts.push(`Pros: ${raw.pros}`);\n  if (raw.cons) textParts.push(`Cons: ${raw.cons}`);\n\n  const fullText = textParts.join('\\n\\n').trim();\n  if (!fullText || fullText.length < 20) continue;\n\n  let rating = raw.rating || raw.score || raw.stars || null;\n  if (typeof rating === 'string') rating = parseFloat(rating.replace(/[^0-9.]/g, '')) || null;\n\n  let sourceDate = raw.date || raw.reviewDate || raw.createdAt;\n  try { sourceDate = new Date(sourceDate).toISOString(); } catch { sourceDate = new Date().toISOString(); }\n\n  const externalId = raw.id || raw.reviewId || `${sourceName.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n\n  items.push({\n    external_id: externalId,\n    raw_text: fullText,\n    source_url: raw.url || raw.reviewUrl || null,\n    source_author: raw.author || raw.reviewerName || 'anonymous',\n    source_date: sourceDate,\n    meta: {\n      platform: sourceName.toLowerCase().includes('g2') ? 'g2' : \n        sourceName.toLowerCase().includes('capterra') ? 'capterra' : 'review_site',\n      rating: rating,\n      reviewer_title: raw.reviewerTitle || raw.jobTitle || null,\n      reviewer_company: raw.reviewerCompany || raw.company || null,\n      industry: raw.industry || null\n    }\n  });\n}\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    fetch_stats: { total_fetched: rawItems.length, valid_items: items.length, actor_id: actorId }\n  }\n}];"
+      },
+      "id": "parse-apify",
+      "name": "Parse Apify Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 100]
+    },
+    {
+      "parameters": {},
+      "id": "merge-results",
+      "name": "Merge Fetch Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1760, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "has-items", "leftValue": "={{ $json.items.length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-has-items",
+      "name": "Has Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1980, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify objections using Claude\nconst input = $input.first().json;\nconst sourceId = input.source_id;\nconst sourceName = input.source_name;\nconst sourceType = input.source_type;\nconst items = input.items || [];\n\nif (!items.length) {\n  return [{ json: { skip: true, reason: 'No items' } }];\n}\n\nconst systemPrompt = `You are an expert at identifying and classifying buyer objections from customer feedback.\n\nCategories:\n- price_value: Cost concerns, ROI unclear\n- timing: Not the right time\n- complexity: Too hard to implement\n- risk: Security/compliance concerns\n- fit: Doesn't fit needs\n- competition: Competitor is better\n- inertia: Current solution works fine\n- authority: Need buy-in from others\n- trust: Don't trust vendor\n\nSeverity (1-5): 1=Minor, 5=Critical\n\nOutput STRICT JSON only:\n{\n  \"classifications\": [\n    {\n      \"item_index\": 0,\n      \"objections\": [\n        {\n          \"objection_text\": \"exact phrase\",\n          \"category\": \"category\",\n          \"severity\": 1-5,\n          \"confidence\": 0.0-1.0,\n          \"context\": \"brief context\"\n        }\n      ]\n    }\n  ]\n}`;\n\nconst itemsForClassification = items.map((item, idx) => ({\n  index: idx,\n  text: item.raw_text.substring(0, 2000),\n  source: sourceName\n}));\n\nconst userContent = `Analyze these ${items.length} items from \"${sourceName}\" and extract buyer objections:\\n${JSON.stringify(itemsForClassification, null, 2)}`;\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    anthropic_body: {\n      model: 'claude-sonnet-4-20250514',\n      max_tokens: 4000,\n      temperature: 0.1,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userContent }]\n    }\n  }\n}];"
+      },
+      "id": "classify-objections",
+      "name": "Classify Objections",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {}
+      },
+      "id": "call-anthropic-classify",
+      "name": "Call Anthropic (Classify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2420, -100],
+      "credentials": { "httpHeaderAuth": { "id": "wQgHS2CZpVe5Tt8A", "name": "Anthropic account 2" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse classification response\nconst anthropicResponse = $input.first().json;\nconst classifyData = $('Classify Objections').first().json;\nconst sourceId = classifyData.source_id;\nconst items = classifyData.items;\n\nconst content = anthropicResponse.content[0].text;\nlet classifications;\ntry {\n  const jsonMatch = content.match(/```json?\\s*([\\s\\S]*?)```/);\n  classifications = jsonMatch ? JSON.parse(jsonMatch[1]) : JSON.parse(content);\n} catch (e) {\n  throw new Error('Failed to parse: ' + e.message);\n}\n\nconst events = [];\nconst validCategories = ['price_value', 'timing', 'complexity', 'risk', 'fit', 'competition', 'inertia', 'authority', 'trust'];\n\nfor (const classification of classifications.classifications || []) {\n  const originalItem = items[classification.item_index];\n  if (!originalItem || !classification.objections) continue;\n\n  for (const objection of classification.objections) {\n    if (!objection.objection_text || !objection.category) continue;\n    \n    events.push({\n      source_id: sourceId,\n      external_id: originalItem.external_id || null,\n      raw_text: originalItem.raw_text,\n      objection_text: objection.objection_text,\n      context_text: objection.context || null,\n      category: validCategories.includes(objection.category) ? objection.category : 'fit',\n      severity: Math.max(1, Math.min(5, Math.round(objection.severity || 3))),\n      confidence: Math.max(0, Math.min(1, objection.confidence || 0.7)),\n      source_url: originalItem.source_url || null,\n      source_author: originalItem.source_author || null,\n      source_date: originalItem.source_date || null,\n      meta: originalItem.meta || {}\n    });\n  }\n}\n\nif (events.length === 0) {\n  return [{ json: { skip: true, reason: 'No objections found' } }];\n}\n\nreturn events.map(event => ({ json: event }));"
+      },
+      "id": "parse-classification",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "not-skip", "leftValue": "={{ $json.skip }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-has-events",
+      "name": "Has Events?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2860, -100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO objection_tracker.events (source_id, external_id, raw_text, objection_text, context_text, category, severity, confidence, source_url, source_author, source_date, meta) VALUES ('{{ $json.source_id }}', {{ $json.external_id ? \"'\" + $json.external_id + \"'\" : 'NULL' }}, '{{ $json.raw_text.replace(/'/g, \"''\") }}', '{{ $json.objection_text.replace(/'/g, \"''\") }}', {{ $json.context_text ? \"'\" + $json.context_text.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, '{{ $json.category }}', {{ $json.severity }}, {{ $json.confidence }}, {{ $json.source_url ? \"'\" + $json.source_url + \"'\" : 'NULL' }}, {{ $json.source_author ? \"'\" + $json.source_author.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, {{ $json.source_date ? \"'\" + $json.source_date + \"'\" : 'NULL' }}, '{{ JSON.stringify($json.meta || {}) }}'::jsonb) ON CONFLICT (source_id, external_id) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "insert-events",
+      "name": "Insert Events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3080, -200],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE objection_tracker.sources SET last_fetched_at = NOW() WHERE id = '{{ $('Smart Fetcher Router').first().json.source_id }}';",
+        "options": {}
+      },
+      "id": "update-source-timestamp",
+      "name": "Update Source Timestamp",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3300, -200],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 7 * * 1" }]
+        }
+      },
+      "id": "weekly-trigger",
+      "name": "Weekly Analysis (Monday 7am)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute week range\nconst now = new Date();\nconst dayOfWeek = now.getDay();\nconst diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;\n\nconst weekEnd = new Date(now);\nweekEnd.setDate(now.getDate() - diff - 1);\nweekEnd.setHours(23, 59, 59, 999);\n\nconst weekStart = new Date(weekEnd);\nweekStart.setDate(weekEnd.getDate() - 6);\nweekStart.setHours(0, 0, 0, 0);\n\nconst formatDate = (d) => d.toISOString().split('T')[0];\n\nreturn [{ json: { week_start: formatDate(weekStart), week_end: formatDate(weekEnd) } }];"
+      },
+      "id": "compute-week-range",
+      "name": "Compute Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT objection_tracker.update_all_trend_counts();\n\nSELECT p.*, COALESCE((SELECT json_agg(e.source_url) FROM objection_tracker.events e WHERE e.id = ANY(p.recent_event_ids) AND e.source_url IS NOT NULL LIMIT 2), '[]') as recent_evidence_urls FROM objection_tracker.patterns p WHERE p.last_seen_at >= '{{ $json.week_start }}'::date - interval '30 days' ORDER BY p.count_last_7_days DESC, p.avg_severity DESC;",
+        "options": {}
+      },
+      "id": "load-patterns",
+      "name": "Load & Update Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 400],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM objection_tracker.trend_snapshots WHERE week_end < '{{ $('Compute Week Range').first().json.week_start }}' ORDER BY week_end DESC LIMIT 1;",
+        "options": {}
+      },
+      "id": "load-previous-snapshot",
+      "name": "Load Previous Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 550],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": { "mode": "combine", "combinationMode": "mergeByPosition", "options": {} },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [660, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Trend Analysis\nconst weekRange = $('Compute Week Range').first().json;\nconst patternsResult = $('Load & Update Patterns').all();\nconst prevSnapshotResult = $('Load Previous Snapshot').all();\n\nconst patterns = patternsResult.map(r => r.json);\nconst previousSnapshot = prevSnapshotResult.length > 0 ? prevSnapshotResult[0].json : null;\n\nconst patternsToSignal = [];\nlet driftDetected = false;\nlet driftSummary = '';\n\nfor (const pattern of patterns) {\n  let signalReason = null;\n  const firstSeenDate = new Date(pattern.first_seen_at);\n  const weekStartDate = new Date(weekRange.week_start);\n\n  if (firstSeenDate >= weekStartDate) signalReason = 'New objection';\n  else if (pattern.trend === 'rising' && pattern.count_last_7_days >= 3) signalReason = 'Rising trend';\n  else if (pattern.avg_severity >= 4 && pattern.count_last_7_days >= 2) signalReason = 'High severity spike';\n\n  if (signalReason) {\n    patternsToSignal.push({\n      pattern_id: pattern.id,\n      canonical_text: pattern.canonical_text,\n      category: pattern.category,\n      trend: pattern.trend,\n      count_last_7_days: pattern.count_last_7_days,\n      avg_severity: pattern.avg_severity,\n      evidence_urls: pattern.evidence_urls || [],\n      signal_reason: signalReason\n    });\n  }\n}\n\npatternsToSignal.sort((a, b) => {\n  const priority = { 'New objection': 3, 'Rising trend': 2, 'High severity spike': 1 };\n  return (priority[b.signal_reason] || 0) - (priority[a.signal_reason] || 0);\n});\n\nreturn [{\n  json: {\n    week_start: weekRange.week_start,\n    week_end: weekRange.week_end,\n    patterns_to_signal: patternsToSignal.slice(0, 8),\n    total_signals: Math.min(patternsToSignal.length, 8),\n    drift_detected: driftDetected,\n    drift_summary: driftSummary\n  }\n}];"
+      },
+      "id": "trend-analysis",
+      "name": "Trend Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "has-signals", "leftValue": "={{ $json.total_signals }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "has-signals",
+      "name": "Has Signals?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Emit signals\nconst input = $input.first().json;\nconst signals = [];\n\nfor (const pattern of input.patterns_to_signal || []) {\n  let severity = Math.round(pattern.avg_severity || 3);\n  if (pattern.trend === 'rising') severity = Math.min(5, severity + 1);\n\n  let title = '';\n  switch (pattern.signal_reason) {\n    case 'New objection': title = `New objection: ${pattern.category}`; break;\n    case 'Rising trend': title = `Rising objection: ${pattern.category}`; break;\n    case 'High severity spike': title = `High-severity: ${pattern.category}`; break;\n    default: title = `Objection: ${pattern.category}`;\n  }\n\n  signals.push({\n    signal_type: 'objection',\n    severity: severity,\n    confidence: 0.8,\n    title: title,\n    summary: `\"${pattern.canonical_text}\" - ${pattern.count_last_7_days} this week`,\n    summary_short: pattern.canonical_text.substring(0, 100),\n    evidence_urls: (pattern.evidence_urls || []).slice(0, 2),\n    source_schema: 'objection_tracker',\n    source_table: 'patterns',\n    source_id: pattern.pattern_id,\n    decision_type: 'enablement',\n    recommended_asset: 'talk_track',\n    owner_team: 'sales',\n    time_sensitivity: pattern.trend === 'rising' ? 'this_week' : 'monitor',\n    meta: JSON.stringify({ category: pattern.category, signal_reason: pattern.signal_reason })\n  });\n}\n\nreturn signals.map(s => ({ json: s }));"
+      },
+      "id": "emit-signals",
+      "name": "Emit Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (signal_type, severity, confidence, title, summary, summary_short, evidence_urls, source_schema, source_table, source_id, decision_type, recommended_asset, owner_team, time_sensitivity, meta) VALUES ('{{ $json.signal_type }}', {{ $json.severity }}, {{ $json.confidence }}, '{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.summary.replace(/'/g, \"''\") }}', '{{ $json.summary_short.replace(/'/g, \"''\") }}', ARRAY[{{ $json.evidence_urls.map(u => \"'\" + u + \"'\").join(',') || '' }}]::text[], '{{ $json.source_schema }}', '{{ $json.source_table }}', '{{ $json.source_id }}', '{{ $json.decision_type }}', '{{ $json.recommended_asset }}', '{{ $json.owner_team }}', '{{ $json.time_sensitivity }}', '{{ $json.meta }}'::jsonb) ON CONFLICT (signal_type, source_schema, source_table, source_id) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "insert-signals",
+      "name": "Insert Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1540, 300],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT objection_tracker.create_weekly_snapshot('{{ $('Compute Week Range').first().json.week_start }}'::date, '{{ $('Compute Week Range').first().json.week_end }}'::date);",
+        "options": {}
+      },
+      "id": "create-snapshot",
+      "name": "Create Weekly Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1320, 500],
+      "credentials": { "postgres": { "id": "NXUM3TVSIAhaVaEL", "name": "Supabase Postgres (Shared Pooler)" } }
+    }
+  ],
+  "connections": {
+    "Run Every 6 Hours": { "main": [[{ "node": "Load Active Sources", "type": "main", "index": 0 }]] },
+    "Load Active Sources": { "main": [[{ "node": "Smart Fetcher Router", "type": "main", "index": 0 }]] },
+    "Smart Fetcher Router": { "main": [[{ "node": "Route by Fetch Method", "type": "main", "index": 0 }]] },
+    "Route by Fetch Method": {
+      "main": [
+        [{ "node": "Prepare Reddit Fetch", "type": "main", "index": 0 }],
+        [{ "node": "Prepare Apify Fetch", "type": "main", "index": 0 }],
+        [{ "node": "Merge Fetch Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Reddit Fetch": { "main": [[{ "node": "Fetch Reddit API", "type": "main", "index": 0 }]] },
+    "Fetch Reddit API": { "main": [[{ "node": "Parse Reddit Response", "type": "main", "index": 0 }]] },
+    "Parse Reddit Response": { "main": [[{ "node": "Merge Fetch Results", "type": "main", "index": 1 }]] },
+    "Prepare Apify Fetch": { "main": [[{ "node": "Run Apify Actor", "type": "main", "index": 0 }]] },
+    "Run Apify Actor": { "main": [[{ "node": "Get Apify Results", "type": "main", "index": 0 }]] },
+    "Get Apify Results": { "main": [[{ "node": "Parse Apify Response", "type": "main", "index": 0 }]] },
+    "Parse Apify Response": { "main": [[{ "node": "Merge Fetch Results", "type": "main", "index": 2 }]] },
+    "Merge Fetch Results": { "main": [[{ "node": "Has Items?", "type": "main", "index": 0 }]] },
+    "Has Items?": { "main": [[{ "node": "Classify Objections", "type": "main", "index": 0 }], []] },
+    "Classify Objections": { "main": [[{ "node": "Call Anthropic (Classify)", "type": "main", "index": 0 }]] },
+    "Call Anthropic (Classify)": { "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]] },
+    "Parse Classification": { "main": [[{ "node": "Has Events?", "type": "main", "index": 0 }]] },
+    "Has Events?": { "main": [[{ "node": "Insert Events", "type": "main", "index": 0 }], []] },
+    "Insert Events": { "main": [[{ "node": "Update Source Timestamp", "type": "main", "index": 0 }]] },
+    "Weekly Analysis (Monday 7am)": { "main": [[{ "node": "Compute Week Range", "type": "main", "index": 0 }]] },
+    "Compute Week Range": { "main": [[{ "node": "Load & Update Patterns", "type": "main", "index": 0 }, { "node": "Load Previous Snapshot", "type": "main", "index": 0 }]] },
+    "Load & Update Patterns": { "main": [[{ "node": "Merge Data", "type": "main", "index": 0 }]] },
+    "Load Previous Snapshot": { "main": [[{ "node": "Merge Data", "type": "main", "index": 1 }]] },
+    "Merge Data": { "main": [[{ "node": "Trend Analysis", "type": "main", "index": 0 }]] },
+    "Trend Analysis": { "main": [[{ "node": "Has Signals?", "type": "main", "index": 0 }, { "node": "Create Weekly Snapshot", "type": "main", "index": 0 }]] },
+    "Has Signals?": { "main": [[{ "node": "Emit Signals", "type": "main", "index": 0 }], []] },
+    "Emit Signals": { "main": [[{ "node": "Insert Signals", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2026-02-04T00:00:00.000Z",
+  "versionId": "2"
+}

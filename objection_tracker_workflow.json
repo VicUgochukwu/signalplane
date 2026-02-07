@@ -1,0 +1,570 @@
+{
+  "name": "Objection Tracker v1",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Run Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, source_name, source_type, url_pattern, api_endpoint, fetch_method, fetch_config, source_quality FROM objection_tracker.sources WHERE enabled = true AND (last_fetched_at IS NULL OR last_fetched_at < NOW() - (fetch_frequency_hours || ' hours')::interval)",
+        "options": {}
+      },
+      "id": "load-sources",
+      "name": "Load Active Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [220, 0],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch from source - this is a placeholder\n// In production, implement actual fetching logic per source type\n\nconst source = $input.first().json;\n\n// For demo: return mock items\n// In production: implement RSS/API/scrape logic based on source.fetch_method\n\nconst mockItems = [];\n\n// Return structure expected by classifier\nreturn [{\n  json: {\n    source_id: source.id,\n    source_name: source.source_name,\n    source_type: source.source_type,\n    items: mockItems\n  }\n}];"
+      },
+      "id": "fetch-source",
+      "name": "Fetch Source Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-has-items",
+              "leftValue": "={{ $json.items.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-has-items",
+      "name": "Has Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Objection Tracker: Classify raw text into objection events\nconst input = $input.first().json;\n\nconst sourceId = input.source_id;\nconst sourceName = input.source_name;\nconst sourceType = input.source_type;\nconst items = input.items || [];\n\nif (!items.length) {\n  return [{ json: { skip: true, reason: 'No items to classify' } }];\n}\n\nconst systemPrompt = `You are an expert at identifying and classifying buyer objections from customer feedback, reviews, and conversations.\n\nYour task is to analyze text and extract any buyer objections present.\n\n## Objection Categories\n- price_value: Cost concerns, ROI unclear, budget issues\n- timing: Not the right time, not ready, bad timing\n- complexity: Too hard to implement, steep learning curve, integration challenges\n- risk: Security concerns, compliance issues, vendor risk\n- fit: Doesn't fit needs, wrong solution, feature gaps\n- competition: Competitor is better/cheaper, already using alternative\n- inertia: Current solution works fine, don't want to change\n- authority: Need buy-in from others, not the decision maker\n- trust: Don't trust vendor, product quality concerns, reliability worries\n\n## Severity Scale (1-5)\n1 = Minor concern, easily addressed\n2 = Moderate concern, requires explanation\n3 = Significant concern, needs proof/case study\n4 = Major concern, potential deal-breaker\n5 = Critical concern, likely deal-killer\n\nCRITICAL: Output STRICT JSON only. No markdown code fences.\n\nOutput structure:\n{\n  \"classifications\": [\n    {\n      \"item_index\": 0,\n      \"objections\": [\n        {\n          \"objection_text\": \"exact objection phrase\",\n          \"category\": \"price_value|timing|complexity|risk|fit|competition|inertia|authority|trust\",\n          \"severity\": 1-5,\n          \"confidence\": 0.0-1.0,\n          \"persona\": \"detected persona or null\",\n          \"segment\": \"detected segment or null\",\n          \"funnel_stage\": \"awareness|consideration|decision|onboarding|expansion or null\",\n          \"context\": \"brief context\"\n        }\n      ]\n    }\n  ]\n}`;\n\nconst itemsForClassification = items.map((item, idx) => ({\n  index: idx,\n  text: item.raw_text,\n  source: sourceName,\n  url: item.source_url || null\n}));\n\nconst userContent = `Analyze the following ${items.length} text items from \"${sourceName}\" (${sourceType}) and extract any buyer objections.\\n\\nItems to analyze:\\n${JSON.stringify(itemsForClassification, null, 2)}`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 4000,\n  temperature: 0.1,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    anthropic_body: anthropicBody\n  }\n}];"
+      },
+      "id": "classify-objections",
+      "name": "Classify Objections",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {}
+      },
+      "id": "call-anthropic-classify",
+      "name": "Call Anthropic (Classify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-api",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Anthropic classification response\nconst anthropicResponse = $input.first().json;\nconst classifyData = $('Classify Objections').first().json;\n\nconst sourceId = classifyData.source_id;\nconst items = classifyData.items;\n\nconst content = anthropicResponse.content[0].text;\n\nlet classifications;\ntry {\n  const jsonMatch = content.match(/```json?\\s*([\\s\\S]*?)```/);\n  if (jsonMatch) {\n    classifications = JSON.parse(jsonMatch[1]);\n  } else {\n    classifications = JSON.parse(content);\n  }\n} catch (e) {\n  throw new Error('Failed to parse: ' + e.message);\n}\n\nif (!classifications.classifications || !Array.isArray(classifications.classifications)) {\n  throw new Error('Invalid classification response structure');\n}\n\nconst events = [];\nconst validCategories = ['price_value', 'timing', 'complexity', 'risk', 'fit', 'competition', 'inertia', 'authority', 'trust'];\nconst validFunnelStages = ['awareness', 'consideration', 'decision', 'onboarding', 'expansion'];\n\nfor (const classification of classifications.classifications) {\n  const originalItem = items[classification.item_index];\n  if (!originalItem || !classification.objections) continue;\n\n  for (const objection of classification.objections) {\n    if (!objection.objection_text || !objection.category) continue;\n    \n    const category = validCategories.includes(objection.category) ? objection.category : 'fit';\n    const severity = Math.max(1, Math.min(5, Math.round(objection.severity || 3)));\n    const confidence = Math.max(0, Math.min(1, objection.confidence || 0.7));\n    const funnelStage = validFunnelStages.includes(objection.funnel_stage) ? objection.funnel_stage : null;\n\n    events.push({\n      source_id: sourceId,\n      external_id: originalItem.external_id || null,\n      raw_text: originalItem.raw_text,\n      objection_text: objection.objection_text,\n      context_text: objection.context || null,\n      category: category,\n      severity: severity,\n      confidence: confidence,\n      persona: objection.persona || null,\n      segment: objection.segment || null,\n      funnel_stage: funnelStage,\n      source_url: originalItem.source_url || null,\n      source_author: originalItem.source_author || null,\n      source_date: originalItem.source_date || null,\n      meta: originalItem.meta || {}\n    });\n  }\n}\n\nif (events.length === 0) {\n  return [{ json: { skip: true, reason: 'No objections found' } }];\n}\n\nreturn events.map(event => ({ json: event }));"
+      },
+      "id": "parse-classification",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "not-skip",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-has-events",
+      "name": "Has Events?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, -100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO objection_tracker.events (source_id, external_id, raw_text, objection_text, context_text, category, severity, confidence, persona, segment, funnel_stage, source_url, source_author, source_date, meta) VALUES ('{{ $json.source_id }}', {{ $json.external_id ? \"'\" + $json.external_id + \"'\" : 'NULL' }}, '{{ $json.raw_text.replace(/'/g, \"''\") }}', '{{ $json.objection_text.replace(/'/g, \"''\") }}', {{ $json.context_text ? \"'\" + $json.context_text.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, '{{ $json.category }}', {{ $json.severity }}, {{ $json.confidence }}, {{ $json.persona ? \"'\" + $json.persona + \"'\" : 'NULL' }}, {{ $json.segment ? \"'\" + $json.segment + \"'\" : 'NULL' }}, {{ $json.funnel_stage ? \"'\" + $json.funnel_stage + \"'\" : 'NULL' }}, {{ $json.source_url ? \"'\" + $json.source_url + \"'\" : 'NULL' }}, {{ $json.source_author ? \"'\" + $json.source_author + \"'\" : 'NULL' }}, {{ $json.source_date ? \"'\" + $json.source_date + \"'\" : 'NULL' }}, '{{ JSON.stringify($json.meta || {}) }}'::jsonb) ON CONFLICT (source_id, external_id) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "insert-events",
+      "name": "Insert Events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1760, -200],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE objection_tracker.sources SET last_fetched_at = NOW() WHERE id = '{{ $('Fetch Source Items').first().json.source_id }}';",
+        "options": {}
+      },
+      "id": "update-source-timestamp",
+      "name": "Update Source Timestamp",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1980, -200],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "weekly-trigger",
+      "name": "Weekly Analysis (Monday 7am)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute week range for analysis\nconst now = new Date();\nconst dayOfWeek = now.getDay();\nconst diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Days since Monday\n\nconst weekEnd = new Date(now);\nweekEnd.setDate(now.getDate() - diff - 1); // Last Sunday\nweekEnd.setHours(23, 59, 59, 999);\n\nconst weekStart = new Date(weekEnd);\nweekStart.setDate(weekEnd.getDate() - 6); // Previous Monday\nweekStart.setHours(0, 0, 0, 0);\n\nconst formatDate = (d) => d.toISOString().split('T')[0];\n\nreturn [{\n  json: {\n    week_start: formatDate(weekStart),\n    week_end: formatDate(weekEnd)\n  }\n}];"
+      },
+      "id": "compute-week-range",
+      "name": "Compute Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Update all trend counts first\nSELECT objection_tracker.update_all_trend_counts();\n\n-- Then return patterns with updated data\nSELECT \n  p.*,\n  COALESCE(\n    (SELECT json_agg(e.source_url) \n     FROM objection_tracker.events e \n     WHERE e.id = ANY(p.recent_event_ids) AND e.source_url IS NOT NULL\n     LIMIT 2),\n    '[]'\n  ) as recent_evidence_urls\nFROM objection_tracker.patterns p\nWHERE p.last_seen_at >= '{{ $json.week_start }}'::date - interval '30 days'\nORDER BY p.count_last_7_days DESC, p.avg_severity DESC;",
+        "options": {}
+      },
+      "id": "load-patterns",
+      "name": "Load & Update Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM objection_tracker.trend_snapshots WHERE week_end < '{{ $('Compute Week Range').first().json.week_start }}' ORDER BY week_end DESC LIMIT 1;",
+        "options": {}
+      },
+      "id": "load-previous-snapshot",
+      "name": "Load Previous Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 450],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Trend Analysis and Drift Detection\nconst weekRange = $('Compute Week Range').first().json;\nconst patternsResult = $('Load & Update Patterns').all();\nconst prevSnapshotResult = $('Load Previous Snapshot').all();\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst patterns = patternsResult.map(r => r.json);\nconst previousSnapshot = prevSnapshotResult.length > 0 ? prevSnapshotResult[0].json : null;\n\nconst patternsToSignal = [];\nlet driftDetected = false;\nlet driftSummary = '';\n\n// Identify patterns that warrant signals\nfor (const pattern of patterns) {\n  let signalReason = null;\n\n  // Check for NEW objections (first seen this week)\n  const firstSeenDate = new Date(pattern.first_seen_at);\n  const weekStartDate = new Date(weekStart);\n  if (firstSeenDate >= weekStartDate) {\n    signalReason = 'New objection';\n  }\n\n  // Check for RISING trends with significant volume\n  if (!signalReason && pattern.trend === 'rising' && pattern.count_last_7_days >= 3) {\n    signalReason = 'Rising trend';\n  }\n\n  // Check for HIGH SEVERITY spikes\n  if (!signalReason && pattern.avg_severity >= 4 && pattern.count_last_7_days >= 2) {\n    signalReason = 'High severity spike';\n  }\n\n  if (signalReason) {\n    patternsToSignal.push({\n      pattern_id: pattern.id,\n      canonical_text: pattern.canonical_text,\n      category: pattern.category,\n      trend: pattern.trend,\n      trend_score: pattern.trend_score,\n      count_last_7_days: pattern.count_last_7_days,\n      count_last_30_days: pattern.count_last_30_days,\n      avg_severity: pattern.avg_severity,\n      evidence_urls: pattern.evidence_urls || [],\n      signal_reason: signalReason\n    });\n  }\n}\n\n// Sort by priority and cap at 8\npatternsToSignal.sort((a, b) => {\n  const priorityMap = { 'New objection': 3, 'Rising trend': 2, 'High severity spike': 1 };\n  const priorityDiff = (priorityMap[b.signal_reason] || 0) - (priorityMap[a.signal_reason] || 0);\n  if (priorityDiff !== 0) return priorityDiff;\n  return (b.avg_severity || 0) - (a.avg_severity || 0);\n});\nconst cappedPatterns = patternsToSignal.slice(0, 8);\n\n// Drift Detection\nif (previousSnapshot && previousSnapshot.category_counts) {\n  const prevCounts = previousSnapshot.category_counts;\n  const currentCounts = {};\n  for (const pattern of patterns) {\n    if (pattern.count_last_7_days > 0) {\n      currentCounts[pattern.category] = (currentCounts[pattern.category] || 0) + pattern.count_last_7_days;\n    }\n  }\n\n  const prevTotal = Object.values(prevCounts).reduce((a, b) => a + b, 0) || 1;\n  const currTotal = Object.values(currentCounts).reduce((a, b) => a + b, 0) || 1;\n  const significantShifts = [];\n  const allCategories = new Set([...Object.keys(prevCounts), ...Object.keys(currentCounts)]);\n\n  for (const category of allCategories) {\n    const prevProp = (prevCounts[category] || 0) / prevTotal;\n    const currProp = (currentCounts[category] || 0) / currTotal;\n    const shift = currProp - prevProp;\n    if (Math.abs(shift) > 0.15) {\n      significantShifts.push({\n        category,\n        direction: shift > 0 ? 'increased' : 'decreased',\n        magnitude: Math.abs(shift * 100).toFixed(1)\n      });\n    }\n  }\n\n  if (significantShifts.length > 0) {\n    driftDetected = true;\n    const shiftDescriptions = significantShifts.map(s => `${s.category} ${s.direction} by ${s.magnitude}%`);\n    driftSummary = `Objection pattern drift detected: ${shiftDescriptions.join('; ')}`;\n  }\n}\n\nreturn [{\n  json: {\n    week_start: weekStart,\n    week_end: weekEnd,\n    patterns_to_signal: cappedPatterns,\n    total_patterns_analyzed: patterns.length,\n    total_signals: cappedPatterns.length,\n    drift_detected: driftDetected,\n    drift_summary: driftSummary\n  }\n}];"
+      },
+      "id": "trend-analysis",
+      "name": "Trend Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-signals",
+              "leftValue": "={{ $json.total_signals }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "has-signals-to-emit",
+      "name": "Has Signals?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Emit signals to control_plane.signals\nconst input = $input.first().json;\n\nconst weekStart = input.week_start;\nconst weekEnd = input.week_end;\nconst patternsToSignal = input.patterns_to_signal || [];\nconst driftDetected = input.drift_detected || false;\nconst driftSummary = input.drift_summary || '';\n\nconst signals = [];\n\nfor (const pattern of patternsToSignal) {\n  let signalSeverity = Math.round(pattern.avg_severity || 3);\n  if (pattern.trend === 'rising') signalSeverity = Math.min(5, signalSeverity + 1);\n  if (pattern.signal_reason === 'New objection') signalSeverity = Math.min(5, signalSeverity + 1);\n\n  let title = '';\n  switch (pattern.signal_reason) {\n    case 'New objection': title = `New objection detected: ${pattern.category}`; break;\n    case 'Rising trend': title = `Rising objection trend: ${pattern.category}`; break;\n    case 'High severity spike': title = `High-severity objection spike: ${pattern.category}`; break;\n    default: title = `Objection signal: ${pattern.category}`;\n  }\n\n  const summary = `\"${pattern.canonical_text}\" - ${pattern.trend} trend with ${pattern.count_last_7_days} occurrences this week (avg severity: ${pattern.avg_severity?.toFixed(1) || 'N/A'})`;\n  const evidenceUrls = (pattern.evidence_urls || []).slice(0, 2);\n\n  signals.push({\n    signal_type: 'objection',\n    severity: signalSeverity,\n    confidence: 0.8,\n    title: title,\n    summary: summary,\n    summary_short: pattern.canonical_text.substring(0, 100),\n    evidence_urls: evidenceUrls,\n    source_schema: 'objection_tracker',\n    source_table: 'patterns',\n    source_id: pattern.pattern_id,\n    decision_type: 'enablement',\n    recommended_asset: 'talk_track',\n    owner_team: 'sales',\n    time_sensitivity: pattern.trend === 'rising' ? 'this_week' : 'monitor',\n    meta: JSON.stringify({\n      category: pattern.category,\n      trend: pattern.trend,\n      count_last_7_days: pattern.count_last_7_days,\n      signal_reason: pattern.signal_reason,\n      week_start: weekStart,\n      week_end: weekEnd\n    })\n  });\n}\n\nif (driftDetected && driftSummary) {\n  signals.push({\n    signal_type: 'objection',\n    severity: 4,\n    confidence: 0.85,\n    title: 'Objection pattern drift detected',\n    summary: driftSummary,\n    summary_short: 'Significant shift in objection patterns',\n    evidence_urls: [],\n    source_schema: 'objection_tracker',\n    source_table: 'trend_snapshots',\n    source_id: 'drift-' + weekStart,\n    decision_type: 'positioning',\n    recommended_asset: 'deck',\n    owner_team: 'PMM',\n    time_sensitivity: 'this_week',\n    meta: JSON.stringify({ drift_detected: true, drift_summary: driftSummary, week_start: weekStart, week_end: weekEnd })\n  });\n}\n\nif (signals.length === 0) {\n  return [{ json: { skip: true, reason: 'No signals to emit' } }];\n}\n\nreturn signals.map(signal => ({ json: signal }));"
+      },
+      "id": "emit-signals",
+      "name": "Emit Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (signal_type, severity, confidence, title, summary, summary_short, evidence_urls, source_schema, source_table, source_id, decision_type, recommended_asset, owner_team, time_sensitivity, meta) VALUES ('{{ $json.signal_type }}', {{ $json.severity }}, {{ $json.confidence }}, '{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.summary.replace(/'/g, \"''\") }}', '{{ $json.summary_short.replace(/'/g, \"''\") }}', ARRAY[{{ $json.evidence_urls.map(u => \"'\" + u + \"'\").join(',') || '' }}]::text[], '{{ $json.source_schema }}', '{{ $json.source_table }}', '{{ $json.source_id }}', '{{ $json.decision_type }}', '{{ $json.recommended_asset }}', '{{ $json.owner_team }}', '{{ $json.time_sensitivity }}', '{{ $json.meta }}'::jsonb) ON CONFLICT (signal_type, source_schema, source_table, source_id) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "insert-signals",
+      "name": "Insert Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1540, 200],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT objection_tracker.create_weekly_snapshot('{{ $('Compute Week Range').first().json.week_start }}'::date, '{{ $('Compute Week Range').first().json.week_end }}'::date);",
+        "options": {}
+      },
+      "id": "create-snapshot",
+      "name": "Create Weekly Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1320, 400],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Run Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Load Active Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Active Sources": {
+      "main": [
+        [
+          {
+            "node": "Fetch Source Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Source Items": {
+      "main": [
+        [
+          {
+            "node": "Has Items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Items?": {
+      "main": [
+        [
+          {
+            "node": "Classify Objections",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Classify Objections": {
+      "main": [
+        [
+          {
+            "node": "Call Anthropic (Classify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Anthropic (Classify)": {
+      "main": [
+        [
+          {
+            "node": "Parse Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Has Events?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Events?": {
+      "main": [
+        [
+          {
+            "node": "Insert Events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Insert Events": {
+      "main": [
+        [
+          {
+            "node": "Update Source Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Analysis (Monday 7am)": {
+      "main": [
+        [
+          {
+            "node": "Compute Week Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Week Range": {
+      "main": [
+        [
+          {
+            "node": "Load & Update Patterns",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Previous Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load & Update Patterns": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Previous Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Trend Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trend Analysis": {
+      "main": [
+        [
+          {
+            "node": "Has Signals?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Weekly Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Signals?": {
+      "main": [
+        [
+          {
+            "node": "Emit Signals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Emit Signals": {
+      "main": [
+        [
+          {
+            "node": "Insert Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2026-02-04T00:00:00.000Z",
+  "versionId": "1"
+}

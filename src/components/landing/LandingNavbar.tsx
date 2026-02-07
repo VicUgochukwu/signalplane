@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sheet";
 
 const demoItems = [
-  { to: "/control-plane", label: "Control Plane", subtitle: "Weekly intel packets" },
+  { to: "/control-plane", label: "Control Plane", subtitle: "Weekly intel packets", comingSoon: true },
   { to: "/messaging-diff", label: "Messaging Diff", subtitle: "Competitor tracking" },
 ];
 
@@ -83,17 +83,30 @@ export function LandingNavbar() {
             {demosOpen && (
               <div className="absolute top-full left-0 pt-2 z-50">
                 <div className="bg-card border border-border rounded-lg shadow-lg p-2 min-w-[220px]">
-                  {demoItems.map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
-                      onClick={() => setDemosOpen(false)}
-                    >
-                      <div className="text-sm font-medium text-foreground">{item.label}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
-                    </Link>
-                  ))}
+                  {demoItems.map((item) =>
+                    item.comingSoon ? (
+                      <div
+                        key={item.to}
+                        className="block px-4 py-3 rounded-md opacity-50 cursor-default"
+                      >
+                        <div className="text-sm font-medium text-foreground flex items-center">
+                          {item.label}
+                          <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">Coming Soon</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                      </div>
+                    ) : (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
+                        onClick={() => setDemosOpen(false)}
+                      >
+                        <div className="text-sm font-medium text-foreground">{item.label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                      </Link>
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -153,17 +166,30 @@ export function LandingNavbar() {
                 </button>
                 {mobileDemosOpen && (
                   <div className="ml-4 mt-1 space-y-1">
-                    {demoItems.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        onClick={closeMobileMenu}
-                        className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
-                      >
-                        <div className="text-sm font-medium text-foreground">{item.label}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
-                      </Link>
-                    ))}
+                    {demoItems.map((item) =>
+                      item.comingSoon ? (
+                        <div
+                          key={item.to}
+                          className="block px-4 py-3 rounded-md opacity-50 cursor-default"
+                        >
+                          <div className="text-sm font-medium text-foreground flex items-center">
+                            {item.label}
+                            <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">Coming Soon</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                        </div>
+                      ) : (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={closeMobileMenu}
+                          className="block px-4 py-3 rounded-md hover:bg-muted transition-colors"
+                        >
+                          <div className="text-sm font-medium text-foreground">{item.label}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                        </Link>
+                      )
+                    )}
                   </div>
                 )}
               </div>

@@ -1,0 +1,268 @@
+{
+  "name": "Distribution Tracker Weekly",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule_trigger",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [100, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  tp.id AS tracked_page_id,\n  tp.url,\n  tp.company_id,\n  c.name AS company_name\nFROM public.tracked_pages tp\nJOIN public.companies c ON c.id = tp.company_id\nWHERE tp.enabled = true\n  AND tp.page_type = 'integrations'\nORDER BY tp.company_id;",
+        "options": {}
+      },
+      "id": "load_integration_pages",
+      "name": "Load Integration Pages",
+      "type": "n8n-nodes-base.postgres",
+      "position": [300, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "batch_pages",
+      "name": "Batch Pages",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [500, 300],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fetch_page",
+      "name": "Fetch Integration Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [700, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Distribution Feature Extractor\n// Extracts integration signals from integration/apps pages\n\nconst INTEGRATION_PATTERNS = {\n  categories: {\n    crm: [/salesforce/i, /hubspot/i, /pipedrive/i, /zoho\\s*crm/i],\n    data: [/snowflake/i, /bigquery/i, /databricks/i, /redshift/i],\n    analytics: [/amplitude/i, /mixpanel/i, /heap/i, /segment/i],\n    communication: [/slack/i, /teams/i, /discord/i],\n    storage: [/aws\\s*s3/i, /gcs/i, /azure\\s*blob/i, /dropbox/i],\n    auth: [/okta/i, /auth0/i, /azure\\s*ad/i],\n    payment: [/stripe/i, /braintree/i, /adyen/i],\n    dev: [/github/i, /gitlab/i, /jira/i, /linear/i]\n  },\n  marketplaces: [\n    { pattern: /salesforce\\s*appexchange/i, name: 'salesforce_appexchange' },\n    { pattern: /hubspot\\s*marketplace/i, name: 'hubspot_marketplace' },\n    { pattern: /slack\\s*app\\s*directory/i, name: 'slack_app_directory' },\n    { pattern: /zapier/i, name: 'zapier' },\n    { pattern: /aws\\s*marketplace/i, name: 'aws_marketplace' },\n    { pattern: /google\\s*workspace\\s*marketplace/i, name: 'google_workspace' }\n  ],\n  api_signals: [\n    /api\\s*docs/i,\n    /api\\s*reference/i,\n    /developer\\s*docs/i,\n    /rest\\s*api/i,\n    /graphql/i,\n    /webhooks/i,\n    /sdk/i\n  ],\n  partner_patterns: [\n    /partner/i,\n    /certified/i,\n    /premier/i,\n    /gold\\s*partner/i,\n    /platinum/i\n  ]\n};\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction extractIntegrations(html) {\n  const text = stripHtml(html);\n  const lowercaseText = text.toLowerCase();\n  \n  const integration_names = [];\n  const integration_categories = {};\n  \n  // Extract by category\n  for (const [category, patterns] of Object.entries(INTEGRATION_PATTERNS.categories)) {\n    integration_categories[category] = [];\n    for (const pattern of patterns) {\n      const match = lowercaseText.match(pattern);\n      if (match) {\n        const name = match[0].replace(/\\s+/g, ' ').trim();\n        integration_names.push(name);\n        integration_categories[category].push(name);\n      }\n    }\n  }\n  \n  // Detect marketplace presence\n  const marketplace_presence = [];\n  for (const { pattern, name } of INTEGRATION_PATTERNS.marketplaces) {\n    if (pattern.test(lowercaseText)) {\n      marketplace_presence.push(name);\n    }\n  }\n  \n  // Detect API signals\n  const has_public_api = INTEGRATION_PATTERNS.api_signals.some(p => p.test(lowercaseText));\n  const api_doc_match = html.match(/href=[\"']([^\"']*(?:api|developer|docs)[^\"']*)[\"']/i);\n  const api_doc_url = api_doc_match ? api_doc_match[1] : null;\n  \n  // Detect partner mentions\n  const partner_mentions = [];\n  for (const pattern of INTEGRATION_PATTERNS.partner_patterns) {\n    const match = lowercaseText.match(pattern);\n    if (match) {\n      partner_mentions.push(match[0]);\n    }\n  }\n  \n  return {\n    integration_count: [...new Set(integration_names)].length,\n    integration_names: [...new Set(integration_names)],\n    integration_categories,\n    marketplace_presence: [...new Set(marketplace_presence)],\n    partner_mentions: [...new Set(partner_mentions)],\n    has_public_api,\n    api_doc_url\n  };\n}\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const html = item.json.data || '';\n  const features = extractIntegrations(html);\n  \n  results.push({\n    json: {\n      ...item.json,\n      features,\n      content_hash: require('crypto').createHash('md5').update(html).digest('hex'),\n      extracted_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "extract_features",
+      "name": "Extract Integration Features",
+      "type": "n8n-nodes-base.code",
+      "position": [900, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT distribution_tracker.upsert_snapshot(\n  '{{ $json.company_id }}'::UUID,\n  '{{ $json.tracked_page_id }}'::UUID,\n  {{ $json.features.integration_count }},\n  ARRAY{{ $json.features.integration_names }}::TEXT[],\n  '{{ JSON.stringify($json.features.integration_categories) }}'::JSONB,\n  ARRAY{{ $json.features.marketplace_presence }}::TEXT[],\n  ARRAY{{ $json.features.partner_mentions }}::TEXT[],\n  {{ $json.features.has_public_api }},\n  {{ $json.features.api_doc_url ? \"'\" + $json.features.api_doc_url + \"'\" : 'NULL' }},\n  NULL,\n  '{{ $json.content_hash }}'\n) AS snapshot_id;",
+        "options": {}
+      },
+      "id": "upsert_snapshot",
+      "name": "Upsert Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1100, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM distribution_tracker.detect_changes(\n  '{{ $('Extract Integration Features').item.json.company_id }}'::UUID,\n  '{{ $json.snapshot_id }}'::UUID\n);",
+        "options": {}
+      },
+      "id": "detect_changes",
+      "name": "Detect Changes",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1300, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has_changes",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter_changes",
+      "name": "Has Changes?",
+      "type": "n8n-nodes-base.filter",
+      "position": [1500, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT distribution_tracker.emit_signal('{{ $json.id }}'::UUID) AS signal_id;",
+        "options": {}
+      },
+      "id": "emit_signal",
+      "name": "Emit Signal",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1700, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Summary node\nconst items = $input.all();\n\nreturn [{\n  json: {\n    run_completed_at: new Date().toISOString(),\n    signals_emitted: items.length,\n    signal_ids: items.map(i => i.json.signal_id)\n  }\n}];"
+      },
+      "id": "summary",
+      "name": "Run Summary",
+      "type": "n8n-nodes-base.code",
+      "position": [1900, 300],
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Load Integration Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Integration Pages": {
+      "main": [
+        [
+          {
+            "node": "Batch Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Pages": {
+      "main": [
+        [
+          {
+            "node": "Fetch Integration Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Integration Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Integration Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Integration Features": {
+      "main": [
+        [
+          {
+            "node": "Upsert Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Detect Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Changes": {
+      "main": [
+        [
+          {
+            "node": "Has Changes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Changes?": {
+      "main": [
+        [
+          {
+            "node": "Emit Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Signal": {
+      "main": [
+        [
+          {
+            "node": "Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

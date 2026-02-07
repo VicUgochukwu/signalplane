@@ -1,0 +1,87 @@
+{
+  "name": "Feature Extractor Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [100, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "https://stripe.com/pricing",
+        "options": {}
+      },
+      "id": "fetch_pricing_page",
+      "name": "Fetch Stripe Pricing",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [300, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Feature Extractor for n8n Code Node\n// Self-contained version with all patterns and logic\n\n// ============================================\n// PATTERNS\n// ============================================\n\nconst PRICING_PATTERNS = {\n  free_tier: [\n    /free\\s*(plan|tier|forever|starter)/i,\n    /\\$0/,\n    /no\\s*credit\\s*card/i,\n    /start\\s*for\\s*free/i,\n  ],\n  enterprise: [\n    /enterprise/i,\n    /custom\\s*pricing/i,\n    /contact\\s*(us|sales)/i,\n    /talk\\s*to\\s*sales/i,\n  ],\n  trial_days: [\n    /(\\d+)[\\s-]*(day|week).*?(trial|free)/i,\n    /try.*?(\\d+)\\s*(day|week)/i,\n  ],\n  seat_based: [\n    /per\\s*(user|seat|member)/i,\n    /\\$[\\d.]+\\s*\\/\\s*(user|seat)/i,\n  ],\n  usage_based: [\n    /usage[\\s-]based/i,\n    /metered/i,\n    /pay[\\s-]as[\\s-]you[\\s-]go/i,\n  ],\n  gating: {\n    sso: [/sso/i, /single\\s*sign[\\s-]on/i, /saml/i],\n    audit_logs: [/audit\\s*log/i],\n    sla: [/sla/i, /uptime\\s*guarantee/i],\n    dedicated: [/dedicated/i, /private\\s*cloud/i],\n  },\n};\n\nconst COMPLIANCE_BADGES = [\n  { pattern: /soc\\s*2\\s*type\\s*(ii|2)/i, badge: 'SOC2_TYPE_II' },\n  { pattern: /soc\\s*2/i, badge: 'SOC2' },\n  { pattern: /hipaa/i, badge: 'HIPAA' },\n  { pattern: /gdpr/i, badge: 'GDPR' },\n  { pattern: /iso\\s*27001/i, badge: 'ISO27001' },\n  { pattern: /pci[\\s-]dss/i, badge: 'PCI_DSS' },\n];\n\nconst CTA_PATTERNS = {\n  primary: [\n    /get\\s*started/i,\n    /start\\s*free/i,\n    /try\\s*(it\\s*)?free/i,\n    /sign\\s*up/i,\n    /book\\s*(a\\s*)?demo/i,\n  ],\n};\n\n// ============================================\n// UTILITIES\n// ============================================\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\n// ============================================\n// EXTRACTOR\n// ============================================\n\nfunction extractFeatures(html, pageType) {\n  const text = stripHtml(html);\n  const lowercaseText = text.toLowerCase();\n\n  const features = {\n    page_type: pageType,\n    extraction_version: 'v1',\n    extraction_confidence: 0.8,\n    extracted_at: new Date().toISOString(),\n    universal: extractUniversalFeatures(html, text),\n  };\n\n  if (pageType === 'pricing') {\n    features.pricing = extractPricingFeatures(html, text, lowercaseText);\n  } else if (['security', 'customers', 'homepage'].includes(pageType)) {\n    features.proof = extractProofFeatures(html, text, lowercaseText);\n  }\n\n  return features;\n}\n\nfunction extractUniversalFeatures(html, text) {\n  const h1Match = html.match(/<h1[^>]*>(.*?)<\\/h1>/is);\n  const h1_text = h1Match ? stripHtml(h1Match[1]).trim() : null;\n\n  const ctas = extractCTAs(html);\n\n  return {\n    cta_count: ctas.labels.length,\n    cta_labels: ctas.labels,\n    cta_destinations: ctas.destinations,\n    nav_labels: [],\n    h1_text,\n  };\n}\n\nfunction extractCTAs(html) {\n  const labels = [];\n  const destinations = [];\n\n  const buttonRegex = /<(button|a)[^>]*>(.*?)<\\/\\1>/gis;\n  let match;\n\n  while ((match = buttonRegex.exec(html)) !== null) {\n    const content = stripHtml(match[2]).trim();\n    if (!content || content.length > 50) continue;\n\n    const isPrimaryCTA = CTA_PATTERNS.primary.some(p => p.test(content));\n    if (isPrimaryCTA) {\n      labels.push(content);\n      const hrefMatch = match[0].match(/href=[\"']([^\"']+)[\"']/i);\n      if (hrefMatch) destinations.push(hrefMatch[1]);\n    }\n  }\n\n  return { labels: [...new Set(labels)], destinations: [...new Set(destinations)] };\n}\n\nfunction extractPricingFeatures(html, text, lowercaseText) {\n  const has_free_tier = PRICING_PATTERNS.free_tier.some(p => p.test(lowercaseText));\n  const has_enterprise = PRICING_PATTERNS.enterprise.some(p => p.test(lowercaseText));\n\n  let trial_days = null;\n  for (const pattern of PRICING_PATTERNS.trial_days) {\n    const match = lowercaseText.match(pattern);\n    if (match) {\n      trial_days = parseInt(match[1], 10);\n      if (match[2]?.toLowerCase() === 'week') trial_days *= 7;\n      break;\n    }\n  }\n\n  const seatScore = PRICING_PATTERNS.seat_based.filter(p => p.test(lowercaseText)).length;\n  const usageScore = PRICING_PATTERNS.usage_based.filter(p => p.test(lowercaseText)).length;\n  let pricing_model = 'unknown';\n  if (seatScore > 0 && usageScore > 0) pricing_model = 'hybrid';\n  else if (seatScore > usageScore) pricing_model = 'seat';\n  else if (usageScore > 0) pricing_model = 'usage';\n\n  const gating_signals = [];\n  for (const [signal, patterns] of Object.entries(PRICING_PATTERNS.gating)) {\n    if (patterns.some(p => p.test(lowercaseText))) {\n      gating_signals.push(signal);\n    }\n  }\n\n  const priceMatches = html.match(/\\$[\\d,]+(\\.[\\d]{2})?/g);\n  const plan_count = priceMatches ? Math.min(priceMatches.length, 5) : 3;\n\n  return {\n    plan_count,\n    plan_names: [],\n    has_free_tier,\n    has_enterprise,\n    trial_days,\n    pricing_model,\n    gating_signals,\n    limits: {},\n  };\n}\n\nfunction extractProofFeatures(html, text, lowercaseText) {\n  const logoImages = html.match(/<img[^>]*(?:logo|customer|client)[^>]*>/gi) || [];\n  const logo_count = logoImages.length;\n\n  const compliance_badges = [];\n  for (const { pattern, badge } of COMPLIANCE_BADGES) {\n    if (pattern.test(lowercaseText)) {\n      if (badge === 'SOC2' && compliance_badges.includes('SOC2_TYPE_II')) continue;\n      compliance_badges.push(badge);\n    }\n  }\n\n  const quoteBlocks = html.match(/<blockquote/gi) || [];\n  const testimonial_count = quoteBlocks.length;\n\n  return {\n    logo_count,\n    logo_companies: [],\n    case_study_count: 0,\n    case_study_industries: [],\n    testimonial_count,\n    testimonial_titles: [],\n    compliance_badges,\n    security_claims: [],\n  };\n}\n\n// ============================================\n// N8N ENTRY POINT\n// ============================================\n\nconst input = $input.first().json;\nconst html = input.data || '';\nconst pageType = 'pricing';\n\nconst features = extractFeatures(html, pageType);\n\nreturn [{\n  json: {\n    url: 'https://stripe.com/pricing',\n    features,\n    extracted_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "extract_features",
+      "name": "Extract Features",
+      "type": "n8n-nodes-base.code",
+      "position": [500, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.page_features (\n  snapshot_id,\n  page_type,\n  cta_count,\n  cta_labels,\n  h1_text,\n  plan_count,\n  plan_names,\n  has_free_tier,\n  has_enterprise,\n  trial_days,\n  pricing_model,\n  gating_signals,\n  extraction_version,\n  extraction_confidence\n) VALUES (\n  gen_random_uuid(),\n  '{{ $json.features.page_type }}',\n  {{ $json.features.universal.cta_count }},\n  ARRAY{{ $json.features.universal.cta_labels }}::TEXT[],\n  '{{ $json.features.universal.h1_text }}',\n  {{ $json.features.pricing.plan_count }},\n  ARRAY{{ $json.features.pricing.plan_names }}::TEXT[],\n  {{ $json.features.pricing.has_free_tier }},\n  {{ $json.features.pricing.has_enterprise }},\n  {{ $json.features.pricing.trial_days || 'NULL' }},\n  '{{ $json.features.pricing.pricing_model }}',\n  ARRAY{{ $json.features.pricing.gating_signals }}::TEXT[],\n  '{{ $json.features.extraction_version }}',\n  {{ $json.features.extraction_confidence }}\n)\nRETURNING id;",
+        "options": {}
+      },
+      "id": "save_to_db",
+      "name": "Save to DB",
+      "type": "n8n-nodes-base.postgres",
+      "position": [700, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stripe Pricing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Stripe Pricing": {
+      "main": [
+        [
+          {
+            "node": "Extract Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Features": {
+      "main": [
+        [
+          {
+            "node": "Save to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

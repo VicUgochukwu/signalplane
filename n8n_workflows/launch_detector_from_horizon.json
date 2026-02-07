@@ -1,0 +1,212 @@
+{
+  "name": "Launch Detector from Horizon Signals",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule_trigger",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [100, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Find recent horizon signals that look like launches\n-- Not already linked to a launch_tracker.launches entry\nSELECT \n  s.id AS signal_id,\n  s.company_id,\n  s.title,\n  s.summary,\n  s.evidence_urls,\n  s.meta,\n  s.created_at\nFROM control_plane.signals s\nWHERE s.signal_type = 'horizon'\n  AND s.created_at > CURRENT_DATE - INTERVAL '7 days'\n  AND (\n    LOWER(s.title) LIKE '%launch%'\n    OR LOWER(s.title) LIKE '%announce%'\n    OR LOWER(s.title) LIKE '%release%'\n    OR LOWER(s.title) LIKE '%introduc%'\n    OR LOWER(s.title) LIKE '%funding%'\n    OR LOWER(s.title) LIKE '%raised%'\n    OR LOWER(s.title) LIKE '%rebrand%'\n    OR LOWER(s.title) LIKE '%new product%'\n    OR LOWER(s.title) LIKE '%new feature%'\n    OR LOWER(s.summary) LIKE '%just launched%'\n    OR LOWER(s.summary) LIKE '%now available%'\n  )\n  AND NOT EXISTS (\n    SELECT 1 FROM launch_tracker.launches l\n    WHERE l.company_id = s.company_id\n      AND l.launch_date = s.created_at::DATE\n  )\nORDER BY s.created_at DESC;",
+        "options": {}
+      },
+      "id": "find_launch_signals",
+      "name": "Find Launch Signals",
+      "type": "n8n-nodes-base.postgres",
+      "position": [300, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has_signals",
+              "leftValue": "={{ $json.signal_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter_empty",
+      "name": "Has Signals?",
+      "type": "n8n-nodes-base.filter",
+      "position": [500, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT launch_tracker.create_from_horizon_signal('{{ $json.signal_id }}'::UUID) AS launch_id;",
+        "options": {}
+      },
+      "id": "create_launch",
+      "name": "Create Launch",
+      "type": "n8n-nodes-base.postgres",
+      "position": [700, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "launch_created",
+              "leftValue": "={{ $json.launch_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter_created",
+      "name": "Launch Created?",
+      "type": "n8n-nodes-base.filter",
+      "position": [900, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT launch_tracker.capture_initial_state('{{ $json.launch_id }}'::UUID) AS captured;",
+        "options": {}
+      },
+      "id": "capture_initial_state",
+      "name": "Capture Initial State",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1100, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Summary\nconst allItems = $('Create Launch').all();\nconst createdItems = $('Capture Initial State').all();\n\nreturn [{\n  json: {\n    run_completed_at: new Date().toISOString(),\n    horizon_signals_processed: allItems.length,\n    launches_created: createdItems.length,\n    launch_ids: createdItems.map(i => i.json.launch_id).filter(Boolean)\n  }\n}];"
+      },
+      "id": "summary",
+      "name": "Run Summary",
+      "type": "n8n-nodes-base.code",
+      "position": [1300, 300],
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Find Launch Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Launch Signals": {
+      "main": [
+        [
+          {
+            "node": "Has Signals?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Signals?": {
+      "main": [
+        [
+          {
+            "node": "Create Launch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Launch": {
+      "main": [
+        [
+          {
+            "node": "Launch Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Launch Created?": {
+      "main": [
+        [
+          {
+            "node": "Capture Initial State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Initial State": {
+      "main": [
+        [
+          {
+            "node": "Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

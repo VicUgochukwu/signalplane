@@ -1,0 +1,424 @@
+{
+  "name": "Experiment Surveillance Weekly",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule_trigger",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [100, 300],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Detect patterns from recent ship changes (last 7 days)\n-- Pricing changes\nSELECT \n  experiment_surveillance.detect_pattern(\n    'pricing_tracker',\n    'pricing_changes',\n    pc.id,\n    pc.company_id,\n    'pricing',\n    pc.change_type,\n    pc.change_details\n  ) AS pattern_id,\n  'pricing' AS source\nFROM pricing_tracker.pricing_changes pc\nWHERE pc.detected_at >= CURRENT_DATE - INTERVAL '7 days'\n  AND pc.significance = 'major'\n\nUNION ALL\n\n-- Proof changes\nSELECT \n  experiment_surveillance.detect_pattern(\n    'proof_tracker',\n    'proof_changes',\n    pc.id,\n    pc.company_id,\n    pc.page_type,\n    pc.change_type,\n    pc.change_details\n  ) AS pattern_id,\n  'proof' AS source\nFROM proof_tracker.proof_changes pc\nWHERE pc.detected_at >= CURRENT_DATE - INTERVAL '7 days'\n  AND pc.significance = 'major'\n\nUNION ALL\n\n-- Distribution changes\nSELECT \n  experiment_surveillance.detect_pattern(\n    'distribution_tracker',\n    'distribution_changes',\n    dc.id,\n    dc.company_id,\n    'integrations',\n    dc.change_type,\n    dc.change_details\n  ) AS pattern_id,\n  'distribution' AS source\nFROM distribution_tracker.distribution_changes dc\nWHERE dc.detected_at >= CURRENT_DATE - INTERVAL '7 days'\n  AND dc.significance = 'major';",
+        "options": {}
+      },
+      "id": "detect_patterns",
+      "name": "Detect Patterns from Ships",
+      "type": "n8n-nodes-base.postgres",
+      "position": [300, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Update survival tracking for all active patterns\nSELECT experiment_surveillance.update_survival_tracking();",
+        "options": {}
+      },
+      "id": "update_survival",
+      "name": "Update Survival Tracking",
+      "type": "n8n-nodes-base.postgres",
+      "position": [500, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Update pattern scores\nSELECT experiment_surveillance.update_pattern_scores();",
+        "options": {}
+      },
+      "id": "update_scores",
+      "name": "Update Pattern Scores",
+      "type": "n8n-nodes-base.postgres",
+      "position": [700, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get patterns that need evaluation\nSELECT \n  id,\n  pattern_key,\n  pattern_label,\n  pattern_category,\n  status,\n  survivorship_score,\n  propagation_score,\n  combined_score,\n  first_seen,\n  last_seen\nFROM experiment_surveillance.patterns\nWHERE status IN ('candidate', 'emerging')\n  AND updated_at >= CURRENT_DATE - INTERVAL '7 days'\nORDER BY combined_score DESC\nLIMIT 20;",
+        "options": {}
+      },
+      "id": "get_candidates",
+      "name": "Get Candidate Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "position": [900, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has_patterns",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter_empty",
+      "name": "Has Patterns?",
+      "type": "n8n-nodes-base.filter",
+      "position": [1100, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Anthropic prompt for pattern evaluation\nconst patterns = $input.all().map(item => item.json);\n\nif (patterns.length === 0) {\n  return [{ json: { skip: true, reason: 'No patterns to evaluate' } }];\n}\n\nconst systemPrompt = `You are a GTM pattern analyst. Evaluate experiment patterns and determine which are likely to become market winners.\n\nFor each pattern, assess:\n1. Is this a meaningful GTM experiment or noise?\n2. What is the strategic intent behind this pattern?\n3. Should PMMs consider adopting this pattern?\n\nRespond with JSON array:\n[\n  {\n    \"pattern_id\": \"uuid\",\n    \"is_meaningful\": true/false,\n    \"strategic_intent\": \"string (1-2 sentences)\",\n    \"recommendation\": \"adopt|monitor|ignore\",\n    \"reasoning\": \"string (1-2 sentences)\"\n  }\n]`;\n\nconst userContent = `Evaluate these experiment patterns:\n\n${JSON.stringify(patterns, null, 2)}\n\nRespond with JSON only.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 2000,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    skip: false,\n    patterns_count: patterns.length,\n    patterns: patterns,\n    anthropic_body: anthropicBody\n  }\n}];"
+      },
+      "id": "build_prompt",
+      "name": "Build Evaluation Prompt",
+      "type": "n8n-nodes-base.code",
+      "position": [1300, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should_evaluate",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "should_evaluate",
+      "name": "Should Evaluate?",
+      "type": "n8n-nodes-base.filter",
+      "position": [1500, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_body) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "call_anthropic",
+      "name": "Evaluate Patterns (Anthropic)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1700, 300],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+          "name": "Anthropic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Anthropic response\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\nlet evaluations = [];\ntry {\n  evaluations = JSON.parse(content);\n} catch (e) {\n  // Try to extract JSON from response\n  const jsonMatch = content.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);\n  if (jsonMatch) {\n    evaluations = JSON.parse(jsonMatch[0]);\n  }\n}\n\nreturn evaluations.map(e => ({ json: e }));"
+      },
+      "id": "parse_evaluations",
+      "name": "Parse Evaluations",
+      "type": "n8n-nodes-base.code",
+      "position": [1900, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Emit proven pattern signals\nSELECT experiment_surveillance.emit_proven_patterns() AS proven_count;",
+        "options": {}
+      },
+      "id": "emit_proven",
+      "name": "Emit Proven Signals",
+      "type": "n8n-nodes-base.postgres",
+      "position": [2100, 200],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Emit emerging pattern signals\nSELECT experiment_surveillance.emit_emerging_patterns() AS emerging_count;",
+        "options": {}
+      },
+      "id": "emit_emerging",
+      "name": "Emit Emerging Signals",
+      "type": "n8n-nodes-base.postgres",
+      "position": [2100, 400],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get summary stats\nSELECT \n  (SELECT COUNT(*) FROM experiment_surveillance.patterns) AS total_patterns,\n  (SELECT COUNT(*) FROM experiment_surveillance.patterns WHERE status = 'proven') AS proven_patterns,\n  (SELECT COUNT(*) FROM experiment_surveillance.patterns WHERE status = 'emerging') AS emerging_patterns,\n  (SELECT COUNT(*) FROM experiment_surveillance.pattern_instances WHERE observed_at >= CURRENT_DATE - INTERVAL '7 days') AS instances_this_week,\n  (SELECT COUNT(*) FROM experiment_surveillance.signal_emissions WHERE week_start = date_trunc('week', CURRENT_DATE)::DATE) AS signals_emitted;",
+        "options": {}
+      },
+      "id": "get_summary",
+      "name": "Get Summary Stats",
+      "type": "n8n-nodes-base.postgres",
+      "position": [2300, 300],
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build run summary\nconst stats = $('Get Summary Stats').first().json;\nconst provenCount = $('Emit Proven Signals').first().json.proven_count || 0;\nconst emergingCount = $('Emit Emerging Signals').first().json.emerging_count || 0;\n\nreturn [{\n  json: {\n    run_completed_at: new Date().toISOString(),\n    total_patterns: stats.total_patterns,\n    proven_patterns: stats.proven_patterns,\n    emerging_patterns: stats.emerging_patterns,\n    instances_this_week: stats.instances_this_week,\n    proven_signals_emitted: provenCount,\n    emerging_signals_emitted: emergingCount,\n    total_signals_emitted: provenCount + emergingCount\n  }\n}];"
+      },
+      "id": "summary",
+      "name": "Run Summary",
+      "type": "n8n-nodes-base.code",
+      "position": [2500, 300],
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Detect Patterns from Ships",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Patterns from Ships": {
+      "main": [
+        [
+          {
+            "node": "Update Survival Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Survival Tracking": {
+      "main": [
+        [
+          {
+            "node": "Update Pattern Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Pattern Scores": {
+      "main": [
+        [
+          {
+            "node": "Get Candidate Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate Patterns": {
+      "main": [
+        [
+          {
+            "node": "Has Patterns?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Patterns?": {
+      "main": [
+        [
+          {
+            "node": "Build Evaluation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Evaluation Prompt": {
+      "main": [
+        [
+          {
+            "node": "Should Evaluate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Evaluate?": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Patterns (Anthropic)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Patterns (Anthropic)": {
+      "main": [
+        [
+          {
+            "node": "Parse Evaluations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Evaluations": {
+      "main": [
+        [
+          {
+            "node": "Emit Proven Signals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Emit Emerging Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Proven Signals": {
+      "main": [
+        [
+          {
+            "node": "Get Summary Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Emerging Signals": {
+      "main": [
+        [
+          {
+            "node": "Get Summary Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Summary Stats": {
+      "main": [
+        [
+          {
+            "node": "Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

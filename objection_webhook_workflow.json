@@ -1,0 +1,327 @@
+{
+  "name": "Objection Tracker - Manual Import Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "objection-import",
+        "options": {
+          "responseMode": "responseNode"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Objection Import",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "objection-import"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Objection Tracker: Webhook Ingest Handler\n// Receives manual objection submissions via webhook\n// Supports: LinkedIn exports, CRM exports, manual entry, CSV data\n\nconst webhookData = $input.first().json;\n\n// Check if this is a batch import (array of items)\nif (Array.isArray(webhookData.items) || Array.isArray(webhookData.data)) {\n  // Route to batch processing\n  return [{\n    json: {\n      ...webhookData,\n      _route: 'batch'\n    }\n  }];\n}\n\n// Validate required fields for single item\nconst rawText = webhookData.text || webhookData.content || webhookData.raw_text || '';\nconst sourceName = webhookData.source_name || webhookData.source || 'manual_import';\n\nif (!rawText || rawText.trim().length < 10) {\n  return [{\n    json: {\n      success: false,\n      error: 'Missing or invalid text content (minimum 10 characters)',\n      received: webhookData,\n      _route: 'error'\n    }\n  }];\n}\n\n// Determine source type from source_name or explicit type\nfunction detectSourceType(name, explicitType) {\n  if (explicitType) return explicitType;\n  const lower = name.toLowerCase();\n  if (lower.includes('linkedin')) return 'linkedin';\n  if (lower.includes('call') || lower.includes('gong') || lower.includes('chorus')) return 'call_recording';\n  if (lower.includes('chat') || lower.includes('intercom') || lower.includes('drift')) return 'chat';\n  if (lower.includes('email')) return 'email';\n  if (lower.includes('crm') || lower.includes('salesforce') || lower.includes('hubspot')) return 'crm';\n  if (lower.includes('survey') || lower.includes('nps')) return 'survey';\n  if (lower.includes('support') || lower.includes('zendesk') || lower.includes('ticket')) return 'support_ticket';\n  return 'manual';\n}\n\nconst sourceType = detectSourceType(sourceName, webhookData.source_type);\n\n// Generate external ID if not provided\nconst externalId = webhookData.external_id ||\n  webhookData.id ||\n  `${sourceName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n\n// Parse date - accept various formats\nfunction parseDate(dateInput) {\n  if (!dateInput) return new Date().toISOString();\n  if (typeof dateInput === 'string' && dateInput.includes('T')) return dateInput;\n  const parsed = new Date(dateInput);\n  if (!isNaN(parsed.getTime())) return parsed.toISOString();\n  return new Date().toISOString();\n}\n\n// Build standardized item\nconst item = {\n  external_id: externalId,\n  raw_text: rawText.trim(),\n  source_url: webhookData.url || webhookData.source_url || webhookData.link || null,\n  source_author: webhookData.author || webhookData.source_author || webhookData.name || webhookData.contact || null,\n  source_date: parseDate(webhookData.date || webhookData.source_date || webhookData.created_at),\n  meta: {\n    platform: sourceType,\n    import_method: 'webhook',\n    imported_at: new Date().toISOString(),\n    ...(webhookData.meta || {}),\n    company: webhookData.company || webhookData.organization || null,\n    title: webhookData.title || webhookData.job_title || null,\n    deal_stage: webhookData.deal_stage || webhookData.stage || null,\n    deal_value: webhookData.deal_value || webhookData.amount || null,\n    tags: webhookData.tags || [],\n    connection_degree: webhookData.connection_degree || null,\n    profile_url: webhookData.profile_url || webhookData.linkedin_url || null\n  }\n};\n\nreturn [{\n  json: {\n    source_id: webhookData.source_id || null,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: [item],\n    _route: 'single'\n  }\n}];"
+      },
+      "id": "parse-webhook",
+      "name": "Parse Webhook Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{ $json._route }}", "rightValue": "error", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Error"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{ $json._route }}", "rightValue": "batch", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Batch"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{ $json._route }}", "rightValue": "single", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Single"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-input",
+      "name": "Route Input Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error } }}",
+        "options": { "responseCode": 400 }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Batch parser for CSV/JSON array imports\nconst input = $input.first().json;\nconst sourceName = input.source_name || 'batch_import';\nconst sourceType = input.source_type || 'manual';\nconst sourceId = input.source_id || null;\n\nlet rawItems = [];\nif (Array.isArray(input.items)) rawItems = input.items;\nelse if (Array.isArray(input.data)) rawItems = input.data;\n\n// Map fields to standard format\nfunction mapToStandard(row) {\n  const textFields = ['text', 'content', 'raw_text', 'message', 'body', 'note', 'notes', 'comment', 'feedback', 'objection', 'description'];\n  let rawText = '';\n  for (const field of textFields) {\n    if (row[field]) { rawText = row[field]; break; }\n  }\n\n  const dateFields = ['date', 'created_at', 'created', 'timestamp', 'time', 'sent_date', 'received_date'];\n  let sourceDate = null;\n  for (const field of dateFields) {\n    if (row[field]) { sourceDate = row[field]; break; }\n  }\n\n  const authorFields = ['author', 'name', 'from', 'sender', 'contact', 'first_name', 'full_name', 'customer', 'prospect'];\n  let sourceAuthor = null;\n  for (const field of authorFields) {\n    if (row[field]) { sourceAuthor = row[field]; break; }\n  }\n\n  const urlFields = ['url', 'link', 'source_url', 'profile_url', 'linkedin_url'];\n  let sourceUrl = null;\n  for (const field of urlFields) {\n    if (row[field]) { sourceUrl = row[field]; break; }\n  }\n\n  const externalId = row.id || row.external_id ||\n    `${sourceName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n\n  return {\n    external_id: externalId,\n    raw_text: rawText,\n    source_url: sourceUrl,\n    source_author: sourceAuthor,\n    source_date: sourceDate ? new Date(sourceDate).toISOString() : new Date().toISOString(),\n    meta: {\n      platform: sourceType,\n      import_method: 'batch',\n      imported_at: new Date().toISOString(),\n      company: row.company || row.organization || row.account || null,\n      title: row.title || row.job_title || row.position || null,\n      deal_stage: row.deal_stage || row.stage || row.status || null\n    }\n  };\n}\n\nconst items = [];\nfor (const row of rawItems) {\n  const mapped = mapToStandard(row);\n  if (mapped.raw_text && mapped.raw_text.trim().length >= 10) {\n    items.push(mapped);\n  }\n}\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    import_stats: { total_rows: rawItems.length, valid_items: items.length }\n  }\n}];"
+      },
+      "id": "parse-batch",
+      "name": "Parse Batch Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {},
+      "id": "merge-items",
+      "name": "Merge Items",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1120, 380]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO objection_tracker.sources (source_name, source_type, fetch_method, enabled)\nVALUES ('{{ $json.source_name }}', '{{ $json.source_type }}', 'webhook', true)\nON CONFLICT (source_name) DO UPDATE SET\n  last_fetched_at = NOW(),\n  enabled = true\nRETURNING id;",
+        "options": {}
+      },
+      "id": "upsert-source",
+      "name": "Upsert Source",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1340, 380],
+      "credentials": { "postgres": { "id": "supabase-postgres", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge source_id with items and prepare for classification\nconst sourceResult = $('Upsert Source').first().json;\nconst itemsData = $('Merge Items').first().json;\n\nconst sourceId = itemsData.source_id || sourceResult.id;\nconst items = itemsData.items || [];\n\n// Return each item individually for classification\nreturn items.map(item => ({\n  json: {\n    source_id: sourceId,\n    source_name: itemsData.source_name,\n    source_type: itemsData.source_type,\n    ...item\n  }\n}));"
+      },
+      "id": "prepare-items",
+      "name": "Prepare Items for Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 380]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO objection_tracker.events (\n  source_id,\n  external_id,\n  raw_text,\n  source_url,\n  source_author,\n  source_date,\n  meta\n) VALUES (\n  '{{ $json.source_id }}',\n  '{{ $json.external_id }}',\n  '{{ $json.raw_text.replace(/'/g, \"''\") }}',\n  {{ $json.source_url ? \"'\" + $json.source_url + \"'\" : 'NULL' }},\n  {{ $json.source_author ? \"'\" + $json.source_author.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  '{{ $json.source_date }}',\n  '{{ JSON.stringify($json.meta).replace(/'/g, \"''\") }}'\n)\nON CONFLICT (source_id, external_id) DO UPDATE SET\n  raw_text = EXCLUDED.raw_text,\n  source_url = EXCLUDED.source_url,\n  source_author = EXCLUDED.source_author,\n  source_date = EXCLUDED.source_date,\n  meta = EXCLUDED.meta,\n  updated_at = NOW()\nRETURNING id;",
+        "options": {}
+      },
+      "id": "insert-events",
+      "name": "Insert Events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1780, 380],
+      "credentials": { "postgres": { "id": "supabase-postgres", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare for Anthropic classification\nconst item = $input.first().json;\nconst eventResult = $('Insert Events').first().json;\n\nconst prompt = `Analyze this customer feedback and classify any sales objections found.\n\nText to analyze:\n\"${item.raw_text}\"\n\nRespond with JSON:\n{\n  \"has_objection\": boolean,\n  \"objections\": [\n    {\n      \"category\": \"pricing|competition|timing|trust|features|integration|support|other\",\n      \"summary\": \"brief summary\",\n      \"verbatim\": \"exact quote if present\",\n      \"severity\": \"low|medium|high\",\n      \"sentiment\": \"negative|neutral|mixed\"\n    }\n  ],\n  \"overall_sentiment\": \"positive|negative|neutral|mixed\",\n  \"key_themes\": [\"theme1\", \"theme2\"]\n}`;\n\nreturn [{\n  json: {\n    event_id: eventResult.id || item.event_id,\n    source_id: item.source_id,\n    source_name: item.source_name,\n    raw_text: item.raw_text,\n    prompt: prompt,\n    meta: item.meta\n  }\n}];"
+      },
+      "id": "prepare-classification",
+      "name": "Prepare Classification Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 380]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $credentials.httpHeaderAuth.value }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-3-haiku-20240307\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.prompt) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "call-anthropic",
+      "name": "Call Anthropic (Classify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 380],
+      "credentials": { "httpHeaderAuth": { "id": "header-auth", "name": "Header Auth account" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Anthropic response and extract classification\nconst inputData = $('Prepare Classification Prompt').first().json;\nconst anthropicResponse = $input.first().json;\n\nlet classification = {\n  has_objection: false,\n  objections: [],\n  overall_sentiment: 'neutral',\n  key_themes: []\n};\n\ntry {\n  const content = anthropicResponse.content?.[0]?.text || '';\n  // Extract JSON from response\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    classification = JSON.parse(jsonMatch[0]);\n  }\n} catch (e) {\n  console.error('Failed to parse classification:', e);\n}\n\nreturn [{\n  json: {\n    event_id: inputData.event_id,\n    source_id: inputData.source_id,\n    source_name: inputData.source_name,\n    raw_text: inputData.raw_text,\n    classification: classification,\n    has_objection: classification.has_objection || false,\n    meta: inputData.meta\n  }\n}];"
+      },
+      "id": "parse-classification",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{ $json.has_objection }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-objection",
+      "name": "Has Objection?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2660, 380]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE objection_tracker.events\nSET\n  classification = '{{ JSON.stringify($json.classification).replace(/'/g, \"''\") }}'::jsonb,\n  processed_at = NOW()\nWHERE id = '{{ $json.event_id }}';",
+        "options": {}
+      },
+      "id": "update-classification",
+      "name": "Update Event Classification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2880, 300],
+      "credentials": { "postgres": { "id": "supabase-postgres", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Insert each objection as a pattern\n{{ $json.classification.objections.map((obj, i) => `\nINSERT INTO objection_tracker.patterns (\n  source_id,\n  category,\n  summary,\n  verbatim_quote,\n  severity,\n  sentiment,\n  contributing_events,\n  occurrence_count,\n  first_seen,\n  last_seen\n) VALUES (\n  '${$json.source_id}',\n  '${obj.category || 'other'}',\n  '${(obj.summary || '').replace(/'/g, \"''\")}',\n  '${(obj.verbatim || '').replace(/'/g, \"''\")}',\n  '${obj.severity || 'medium'}',\n  '${obj.sentiment || 'negative'}',\n  ARRAY['${$json.event_id}']::uuid[],\n  1,\n  NOW(),\n  NOW()\n)\nON CONFLICT (source_id, category, summary) DO UPDATE SET\n  occurrence_count = objection_tracker.patterns.occurrence_count + 1,\n  last_seen = NOW(),\n  contributing_events = array_append(objection_tracker.patterns.contributing_events, '${$json.event_id}'::uuid)\nRETURNING id;\n`).join('') }}",
+        "options": {}
+      },
+      "id": "upsert-patterns",
+      "name": "Upsert Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3100, 300],
+      "credentials": { "postgres": { "id": "supabase-postgres", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (\n  signal_type,\n  source_system,\n  payload,\n  priority,\n  metadata\n) VALUES (\n  'objection',\n  'objection_tracker',\n  '{{ JSON.stringify({\n    source_name: $json.source_name,\n    category: $json.classification.objections[0]?.category || \"other\",\n    summary: $json.classification.objections[0]?.summary || \"Objection detected\",\n    severity: $json.classification.objections[0]?.severity || \"medium\",\n    event_id: $json.event_id,\n    raw_text_preview: $json.raw_text.substring(0, 200)\n  }).replace(/'/g, \"''\") }}'::jsonb,\n  CASE\n    WHEN '{{ $json.classification.objections[0]?.severity || \"medium\" }}' = 'high' THEN 1\n    WHEN '{{ $json.classification.objections[0]?.severity || \"medium\" }}' = 'medium' THEN 2\n    ELSE 3\n  END,\n  '{{ JSON.stringify($json.meta || {}).replace(/'/g, \"''\") }}'::jsonb\n);",
+        "options": {}
+      },
+      "id": "emit-signal",
+      "name": "Emit Signal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3320, 300],
+      "credentials": { "postgres": { "id": "supabase-postgres", "name": "Supabase Postgres (Shared Pooler)" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Count results for response\nconst allItems = $('Prepare Items for Classification').all();\nconst classifiedItems = $('Parse Classification').all();\nconst objectionsFound = classifiedItems.filter(i => i.json.has_objection).length;\n\nreturn [{\n  json: {\n    success: true,\n    items_processed: allItems.length,\n    objections_found: objectionsFound,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3540, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3760, 380]
+    }
+  ],
+  "connections": {
+    "Webhook - Objection Import": {
+      "main": [[{ "node": "Parse Webhook Input", "type": "main", "index": 0 }]]
+    },
+    "Parse Webhook Input": {
+      "main": [[{ "node": "Route Input Type", "type": "main", "index": 0 }]]
+    },
+    "Route Input Type": {
+      "main": [
+        [{ "node": "Error Response", "type": "main", "index": 0 }],
+        [{ "node": "Parse Batch Items", "type": "main", "index": 0 }],
+        [{ "node": "Merge Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Batch Items": {
+      "main": [[{ "node": "Merge Items", "type": "main", "index": 1 }]]
+    },
+    "Merge Items": {
+      "main": [[{ "node": "Upsert Source", "type": "main", "index": 0 }]]
+    },
+    "Upsert Source": {
+      "main": [[{ "node": "Prepare Items for Classification", "type": "main", "index": 0 }]]
+    },
+    "Prepare Items for Classification": {
+      "main": [[{ "node": "Insert Events", "type": "main", "index": 0 }]]
+    },
+    "Insert Events": {
+      "main": [[{ "node": "Prepare Classification Prompt", "type": "main", "index": 0 }]]
+    },
+    "Prepare Classification Prompt": {
+      "main": [[{ "node": "Call Anthropic (Classify)", "type": "main", "index": 0 }]]
+    },
+    "Call Anthropic (Classify)": {
+      "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]]
+    },
+    "Parse Classification": {
+      "main": [[{ "node": "Has Objection?", "type": "main", "index": 0 }]]
+    },
+    "Has Objection?": {
+      "main": [
+        [{ "node": "Update Event Classification", "type": "main", "index": 0 }],
+        [{ "node": "Prepare Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Event Classification": {
+      "main": [[{ "node": "Upsert Patterns", "type": "main", "index": 0 }]]
+    },
+    "Upsert Patterns": {
+      "main": [[{ "node": "Emit Signal", "type": "main", "index": 0 }]]
+    },
+    "Emit Signal": {
+      "main": [[{ "node": "Prepare Response", "type": "main", "index": 0 }]]
+    },
+    "Prepare Response": {
+      "main": [[{ "node": "Success Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-02-04T00:00:00.000Z",
+  "versionId": "1"
+}
