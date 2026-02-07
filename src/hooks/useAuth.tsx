@@ -7,6 +7,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGitHub: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -38,15 +40,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithMagicLink = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+    const redirectUrl = `${window.location.origin}/control-plane`;
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: redirectUrl,
       },
     });
-    
+
+    return { error: error as Error | null };
+  };
+
+  const signInWithGoogle = async () => {
+    const redirectUrl = `${window.location.origin}/control-plane`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+
+    return { error: error as Error | null };
+  };
+
+  const signInWithGitHub = async () => {
+    const redirectUrl = `${window.location.origin}/control-plane`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+
     return { error: error as Error | null };
   };
 
@@ -55,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithMagicLink, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithMagicLink, signInWithGoogle, signInWithGitHub, signOut }}>
       {children}
     </AuthContext.Provider>
   );
