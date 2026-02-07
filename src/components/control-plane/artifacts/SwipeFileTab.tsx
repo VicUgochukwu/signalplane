@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Copy, Check, TrendingUp, TrendingDown, Minus, Sparkles, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Copy, Check, TrendingUp, TrendingDown, Minus, Sparkles, Filter, FileText, ArrowLeft } from 'lucide-react';
 import { useSwipeFile } from '@/hooks/useArtifacts';
 import { ArtifactHeader } from './ArtifactHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -133,8 +134,20 @@ export function SwipeFileTab() {
 
   if (!currentVersion) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        No swipe file data available. Data will appear after the weekly AI analysis runs.
+      <div className="text-center py-12 space-y-4">
+        <FileText className="h-12 w-12 mx-auto text-muted-foreground/50" />
+        <div className="space-y-2">
+          <p className="text-foreground font-medium">No buyer language data yet</p>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Once signals are processed, this tab will display exact phrases buyers use, tagged by persona and funnel stage. Each phrase is trend-labeled: rising, stable, or fading.
+          </p>
+        </div>
+        <Link to="/control-plane">
+          <Button variant="outline" size="sm" className="gap-2 mt-4">
+            <ArrowLeft className="h-4 w-4" />
+            View Intel Packets
+          </Button>
+        </Link>
       </div>
     );
   }

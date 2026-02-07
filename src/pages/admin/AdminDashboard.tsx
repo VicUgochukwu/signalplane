@@ -77,8 +77,8 @@ export default function AdminDashboard() {
     { label: 'System Overview', to: '/admin/system' },
   ];
 
-  const healthPercentage = systemSummary 
-    ? Math.round((systemSummary.healthy_apis / Math.max(systemSummary.total_apis, 1)) * 100)
+  const healthPercentage = systemSummary && (systemSummary.total_apis ?? 0) > 0
+    ? Math.round(((systemSummary.healthy_apis ?? 0) / systemSummary.total_apis) * 100)
     : 0;
 
   return (
@@ -188,37 +188,48 @@ export default function AdminDashboard() {
                 <Skeleton className="h-4 w-24 bg-zinc-700" />
               </div>
             ) : systemSummary ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">
-                    {systemSummary.healthy_apis}/{systemSummary.total_apis} APIs healthy
-                  </span>
-                  <span className="text-muted-foreground">{healthPercentage}%</span>
+              (systemSummary.total_apis ?? 0) > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-foreground">
+                      {systemSummary.healthy_apis ?? 0}/{systemSummary.total_apis ?? 0} APIs healthy
+                    </span>
+                    <span className="text-muted-foreground">{healthPercentage}%</span>
+                  </div>
+                  <div className="relative h-2 bg-zinc-700 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-emerald-500 rounded-full transition-all"
+                      style={{ width: `${((systemSummary.healthy_apis ?? 0) / Math.max(systemSummary.total_apis ?? 1, 1)) * 100}%` }}
+                    />
+                    <div 
+                      className="absolute top-0 h-full bg-amber-500"
+                      style={{ 
+                        left: `${((systemSummary.healthy_apis ?? 0) / Math.max(systemSummary.total_apis ?? 1, 1)) * 100}%`,
+                        width: `${((systemSummary.degraded_apis ?? 0) / Math.max(systemSummary.total_apis ?? 1, 1)) * 100}%` 
+                      }}
+                    />
+                    <div 
+                      className="absolute top-0 h-full bg-red-500 rounded-r-full"
+                      style={{ 
+                        left: `${(((systemSummary.healthy_apis ?? 0) + (systemSummary.degraded_apis ?? 0)) / Math.max(systemSummary.total_apis ?? 1, 1)) * 100}%`,
+                        width: `${((systemSummary.down_apis ?? 0) / Math.max(systemSummary.total_apis ?? 1, 1)) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Avg latency: {systemSummary.avg_response_time_ms
+                      ? `${Math.round(systemSummary.avg_response_time_ms)}ms`
+                      : '—'}
+                  </p>
                 </div>
-                <div className="relative h-2 bg-zinc-700 rounded-full overflow-hidden">
-                  <div 
-                    className="absolute left-0 top-0 h-full bg-emerald-500 rounded-full transition-all"
-                    style={{ width: `${(systemSummary.healthy_apis / Math.max(systemSummary.total_apis, 1)) * 100}%` }}
-                  />
-                  <div 
-                    className="absolute top-0 h-full bg-amber-500"
-                    style={{ 
-                      left: `${(systemSummary.healthy_apis / Math.max(systemSummary.total_apis, 1)) * 100}%`,
-                      width: `${(systemSummary.degraded_apis / Math.max(systemSummary.total_apis, 1)) * 100}%` 
-                    }}
-                  />
-                  <div 
-                    className="absolute top-0 h-full bg-red-500 rounded-r-full"
-                    style={{ 
-                      left: `${((systemSummary.healthy_apis + systemSummary.degraded_apis) / Math.max(systemSummary.total_apis, 1)) * 100}%`,
-                      width: `${(systemSummary.down_apis / Math.max(systemSummary.total_apis, 1)) * 100}%` 
-                    }}
-                  />
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-foreground">No API health data cached yet.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Run a health check from System Overview to populate this widget.
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Avg latency: {systemSummary.avg_response_time_ms}ms
-                </p>
-              </div>
+              )
             ) : (
               <p className="text-sm text-muted-foreground">No system data available</p>
             )}

@@ -4,6 +4,7 @@ import { useReports } from '@/hooks/useReports';
 import { ReportList } from '@/components/control-plane/ReportList';
 import { ReportDetail } from '@/components/control-plane/ReportDetail';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
+import { Footer } from '@/components/Footer';
 import { Loader2 } from 'lucide-react';
 
 const ControlPlane = () => {
@@ -36,9 +37,9 @@ const ControlPlane = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <AppNavigation />
-      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8">
+      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
         {selectedReport ? (
           <ReportDetail
             report={selectedReport}
@@ -50,6 +51,9 @@ const ControlPlane = () => {
             onSelectReport={setSelectedReport}
           />
         )}
+      </div>
+      <div className="container max-w-6xl mx-auto px-4">
+        <Footer />
       </div>
     </div>
   );
