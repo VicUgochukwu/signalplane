@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
+import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { Footer } from "@/components/Footer";
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <LandingNavbar />
       <main className="max-w-content mx-auto px-6 py-24">
         <Link
           to="/"
