@@ -18,10 +18,12 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
 import AdminSystemOverview from "./pages/admin/AdminSystemOverview";
+import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
 import AdminApiHealth from "./pages/admin/AdminApiHealth";
 import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
 import AdminUsageReports from "./pages/admin/AdminUsageReports";
+import AdminCostDashboard from "./pages/admin/AdminCostDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +81,14 @@ const App = () => (
               }
             />
             <Route
+              path="/admin/system-health"
+              element={
+                <AdminRoute>
+                  <AdminSystemHealth />
+                </AdminRoute>
+              }
+            />
+            <Route
               path="/admin/workflows"
               element={
                 <AdminRoute>
@@ -107,6 +117,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminUsageReports />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/costs"
+              element={
+                <AdminRoute>
+                  <AdminCostDashboard />
                 </AdminRoute>
               }
             />

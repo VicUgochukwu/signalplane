@@ -1,8 +1,11 @@
+import { MarketWinner } from './controlPlane';
+
 export type PacketStatus = 'live' | 'published' | 'draft' | 'archived';
 
 export interface IntelSection {
   summary: string;
   highlights: string[];
+  action_items: string[];
 }
 
 export interface Bet {
@@ -11,16 +14,53 @@ export interface Bet {
   signal_ids: string[];
 }
 
+export interface Prediction {
+  prediction: string;
+  timeframe: string;
+  confidence: number;
+  signals: string[];
+}
+
+export interface ActionItem {
+  action: string;
+  owner: string;
+  priority: string;
+}
+
+export interface MonitorItem {
+  signal: string;
+  trigger: string;
+  action: string;
+}
+
+export interface ActionMapping {
+  this_week: ActionItem[];
+  monitor: MonitorItem[];
+}
+
+export interface MarketWinnersData {
+  proven: MarketWinner[];
+  emerging: MarketWinner[];
+}
+
 export interface IntelPacket {
   id: string;
-  date: string; // ISO date "2026-01-26"
-  headline: string; // "Week of Jan 20: AI Positioning Wars Heat Up"
+  week_start: string; // DATE
+  week_end: string; // DATE
+  packet_title: string;
   exec_summary: string[];
-  competitive_intel: IntelSection;
-  pipeline_intel: IntelSection;
-  market_intel: IntelSection;
+  sections: {
+    messaging: IntelSection;
+    narrative: IntelSection;
+    icp: IntelSection;
+    horizon: IntelSection;
+    objection: IntelSection;
+  };
   key_questions: string[];
   bets: Bet[];
+  predictions: Prediction[];
+  action_mapping: ActionMapping;
+  market_winners?: MarketWinnersData;
   status: PacketStatus;
   created_at: string;
   metrics?: {
@@ -28,4 +68,13 @@ export interface IntelPacket {
     confidence_score?: number;
     impact_score?: number;
   };
+}
+
+// Section configuration for display
+export type SectionKey = keyof IntelPacket['sections'];
+
+export interface SectionConfig {
+  key: SectionKey;
+  title: string;
+  color: string;
 }

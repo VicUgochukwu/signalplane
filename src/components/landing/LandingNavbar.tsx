@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Menu, X } from "lucide-react";
-import signalPlaneLogo from "@/assets/signal-plane-logo.png";
+import { ChevronDown, Menu } from "lucide-react";
+import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 import {
   Sheet,
   SheetContent,
@@ -16,9 +16,9 @@ const demoItems = [
 ];
 
 const anchorLinks = [
-  { label: "Work", href: "#work" },
+  { label: "Intelligence", href: "#intelligence" },
   { label: "Approach", href: "#approach" },
-  { label: "Background", href: "#background" },
+  { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -58,12 +58,12 @@ export function LandingNavbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden sm:flex items-center gap-8">
-          {/* Work link */}
+          {/* Intelligence link */}
           <a
-            href="#work"
+            href="#intelligence"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Work
+            Intelligence
           </a>
 
           {/* Live Demos dropdown */}
@@ -120,10 +120,10 @@ export function LandingNavbar() {
             Approach
           </a>
           <a
-            href="#background"
+            href="#faq"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Background
+            FAQ
           </a>
           <a
             href="#contact"
@@ -146,13 +146,13 @@ export function LandingNavbar() {
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-2 mt-4">
-              {/* Work */}
+              {/* Intelligence */}
               <a
-                href="#work"
+                href="#intelligence"
                 onClick={closeMobileMenu}
                 className="px-4 py-3 text-foreground hover:bg-muted rounded-md transition-colors"
               >
-                Work
+                Intelligence
               </a>
 
               {/* Live Demos accordion */}
