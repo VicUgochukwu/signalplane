@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 
 export function Footer() {
@@ -9,6 +10,18 @@ export function Footer() {
           <span>© 2026 Signal Plane</span>
         </div>
         <div className="flex items-center gap-4">
+          <Link
+            to="/privacy-policy"
+            className="hover:text-zinc-300 transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            to="/cookie-policy"
+            className="hover:text-zinc-300 transition-colors"
+          >
+            Cookie Policy
+          </Link>
           <span>Control Plane, by Signal Plane</span>
         </div>
       </div>

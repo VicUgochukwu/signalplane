@@ -24,7 +24,10 @@ import AdminApiHealth from "./pages/admin/AdminApiHealth";
 import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
 import AdminUsageReports from "./pages/admin/AdminUsageReports";
 import AdminCostDashboard from "./pages/admin/AdminCostDashboard";
+import CookiePolicy from "./pages/CookiePolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
+import { CookieBanner } from "./components/CookieBanner";
 
 const queryClient = new QueryClient();
 
@@ -145,9 +148,12 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieBanner />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
