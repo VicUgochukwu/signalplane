@@ -7,14 +7,20 @@ interface MagnitudeBadgeProps {
 
 export function MagnitudeBadge({ magnitude }: MagnitudeBadgeProps) {
   const variants = {
-    minor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30',
-    moderate: 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30',
-    major: 'bg-rose-500/20 text-rose-400 border-rose-500/30 hover:bg-rose-500/30',
+    minor: 'bg-terminal-green/20 text-terminal-green border-terminal-green/40',
+    moderate: 'bg-terminal-amber/20 text-terminal-amber border-terminal-amber/40',
+    major: 'bg-terminal-red/20 text-terminal-red border-terminal-red/40',
+  };
+
+  const labels = {
+    minor: 'LOW',
+    moderate: 'MED',
+    major: 'HIGH',
   };
 
   return (
-    <Badge className={cn('capitalize', variants[magnitude])}>
-      {magnitude}
+    <Badge className={cn('font-mono text-xs uppercase', variants[magnitude])}>
+      {labels[magnitude]}
     </Badge>
   );
 }

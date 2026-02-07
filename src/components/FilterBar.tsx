@@ -24,18 +24,18 @@ export function FilterBar({
   return (
     <div className="flex flex-wrap gap-3">
       <Select value={selectedCompany} onValueChange={onCompanyChange}>
-        <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-700 text-zinc-100">
+        <SelectTrigger className="w-[180px] bg-card border-border text-foreground font-mono text-sm">
           <SelectValue placeholder="All Companies" />
         </SelectTrigger>
-        <SelectContent className="bg-zinc-800 border-zinc-700">
-          <SelectItem value="all" className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100">
+        <SelectContent className="bg-card border-border">
+          <SelectItem value="all" className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm">
             All Companies
           </SelectItem>
           {companies.map((company) => (
-            <SelectItem 
-              key={company} 
+            <SelectItem
+              key={company}
               value={company}
-              className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100"
+              className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm"
             >
               {company}
             </SelectItem>
@@ -44,18 +44,18 @@ export function FilterBar({
       </Select>
 
       <Select value={selectedTag} onValueChange={onTagChange}>
-        <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-700 text-zinc-100">
+        <SelectTrigger className="w-[180px] bg-card border-border text-foreground font-mono text-sm">
           <SelectValue placeholder="All Tags" />
         </SelectTrigger>
-        <SelectContent className="bg-zinc-800 border-zinc-700">
-          <SelectItem value="all" className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100">
+        <SelectContent className="bg-card border-border">
+          <SelectItem value="all" className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm">
             All Tags
           </SelectItem>
           {tags.map((tag) => (
-            <SelectItem 
-              key={tag} 
+            <SelectItem
+              key={tag}
               value={tag}
-              className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100"
+              className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm"
             >
               {tag}
             </SelectItem>
@@ -64,21 +64,30 @@ export function FilterBar({
       </Select>
 
       <Select value={selectedMagnitude} onValueChange={onMagnitudeChange}>
-        <SelectTrigger className="w-[180px] bg-zinc-800 border-zinc-700 text-zinc-100">
-          <SelectValue placeholder="All Magnitudes" />
+        <SelectTrigger className="w-[180px] bg-card border-border text-foreground font-mono text-sm">
+          <SelectValue placeholder="All Priorities" />
         </SelectTrigger>
-        <SelectContent className="bg-zinc-800 border-zinc-700">
-          <SelectItem value="all" className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100">
-            All Magnitudes
+        <SelectContent className="bg-card border-border">
+          <SelectItem value="all" className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm">
+            All Priorities
           </SelectItem>
-          <SelectItem value="minor" className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100">
-            Minor
+          <SelectItem value="minor" className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-terminal-green" />
+              Low
+            </span>
           </SelectItem>
-          <SelectItem value="moderate" className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100">
-            Moderate
+          <SelectItem value="moderate" className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-terminal-amber" />
+              Medium
+            </span>
           </SelectItem>
-          <SelectItem value="major" className="text-zinc-100 focus:bg-zinc-700 focus:text-zinc-100">
-            Major
+          <SelectItem value="major" className="text-foreground focus:bg-muted focus:text-foreground font-mono text-sm">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-terminal-red" />
+              High
+            </span>
           </SelectItem>
         </SelectContent>
       </Select>

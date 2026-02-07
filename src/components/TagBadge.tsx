@@ -34,15 +34,15 @@ export function TagBadge({ tag }: TagBadgeProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge 
-          variant="outline" 
-          className="text-xs border-zinc-600 text-zinc-300 cursor-help hover:border-zinc-500"
+        <Badge
+          variant="outline"
+          className="text-xs border-primary/30 text-primary font-mono cursor-help hover:border-primary/50 hover:bg-primary/10"
         >
           {tag.replace(/_/g, ' ')}
         </Badge>
       </TooltipTrigger>
-      <TooltipContent className="bg-zinc-800 border-zinc-700 text-zinc-100">
-        <p className="max-w-xs">{explanation}</p>
+      <TooltipContent className="bg-card border-border text-foreground">
+        <p className="max-w-xs text-sm">{explanation}</p>
       </TooltipContent>
     </Tooltip>
   );
@@ -50,7 +50,7 @@ export function TagBadge({ tag }: TagBadgeProps) {
 
 export function TagLegend() {
   return (
-    <div className="flex items-center gap-2 text-sm text-zinc-400">
+    <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
       <HelpCircle className="h-4 w-4" />
       <span>Hover tags for explanations</span>
     </div>

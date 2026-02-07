@@ -12,23 +12,23 @@ interface ChangelogCardProps {
 
 export function ChangelogCard({ entry }: ChangelogCardProps) {
   return (
-    <Card className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors">
+    <Card className="card-terminal hover:border-primary/30 transition-colors">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-zinc-100">{entry.company_name}</h3>
+              <h3 className="font-mono font-semibold text-foreground">{entry.company_name}</h3>
               <a
                 href={entry.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="text-xs border-zinc-600 text-zinc-400">
+              <Badge variant="outline" className="text-xs border-border text-muted-foreground font-mono">
                 {entry.url_type}
               </Badge>
               <TagBadge tag={entry.primary_tag} />
@@ -38,12 +38,14 @@ export function ChangelogCard({ entry }: ChangelogCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-zinc-300 leading-relaxed">{entry.diff_summary}</p>
+        <p className="text-sm text-foreground leading-relaxed">{entry.diff_summary}</p>
         {entry.implication && (
-          <p className="text-sm text-zinc-400 italic">{entry.implication}</p>
+          <p className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-3">
+            {entry.implication}
+          </p>
         )}
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-xs text-zinc-500">Confidence</span>
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <span className="text-xs text-muted-foreground font-mono">Confidence</span>
           <ConfidenceBar confidence={entry.confidence} />
         </div>
       </CardContent>

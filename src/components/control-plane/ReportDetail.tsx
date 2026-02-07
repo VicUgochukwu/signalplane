@@ -2,8 +2,9 @@ import { IntelPacket, PacketStatus, IntelSection, SectionKey } from '@/types/rep
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, Radio, Zap, Shield, HelpCircle, Target, 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  ArrowLeft, Radio, Zap, Shield, HelpCircle, Target,
   MessageSquare, BookOpen, Users, Compass, ShieldAlert,
   Clock, AlertTriangle, CheckCircle2
 } from 'lucide-react';
@@ -234,20 +235,106 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </CardContent>
       </Card>
 
-      {/* Intel Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {sectionConfigs.map((config) => {
-          const section = report.sections[config.key];
-          if (!section || (!section.summary && section.highlights.length === 0)) return null;
-          return (
-            <IntelSectionCard 
-              key={config.key} 
-              section={section} 
-              config={config} 
-            />
-          );
-        })}
-      </div>
+      {/* Intel Sections - Tabbed Interface */}
+      <Card className="card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
+        <CardHeader className="pb-3">
+          <h2 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider">
+            // Intelligence Signals
+          </h2>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue={sectionConfigs.find(c => {
+            const s = report.sections[c.key];
+            return s && (s.summary || s.highlights.length > 0);
+          })?.key || 'messaging'} className="w-full">
+            <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+              {sectionConfigs.map((config) => {
+                const section = report.sections[config.key];
+                const hasContent = section && (section.summary || section.highlights.length > 0);
+                const Icon = config.icon;
+                return (
+                  <TabsTrigger
+                    key={config.key}
+                    value={config.key}
+                    disabled={!hasContent}
+                    className={`flex items-center gap-2 px-3 py-2 text-xs font-mono ${!hasContent ? 'opacity-40' : ''}`}
+                  >
+                    <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+                    <span className="hidden sm:inline">{config.title.replace(' Intel', '')}</span>
+                    <span className="sm:hidden">{config.key.slice(0, 3).toUpperCase()}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            {sectionConfigs.map((config) => {
+              const section = report.sections[config.key];
+              if (!section) return null;
+              const Icon = config.icon;
+
+              return (
+                <TabsContent key={config.key} value={config.key} className="mt-4">
+                  <div className="space-y-4">
+                    {/* Section Header */}
+                    <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                      <Icon className={`h-5 w-5 ${config.color}`} />
+                      <h3 className="text-base font-semibold text-foreground">{config.title}</h3>
+                    </div>
+
+                    {/* Summary */}
+                    {section.summary && (
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {section.summary}
+                      </p>
+                    )}
+
+                    {/* Highlights */}
+                    {section.highlights.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
+                          Key Highlights
+                        </h4>
+                        <ul className="space-y-2">
+                          {section.highlights.map((highlight, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-3 text-sm text-foreground p-2 rounded-md bg-muted/30"
+                            >
+                              <span className={`mt-0.5 ${config.color} font-mono`}>›</span>
+                              <span>{highlight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Action Items */}
+                    {section.action_items && section.action_items.length > 0 && (
+                      <div className="pt-3 border-t border-border/50">
+                        <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-terminal-green" />
+                          Recommended Actions
+                        </h4>
+                        <ul className="space-y-2">
+                          {section.action_items.map((item, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-3 text-sm text-terminal-green p-2 rounded-md bg-terminal-green/10"
+                            >
+                              <span className="mt-0.5 font-mono">→</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Predictions */}
       {report.predictions && report.predictions.length > 0 && (

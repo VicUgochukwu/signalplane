@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
+import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 
@@ -20,7 +21,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/my-pages');
+      navigate('/control-plane');
     }
   }, [user, loading, navigate]);
 
@@ -51,28 +52,36 @@ const Login = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={signalPlaneLogo} alt="Signal Plane" className="w-12 h-12" />
+            <span className="text-xl font-mono font-semibold text-foreground">Signal Plane</span>
+          </Link>
+        </div>
+
         <Button
           variant="ghost"
-          onClick={() => navigate('/messaging-diff')}
-          className="text-zinc-400 hover:text-zinc-100"
+          onClick={() => navigate('/')}
+          className="text-muted-foreground hover:text-foreground font-mono text-sm"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Feed
+          Back to Home
         </Button>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card className="card-terminal">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-zinc-100">Sign in</CardTitle>
-            <CardDescription className="text-zinc-400">
+            <CardTitle className="text-2xl font-mono text-foreground">Sign in</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Enter your email to receive a magic link
             </CardDescription>
           </CardHeader>
@@ -80,14 +89,16 @@ const Login = () => {
             {emailSent ? (
               <div className="space-y-4 text-center py-4">
                 <div className="flex justify-center">
-                  <CheckCircle className="h-12 w-12 text-emerald-500" />
+                  <div className="p-3 rounded-full bg-terminal-green/20 border border-terminal-green/40">
+                    <CheckCircle className="h-8 w-8 text-terminal-green" />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-zinc-100 font-medium">Check your email</p>
-                  <p className="text-zinc-400 text-sm">
-                    We sent a magic link to <span className="text-zinc-200">{email}</span>
+                  <p className="text-foreground font-mono font-medium">Check your email</p>
+                  <p className="text-muted-foreground text-sm">
+                    We sent a magic link to <span className="text-primary font-mono">{email}</span>
                   </p>
-                  <p className="text-zinc-500 text-xs">
+                  <p className="text-muted-foreground text-xs">
                     Click the link in the email to sign in
                   </p>
                 </div>
@@ -97,7 +108,7 @@ const Login = () => {
                     setEmailSent(false);
                     setEmail('');
                   }}
-                  className="mt-4 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                  className="mt-4 border-border text-foreground hover:bg-muted font-mono"
                 >
                   Try a different email
                 </Button>
@@ -105,7 +116,7 @@ const Login = () => {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-zinc-200">
+                  <Label htmlFor="email" className="text-foreground font-mono">
                     Email
                   </Label>
                   <Input
@@ -114,20 +125,20 @@ const Login = () => {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-zinc-900 border-zinc-600 text-zinc-100 placeholder:text-zinc-500"
+                    className="bg-muted border-border text-foreground placeholder:text-muted-foreground font-mono"
                     disabled={isLoading}
                   />
                 </div>
 
                 {error && (
-                  <div className="rounded-md bg-rose-500/10 border border-rose-500/20 p-3">
-                    <p className="text-sm text-rose-400">{error}</p>
+                  <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+                    <p className="text-sm text-destructive font-mono">{error}</p>
                   </div>
                 )}
 
                 <Button
                   type="submit"
-                  className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-mono"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -142,6 +153,10 @@ const Login = () => {
                     </>
                   )}
                 </Button>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  By signing in, you agree to our Terms of Service and Privacy Policy
+                </p>
               </form>
             )}
           </CardContent>

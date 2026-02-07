@@ -4,15 +4,12 @@ import { useMyChangelog } from '@/hooks/useMyChangelog';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
-
-import { AuthNavLink } from '@/components/AuthNavLink';
-import { HeroSection } from '@/components/HeroSection';
-import { Footer } from '@/components/Footer';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
-import { Globe, User, Plus } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Globe, User, Plus, Radio, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Index = () => {
   const { user } = useAuth();
@@ -64,27 +61,73 @@ const Index = () => {
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [filteredEntries]);
 
+  // Calculate stats
+  const totalSignals = entries?.length || 0;
+  const highPriorityCount = entries?.filter(e => e.change_magnitude === 'major').length || 0;
+
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-background">
       <AppNavigation />
-      <div className="container py-8 space-y-8">
-        <div className="flex items-center justify-end">
-          <AuthNavLink />
+      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-6">
+        {/* Page Header */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <Radio className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground font-mono">
+                Signal Feed
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Real-time competitor changes feeding into weekly intelligence packets
+              </p>
+            </div>
+          </div>
         </div>
 
-        <HeroSection />
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="card-terminal">
+            <CardContent className="p-4">
+              <div className="text-2xl font-mono font-bold text-foreground">{totalSignals}</div>
+              <div className="text-xs text-muted-foreground font-mono uppercase">Total Signals</div>
+            </CardContent>
+          </Card>
+          <Card className="card-terminal">
+            <CardContent className="p-4">
+              <div className="text-2xl font-mono font-bold text-terminal-red">{highPriorityCount}</div>
+              <div className="text-xs text-muted-foreground font-mono uppercase">High Priority</div>
+            </CardContent>
+          </Card>
+          <Card className="card-terminal">
+            <CardContent className="p-4">
+              <div className="text-2xl font-mono font-bold text-primary">{companies.length}</div>
+              <div className="text-xs text-muted-foreground font-mono uppercase">Companies</div>
+            </CardContent>
+          </Card>
+          <Card className="card-terminal">
+            <CardContent className="p-4">
+              <Link to="/control-plane" className="block hover:opacity-80 transition-opacity">
+                <div className="text-sm font-mono font-bold text-terminal-green">View Packet →</div>
+                <div className="text-xs text-muted-foreground font-mono uppercase">Weekly Intel</div>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
 
-        <div className="border-t border-zinc-800 pt-8 space-y-4">
-          {/* Feed toggle for signed-in users */}
-          {user && (
-            <div className="flex items-center justify-between">
+        {/* Feed Toggle & Filters */}
+        <div className="space-y-4 border-t border-border pt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Feed toggle for signed-in users */}
+            {user && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowAllChanges(false)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-mono transition-colors ${
                     !showAllChanges
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground border border-transparent'
                   }`}
                 >
                   <User className="h-3.5 w-3.5" />
@@ -92,81 +135,91 @@ const Index = () => {
                 </button>
                 <button
                   onClick={() => setShowAllChanges(true)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-mono transition-colors ${
                     showAllChanges
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground border border-transparent'
                   }`}
                 >
                   <Globe className="h-3.5 w-3.5" />
-                  All Changes
+                  All Signals
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          <h2 className="text-2xl font-bold text-zinc-100">
-            {isPersonalized ? 'Your Tracked Changes' : 'Recent Changes'}
-          </h2>
+            {!user && (
+              <div className="text-sm text-muted-foreground font-mono">
+                // Showing all public signals
+              </div>
+            )}
+
+            <FilterBar
+              companies={companies}
+              tags={tags}
+              selectedCompany={selectedCompany}
+              selectedTag={selectedTag}
+              selectedMagnitude={selectedMagnitude}
+              onCompanyChange={setSelectedCompany}
+              onTagChange={setSelectedTag}
+              onMagnitudeChange={setSelectedMagnitude}
+            />
+          </div>
 
           {isPersonalized && (
-            <p className="text-sm text-zinc-500">
-              Showing changes for your tracked companies only.
+            <p className="text-xs text-muted-foreground font-mono">
+              Showing signals for your tracked companies only.
             </p>
           )}
+        </div>
 
-          <FilterBar
-            companies={companies}
-            tags={tags}
-            selectedCompany={selectedCompany}
-            selectedTag={selectedTag}
-            selectedMagnitude={selectedMagnitude}
-            onCompanyChange={setSelectedCompany}
-            onTagChange={setSelectedTag}
-            onMagnitudeChange={setSelectedMagnitude}
-          />
-
-          {isLoading && (
-            <div className="space-y-8">
-              {[1, 2].map((week) => (
-                <div key={week} className="space-y-4">
-                  <Skeleton className="h-8 w-64 bg-zinc-800" />
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {[1, 2, 3].map((card) => (
-                      <Skeleton key={card} className="h-48 bg-zinc-800" />
-                    ))}
-                  </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="space-y-8">
+            {[1, 2].map((week) => (
+              <div key={week} className="space-y-4">
+                <Skeleton className="h-6 w-48 bg-muted" />
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {[1, 2, 3].map((card) => (
+                    <Skeleton key={card} className="h-48 bg-muted" />
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+        )}
 
-          {error && (
-            <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-4 text-rose-400">
-              <p className="font-medium">Error loading changelog</p>
-              <p className="text-sm mt-1">{error.message}</p>
-              <p className="text-sm mt-2 text-zinc-400">
-                Make sure to configure your Supabase URL and anon key in src/integrations/supabase/client.ts
-              </p>
-            </div>
-          )}
+        {/* Error State */}
+        {error && (
+          <Card className="card-terminal border-destructive/50">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                <div>
+                  <p className="font-mono font-medium text-destructive">Error loading signals</p>
+                  <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Personalized empty state */}
-          {!isLoading && !error && groupedByWeek.length === 0 && isPersonalized && (
-            <div className="text-center py-16 space-y-4">
-              <div className="mx-auto w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center">
-                <Plus className="h-6 w-6 text-zinc-500" />
+        {/* Personalized Empty State */}
+        {!isLoading && !error && groupedByWeek.length === 0 && isPersonalized && (
+          <Card className="card-terminal">
+            <CardContent className="py-12 text-center space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Plus className="h-6 w-6 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <p className="text-zinc-300 font-medium">No changes for your tracked companies yet</p>
-                <p className="text-sm text-zinc-500 max-w-md mx-auto">
-                  Add companies to track on the My Pages dashboard, or browse all changes to see what others are tracking.
+                <p className="text-foreground font-mono font-medium">No signals for your tracked companies</p>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Add companies to track on the My Pages dashboard, or browse all signals to see the full feed.
                 </p>
               </div>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <Button
                   onClick={() => navigate('/my-pages')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Companies
@@ -174,30 +227,31 @@ const Index = () => {
                 <Button
                   variant="outline"
                   onClick={() => setShowAllChanges(true)}
-                  className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                  className="border-border text-foreground hover:bg-muted"
                 >
                   <Globe className="h-4 w-4 mr-2" />
-                  Browse All Changes
+                  Browse All Signals
                 </Button>
               </div>
-            </div>
-          )}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Generic empty state (public feed or filters) */}
-          {!isLoading && !error && groupedByWeek.length === 0 && !isPersonalized && (
-            <div className="text-center py-12 text-zinc-500">
-              No changes found matching your filters.
-            </div>
-          )}
+        {/* Generic Empty State */}
+        {!isLoading && !error && groupedByWeek.length === 0 && !isPersonalized && (
+          <Card className="card-terminal">
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground font-mono">No signals found matching your filters.</p>
+            </CardContent>
+          </Card>
+        )}
 
-          <div className="space-y-8">
-            {groupedByWeek.map(([weekStart, weekEntries]) => (
-              <WeekSection key={weekStart} weekStart={weekStart} entries={weekEntries} />
-            ))}
-          </div>
+        {/* Signal Feed */}
+        <div className="space-y-8">
+          {groupedByWeek.map(([weekStart, weekEntries]) => (
+            <WeekSection key={weekStart} weekStart={weekStart} entries={weekEntries} />
+          ))}
         </div>
-
-        <Footer />
       </div>
     </div>
   );

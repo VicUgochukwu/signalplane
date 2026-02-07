@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Menu } from "lucide-react";
+import { ChevronDown, Menu, LogIn, ArrowRight } from "lucide-react";
 import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -131,6 +132,22 @@ export function LandingNavbar() {
           >
             Contact
           </a>
+
+          {/* Auth buttons */}
+          <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
+            <Link to="/login">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                Get Started
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Mobile Hamburger Menu */}
@@ -205,6 +222,26 @@ export function LandingNavbar() {
                   {link.label}
                 </a>
               ))}
+
+              {/* Auth buttons in mobile menu */}
+              <div className="border-t border-border mt-4 pt-4 space-y-2">
+                <Link
+                  to="/login"
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-2 px-4 py-3 text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={closeMobileMenu}
+                  className="flex items-center justify-center gap-2 mx-4 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </nav>
           </SheetContent>
         </Sheet>
