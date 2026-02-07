@@ -1,10 +1,14 @@
-import { IntelPacket, PacketStatus, IntelSection } from '@/types/report';
+import { IntelPacket, PacketStatus, IntelSection, SectionKey } from '@/types/report';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { ArrowLeft, Radio, Zap, Shield, HelpCircle, Lightbulb, Crosshair, TrendingUp, Globe, Target } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  ArrowLeft, Radio, Zap, Shield, HelpCircle, Target, 
+  MessageSquare, BookOpen, Users, Compass, ShieldAlert,
+  Clock, AlertTriangle, CheckCircle2
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
-import { MarketWinner } from '@/types/controlPlane';
 
 interface ReportDetailProps {
   report: IntelPacket;
@@ -19,16 +23,18 @@ const statusConfig: Record<PacketStatus, { label: string; class: string }> = {
 };
 
 interface SectionConfig {
-  key: keyof Pick<IntelPacket, 'competitive_intel' | 'pipeline_intel' | 'market_intel'>;
+  key: SectionKey;
   title: string;
-  icon: typeof Crosshair;
+  icon: typeof MessageSquare;
   color: string;
 }
 
 const sectionConfigs: SectionConfig[] = [
-  { key: 'competitive_intel', title: 'Competitive Intel', icon: Crosshair, color: 'text-terminal-red' },
-  { key: 'pipeline_intel', title: 'Pipeline Intel', icon: TrendingUp, color: 'text-terminal-green' },
-  { key: 'market_intel', title: 'Market Intel', icon: Globe, color: 'text-terminal-cyan' },
+  { key: 'messaging', title: 'Messaging Intel', icon: MessageSquare, color: 'text-terminal-cyan' },
+  { key: 'narrative', title: 'Narrative Intel', icon: BookOpen, color: 'text-terminal-purple' },
+  { key: 'icp', title: 'ICP Intel', icon: Users, color: 'text-terminal-green' },
+  { key: 'horizon', title: 'Horizon Intel', icon: Compass, color: 'text-terminal-amber' },
+  { key: 'objection', title: 'Objection Intel', icon: ShieldAlert, color: 'text-terminal-red' },
 ];
 
 const getConfidenceColor = (confidence: number) => {
@@ -41,6 +47,15 @@ const getConfidenceBg = (confidence: number) => {
   if (confidence >= 80) return 'bg-terminal-green/20 border-terminal-green/40';
   if (confidence >= 60) return 'bg-terminal-amber/20 border-terminal-amber/40';
   return 'bg-terminal-red/20 border-terminal-red/40';
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority.toLowerCase()) {
+    case 'high': return 'bg-terminal-red/20 text-terminal-red border-terminal-red/40';
+    case 'medium': return 'bg-terminal-amber/20 text-terminal-amber border-terminal-amber/40';
+    case 'low': return 'bg-terminal-green/20 text-terminal-green border-terminal-green/40';
+    default: return 'bg-muted text-muted-foreground';
+  }
 };
 
 const IntelSectionCard = ({ 
@@ -60,21 +75,47 @@ const IntelSectionCard = ({
           // {config.title}
         </h3>
       </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+      <CardContent className="space-y-4">
+        <p className="text-muted-foreground text-sm leading-relaxed">
           {section.summary}
         </p>
-        <ul className="space-y-2">
-          {section.highlights.map((highlight, index) => (
-            <li 
-              key={index}
-              className="flex items-start gap-2 text-sm text-foreground"
-            >
-              <span className={`mt-0.5 ${config.color}`}>›</span>
-              <span>{highlight}</span>
-            </li>
-          ))}
-        </ul>
+        
+        {section.highlights.length > 0 && (
+          <div>
+            <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">Highlights</h4>
+            <ul className="space-y-2">
+              {section.highlights.map((highlight, index) => (
+                <li 
+                  key={index}
+                  className="flex items-start gap-2 text-sm text-foreground"
+                >
+                  <span className={`mt-0.5 ${config.color}`}>›</span>
+                  <span>{highlight}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {section.action_items.length > 0 && (
+          <div className="pt-2 border-t border-border/50">
+            <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Action Items
+            </h4>
+            <ul className="space-y-1">
+              {section.action_items.map((item, index) => (
+                <li 
+                  key={index}
+                  className="flex items-start gap-2 text-sm text-terminal-green"
+                >
+                  <span className="mt-0.5">→</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -82,12 +123,13 @@ const IntelSectionCard = ({
 
 export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
   const status = statusConfig[report.status];
-  const formattedDate = format(parseISO(report.date), 'MMMM d, yyyy');
+  const formattedStartDate = format(parseISO(report.week_start), 'MMM d');
+  const formattedEndDate = format(parseISO(report.week_end), 'MMM d, yyyy');
 
   return (
-    <div className="animate-slide-up">
+    <div className="animate-slide-up space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Button
           variant="ghost"
           onClick={onBack}
@@ -104,7 +146,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-2">
               <h1 className="text-xl md:text-2xl font-bold text-foreground font-mono">
-                {report.headline}
+                {report.packet_title}
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${
@@ -119,7 +161,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm font-mono">
-              <span className="badge-range">{formattedDate}</span>
+              <span className="badge-range">{formattedStartDate} – {formattedEndDate}</span>
             </div>
           </div>
         </div>
@@ -127,7 +169,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
 
       {/* Metrics Grid */}
       {report.metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -177,7 +219,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
       )}
 
       {/* Executive Summary */}
-      <Card className="mb-6 card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
+      <Card className="card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
         <CardHeader className="pb-3">
           <h2 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider">
             // Executive Summary
@@ -193,10 +235,10 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
       </Card>
 
       {/* Intel Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {sectionConfigs.map((config) => {
-          const section = report[config.key];
-          if (!section) return null;
+          const section = report.sections[config.key];
+          if (!section || (!section.summary && section.highlights.length === 0)) return null;
           return (
             <IntelSectionCard 
               key={config.key} 
@@ -207,9 +249,102 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         })}
       </div>
 
+      {/* Predictions */}
+      {report.predictions && report.predictions.length > 0 && (
+        <Card className="card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
+          <CardHeader className="pb-3">
+            <h2 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider flex items-center gap-2">
+              <Compass className="h-4 w-4 text-terminal-purple" />
+              // Predictions
+            </h2>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {report.predictions.map((pred, index) => (
+                <div 
+                  key={index} 
+                  className={`p-4 rounded-lg border ${getConfidenceBg(pred.confidence)}`}
+                >
+                  <p className="text-foreground text-sm mb-2">{pred.prediction}</p>
+                  <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {pred.timeframe}
+                    </span>
+                    <span>
+                      Confidence: <span className={getConfidenceColor(pred.confidence)}>{pred.confidence}%</span>
+                    </span>
+                    <span>{pred.signals.length} signal{pred.signals.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Mapping */}
+      {report.action_mapping && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* This Week Actions */}
+          {report.action_mapping.this_week.length > 0 && (
+            <Card className="card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
+              <CardHeader className="pb-3">
+                <h2 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-terminal-green" />
+                  // This Week
+                </h2>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {report.action_mapping.this_week.map((item, index) => (
+                    <div key={index} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground">{item.action}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Owner: {item.owner}</p>
+                      </div>
+                      <Badge className={`text-xs ${getPriorityColor(item.priority)}`}>
+                        {item.priority}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Monitor Items */}
+          {report.action_mapping.monitor.length > 0 && (
+            <Card className="card-terminal" style={{ boxShadow: 'var(--shadow-soft)' }}>
+              <CardHeader className="pb-3">
+                <h2 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-terminal-amber" />
+                  // Monitor
+                </h2>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {report.action_mapping.monitor.map((item, index) => (
+                    <div key={index} className="p-3 rounded-lg bg-muted/30 space-y-2">
+                      <p className="text-sm text-foreground font-medium">{item.signal}</p>
+                      <div className="text-xs text-muted-foreground">
+                        <span className="text-terminal-amber">Trigger:</span> {item.trigger}
+                      </div>
+                      <div className="text-xs text-terminal-green">
+                        → {item.action}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Bets */}
       {report.bets && report.bets.length > 0 && (
-        <div className="mb-6">
+        <div>
           <h2 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider px-1 mb-4 flex items-center gap-2">
             <Target className="h-4 w-4 text-terminal-amber" />
             // Strategic Bets

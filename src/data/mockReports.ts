@@ -1,10 +1,13 @@
 import { IntelPacket } from '@/types/report';
 
+const emptySection = { summary: '', highlights: [], action_items: [] };
+
 export const mockReports: IntelPacket[] = [
   {
     id: 'pkt-001',
-    date: '2026-01-26',
-    headline: 'Week of Jan 20: AI Positioning Wars Heat Up',
+    week_start: '2026-01-20',
+    week_end: '2026-01-26',
+    packet_title: 'Week of Jan 20: AI Positioning Wars Heat Up',
     exec_summary: [
       'Acme Corp announced 20% price reduction targeting mid-market segment',
       'Competitor X launched AI-powered analytics module — 3 months ahead of roadmap',
@@ -12,32 +15,67 @@ export const mockReports: IntelPacket[] = [
       'Pipeline coverage at 3.2x for Q4 target — down from 3.8x last week',
       'Market sentiment shows 12% increase in brand mentions vs competitors'
     ],
-    competitive_intel: {
-      summary: 'Intensifying pressure from Acme Corp and Competitor X with aggressive pricing and accelerated AI feature releases. Patent activity suggests automated workflow engines are the next battleground.',
-      highlights: [
-        'Acme Corp 20% price cut targeting mid-market — threatens our SMB tier',
-        'Competitor X AI analytics launched 3 months ahead of schedule',
-        'Patent filing detected: Competitor Y automated workflow engine',
-        'We were cited as runner-up in 4 enterprise losses this quarter'
-      ]
-    },
-    pipeline_intel: {
-      summary: 'Pipeline coverage declining with extended deal cycles. Enterprise segment outperforming but concentration risk emerging with top performers.',
-      highlights: [
-        'Coverage at 3.2x (down from 3.8x) — $2.1M in pushed deals',
-        'Average deal cycle extended to 67 days from 52 days in Q3',
-        'Enterprise win rate 28% higher than mid-market',
-        'Top 3 reps account for 62% of pipeline — concentration risk'
-      ]
-    },
-    market_intel: {
-      summary: 'AI/ML budgets surging while security becomes table stakes. Healthcare vertical showing exceptional engagement and expansion potential.',
-      highlights: [
-        'AI/ML budget allocation up 34% YoY among target accounts',
-        'Security & compliance now #1 buying criteria (was #3 in H1)',
-        '127 new high-intent accounts detected in our ICP',
-        'Healthcare vertical showing 2x engagement rate'
-      ]
+    sections: {
+      messaging: {
+        summary: 'Competitor messaging shifting toward AI-first positioning. Acme emphasizing automation over customization.',
+        highlights: [
+          'Acme Corp rebranded landing pages with "AI-Powered" messaging',
+          'Competitor X launched campaign around "Intelligent Analytics"',
+          'Three competitors now emphasizing "no-code" deployment'
+        ],
+        action_items: [
+          'Audit our AI messaging across all touchpoints',
+          'Test new AI-first value propositions in outbound'
+        ]
+      },
+      narrative: {
+        summary: 'Market narrative consolidating around productivity gains. Integration depth emerging as key differentiator.',
+        highlights: [
+          'Analyst reports favor integration depth over feature breadth',
+          'Customer success stories driving organic mentions',
+          'Industry shift toward composable architecture narrative'
+        ],
+        action_items: [
+          'Update analyst briefing materials',
+          'Create integration-focused case studies'
+        ]
+      },
+      icp: {
+        summary: 'Mid-market segment showing price sensitivity. Enterprise accounts prioritizing security and compliance.',
+        highlights: [
+          'Mid-market response rates declining with current pricing',
+          'Enterprise showing 28% higher engagement with security messaging',
+          'Healthcare vertical over-indexing on compliance requirements'
+        ],
+        action_items: [
+          'Test mid-market pricing adjustments',
+          'Prioritize SOC 2 Type II content in enterprise sequences'
+        ]
+      },
+      horizon: {
+        summary: 'AI/ML budgets surging. FedRAMP certification increasingly requested in government opportunities.',
+        highlights: [
+          'AI/ML budget allocation up 34% YoY among target accounts',
+          'FedRAMP mentioned in 15 government RFPs this quarter',
+          'Edge computing interest growing in manufacturing vertical'
+        ],
+        action_items: [
+          'Evaluate FedRAMP certification timeline and investment',
+          'Scope AI feature acceleration for Q2'
+        ]
+      },
+      objection: {
+        summary: 'Integration complexity and pricing emerging as top objections. Security concerns manageable with documentation.',
+        highlights: [
+          'Integration setup time cited in 40% of lost deals',
+          'Pricing objections up 25% in mid-market',
+          'Security fast-track documentation reducing objection close time'
+        ],
+        action_items: [
+          'Create integration quickstart packages',
+          'Develop ROI calculator for pricing discussions'
+        ]
+      }
     },
     key_questions: [
       'Should we accelerate AI analytics roadmap to close competitive gap?',
@@ -62,6 +100,31 @@ export const mockReports: IntelPacket[] = [
         signal_ids: ['sig-041', 'sig-042', 'sig-043', 'sig-044']
       }
     ],
+    predictions: [
+      {
+        prediction: 'Competitor X will announce enterprise tier with AI features by Q1 end',
+        timeframe: '60 days',
+        confidence: 75,
+        signals: ['sig-002', 'sig-008', 'sig-010']
+      },
+      {
+        prediction: 'Healthcare vertical will become top-3 revenue segment by Q4',
+        timeframe: '9 months',
+        confidence: 68,
+        signals: ['sig-041', 'sig-042']
+      }
+    ],
+    action_mapping: {
+      this_week: [
+        { action: 'Update AI messaging across landing pages', owner: 'Marketing', priority: 'high' },
+        { action: 'Complete integration quickstart for top 5 connectors', owner: 'Product', priority: 'high' },
+        { action: 'Brief sales on Acme pricing response strategy', owner: 'Sales Ops', priority: 'medium' }
+      ],
+      monitor: [
+        { signal: 'Competitor X AI feature adoption', trigger: '10% market penetration', action: 'Escalate AI roadmap acceleration' },
+        { signal: 'Mid-market win rate', trigger: 'Below 25%', action: 'Trigger pricing review' }
+      ]
+    },
     status: 'live',
     created_at: '2026-01-26T18:00:00Z',
     metrics: {
@@ -72,8 +135,9 @@ export const mockReports: IntelPacket[] = [
   },
   {
     id: 'pkt-002',
-    date: '2026-01-19',
-    headline: 'Week of Jan 13: Enterprise Momentum Builds',
+    week_start: '2026-01-13',
+    week_end: '2026-01-19',
+    packet_title: 'Week of Jan 13: Enterprise Momentum Builds',
     exec_summary: [
       '$4.2M moved to Commit stage with strong enterprise traction',
       'New CTO at Fortune 500 target — warm intro available via board connection',
@@ -81,32 +145,49 @@ export const mockReports: IntelPacket[] = [
       'Outbound response rate at 4.2% — below 5% target',
       'NRR holding steady at 118% despite macro headwinds'
     ],
-    competitive_intel: {
-      summary: 'Relatively quiet week on competitive front. Focus on strengthening positioning ahead of expected Q1 announcements.',
-      highlights: [
-        'No major competitor announcements this week',
-        'Industry analyst reports favor our integration depth',
-        'Competitor Z executive departure — potential talent opportunity',
-        'Battle card refresh driving 45% more content engagement'
-      ]
-    },
-    pipeline_intel: {
-      summary: 'Strong week for enterprise with significant commit stage movement. Mid-market requires attention on conversion rates.',
-      highlights: [
-        '$4.2M moved to Commit; $1.8M flagged at risk (budget freeze)',
-        'Enterprise showing 28% higher win rate than mid-market',
-        'Security review phase adding 8+ days to deal cycles',
-        'Executive sponsorship accelerating top 10 deals'
-      ]
-    },
-    market_intel: {
-      summary: 'Continued momentum in AI adoption signals. Economic headwinds causing procurement delays but not cancellations.',
-      highlights: [
-        '78% of target accounts have active AI initiatives',
-        'Economic headwinds causing 15% longer procurement cycles',
-        'SOC 2 Type II mentioned in 85% of enterprise RFPs',
-        'FedRAMP demand increasing for government vertical'
-      ]
+    sections: {
+      messaging: {
+        summary: 'Relatively quiet week on competitive front. Focus on strengthening positioning ahead of expected Q1 announcements.',
+        highlights: [
+          'No major competitor announcements this week',
+          'Industry analyst reports favor our integration depth',
+          'Battle card refresh driving 45% more content engagement'
+        ],
+        action_items: ['Continue analyst briefing preparations']
+      },
+      narrative: {
+        summary: 'Enterprise narrative resonating well. Executive sponsorship stories gaining traction.',
+        highlights: [
+          'Fortune 500 case study driving strong engagement',
+          'Executive sponsorship program testimonials ready'
+        ],
+        action_items: ['Publish executive sponsorship case study']
+      },
+      icp: {
+        summary: 'Enterprise showing strong conversion. Mid-market requires attention on value messaging.',
+        highlights: [
+          'Enterprise showing 28% higher win rate than mid-market',
+          'Security review phase adding 8+ days to deal cycles'
+        ],
+        action_items: ['Create security fast-track documentation']
+      },
+      horizon: {
+        summary: 'Continued momentum in AI adoption signals. Economic headwinds causing procurement delays.',
+        highlights: [
+          '78% of target accounts have active AI initiatives',
+          'Economic headwinds causing 15% longer procurement cycles',
+          'SOC 2 Type II mentioned in 85% of enterprise RFPs'
+        ],
+        action_items: ['Accelerate SOC 2 Type II messaging']
+      },
+      objection: {
+        summary: 'Security concerns manageable with documentation. Multi-year incentives gaining traction.',
+        highlights: [
+          'Security fast-track documentation reducing objection close time',
+          'Multi-year deals accelerating close cycles'
+        ],
+        action_items: ['Package multi-year incentive options']
+      }
     },
     key_questions: [
       'Should we offer multi-year incentives to accelerate Q4 closes?',
@@ -124,13 +205,25 @@ export const mockReports: IntelPacket[] = [
         hypothesis: 'Security fast-track documentation package will reduce evaluation time by 40%',
         confidence: 75,
         signal_ids: ['sig-055', 'sig-056', 'sig-057']
-      },
-      {
-        hypothesis: 'December SPIF will pull forward $1.5M in deals before year-end',
-        confidence: 68,
-        signal_ids: ['sig-060']
       }
     ],
+    predictions: [
+      {
+        prediction: 'Executive sponsorship program will become top sales accelerator by Q2',
+        timeframe: '90 days',
+        confidence: 80,
+        signals: ['sig-051', 'sig-052']
+      }
+    ],
+    action_mapping: {
+      this_week: [
+        { action: 'Finalize multi-year incentive structure', owner: 'Finance', priority: 'high' },
+        { action: 'Reach out to new CTO via board connection', owner: 'AE Team', priority: 'high' }
+      ],
+      monitor: [
+        { signal: 'Outbound response rate', trigger: 'Below 4%', action: 'Trigger messaging refresh' }
+      ]
+    },
     status: 'published',
     created_at: '2026-01-19T16:00:00Z',
     metrics: {
@@ -141,8 +234,9 @@ export const mockReports: IntelPacket[] = [
   },
   {
     id: 'pkt-003',
-    date: '2026-01-12',
-    headline: 'Week of Jan 6: Q1 Planning Insights',
+    week_start: '2026-01-06',
+    week_end: '2026-01-12',
+    packet_title: 'Week of Jan 6: Q1 Planning Insights',
     exec_summary: [
       'MQL to SQL conversion improved to 32% after ICP refinement',
       'Three strategic accounts entering budget planning cycles',
@@ -150,32 +244,47 @@ export const mockReports: IntelPacket[] = [
       '8 accounts showing increased usage — expansion signals strong',
       'Vertical expansion opportunity validated in healthcare'
     ],
-    competitive_intel: {
-      summary: 'Competitive landscape stable as industry enters planning mode. Early signals suggest aggressive Q1 launches from key competitors.',
-      highlights: [
-        'Industry entering planning mode — quieter news cycle',
-        'Rumors of Competitor X Series D raise for GTM expansion',
-        'Analyst briefings scheduled with two major firms',
-        'Win rate improving in head-to-head evaluations'
-      ]
-    },
-    pipeline_intel: {
-      summary: 'Q1 pipeline building with focus on enterprise accounts entering budget cycles. Expansion opportunities strong in existing base.',
-      highlights: [
-        'Three strategic accounts entering Q1 budget planning',
-        '8 accounts with increased usage — expansion ready',
-        'Champion departure at Target C needs attention',
-        'Multi-year deal push gaining traction'
-      ]
-    },
-    market_intel: {
-      summary: 'Healthcare vertical validated as high-potential expansion opportunity. AI productivity narrative resonating across segments.',
-      highlights: [
-        'Healthcare showing 2x demo requests vs baseline',
-        'AI productivity messaging testing well in campaigns',
-        'Adjacent ICP segment showing similar buying patterns',
-        'Content-led growth driving 28% organic traffic increase'
-      ]
+    sections: {
+      messaging: {
+        summary: 'Competitive landscape stable as industry enters planning mode.',
+        highlights: [
+          'Industry entering planning mode — quieter news cycle',
+          'Rumors of Competitor X Series D raise for GTM expansion'
+        ],
+        action_items: ['Prepare for expected Q1 competitor announcements']
+      },
+      narrative: {
+        summary: 'AI productivity narrative resonating strongly across segments.',
+        highlights: [
+          'AI productivity messaging testing well in campaigns',
+          'Content-led growth driving 28% organic traffic increase'
+        ],
+        action_items: ['Double down on AI productivity content']
+      },
+      icp: {
+        summary: 'Healthcare vertical validated as high-potential. Adjacent segments showing promise.',
+        highlights: [
+          'Healthcare showing 2x demo requests vs baseline',
+          'Adjacent ICP segment showing similar buying patterns'
+        ],
+        action_items: ['Staff healthcare vertical pilot']
+      },
+      horizon: {
+        summary: 'Q1 budget cycles creating opportunity window.',
+        highlights: [
+          'Three strategic accounts entering Q1 budget planning',
+          'AI investment outlook strong for 2026'
+        ],
+        action_items: ['Accelerate outreach to accounts in budget cycles']
+      },
+      objection: {
+        summary: 'Champion churn requiring multithread strategy.',
+        highlights: [
+          'Champion departure at Target C needs attention',
+          'Expansion signals strong despite champion changes'
+        ],
+        action_items: ['Develop champion succession playbook']
+      }
     },
     key_questions: [
       'How do we staff the healthcare vertical pilot?',
@@ -195,6 +304,16 @@ export const mockReports: IntelPacket[] = [
         signal_ids: ['sig-075']
       }
     ],
+    predictions: [],
+    action_mapping: {
+      this_week: [
+        { action: 'Launch healthcare pilot with 2 dedicated reps', owner: 'Sales', priority: 'high' },
+        { action: 'Multithread key account after champion departure', owner: 'CSM', priority: 'high' }
+      ],
+      monitor: [
+        { signal: 'Healthcare demo conversion rate', trigger: 'Below 30%', action: 'Adjust targeting criteria' }
+      ]
+    },
     status: 'published',
     created_at: '2026-01-12T14:00:00Z',
     metrics: {
@@ -205,8 +324,9 @@ export const mockReports: IntelPacket[] = [
   },
   {
     id: 'pkt-004',
-    date: '2026-01-05',
-    headline: 'Week of Dec 30: Year-End Wrap & 2026 Outlook',
+    week_start: '2025-12-30',
+    week_end: '2026-01-05',
+    packet_title: 'Week of Dec 30: Year-End Wrap & 2026 Outlook',
     exec_summary: [
       'Q4 closed at 94% of target — strong finish despite headwinds',
       'Annual competitive win rate improved 12 points YoY',
@@ -214,32 +334,47 @@ export const mockReports: IntelPacket[] = [
       '2026 pipeline starting position: 2.8x coverage',
       'Three product launches planned for H1 2026'
     ],
-    competitive_intel: {
-      summary: 'Year-end review shows improved competitive positioning. 2026 outlook requires vigilance on AI feature parity.',
-      highlights: [
-        'Annual win rate vs top 3 competitors: 58% (up from 46%)',
-        'Integration depth cited as primary differentiator',
-        'AI feature gap identified as 2026 priority',
-        'Brand awareness up 23% in target segments'
-      ]
-    },
-    pipeline_intel: {
-      summary: 'Solid year-end close with healthy pipeline entering 2026. Focus areas identified for Q1 acceleration.',
-      highlights: [
-        'Q4 closed at 94% — $18.2M in new ARR',
-        '2026 pipeline starting at 2.8x coverage',
-        'Average deal size increased 18% YoY',
-        'Renewal rate maintained at 92%'
-      ]
-    },
-    market_intel: {
-      summary: 'Market conditions stabilizing with clear opportunities in AI-driven productivity and vertical expansion.',
-      highlights: [
-        'AI investment outlook strong for 2026',
-        'Healthcare and financial services top vertical opportunities',
-        'Remote work driving continued demand',
-        'Regulatory compliance increasingly important'
-      ]
+    sections: {
+      messaging: {
+        summary: 'Year-end review shows improved competitive positioning.',
+        highlights: [
+          'Annual win rate vs top 3 competitors: 58% (up from 46%)',
+          'Integration depth cited as primary differentiator'
+        ],
+        action_items: ['Document top competitive wins for training']
+      },
+      narrative: {
+        summary: 'AI feature gap identified as 2026 priority. Brand awareness growing.',
+        highlights: [
+          'AI feature gap identified as 2026 priority',
+          'Brand awareness up 23% in target segments'
+        ],
+        action_items: ['Finalize 2026 messaging roadmap']
+      },
+      icp: {
+        summary: 'Healthcare and financial services top vertical opportunities for 2026.',
+        highlights: [
+          'Healthcare and financial services top vertical opportunities',
+          'Remote work driving continued demand'
+        ],
+        action_items: ['Finalize vertical GTM plans for H1']
+      },
+      horizon: {
+        summary: 'Market conditions stabilizing. AI investment strong.',
+        highlights: [
+          'AI investment outlook strong for 2026',
+          'Regulatory compliance increasingly important'
+        ],
+        action_items: ['Plan compliance certification roadmap']
+      },
+      objection: {
+        summary: 'Strong year-end performance reducing objection frequency.',
+        highlights: [
+          'Customer NPS reached all-time high of 72',
+          'Renewal rate maintained at 92%'
+        ],
+        action_items: ['Document NPS success stories']
+      }
     },
     key_questions: [
       'What\'s the right investment level for AI acceleration?',
@@ -257,13 +392,25 @@ export const mockReports: IntelPacket[] = [
         hypothesis: 'Launching healthcare and finserv verticals will drive 40% of new ARR by Q4',
         confidence: 71,
         signal_ids: ['sig-085', 'sig-086']
-      },
-      {
-        hypothesis: 'Strategic partnership with top integration platform will accelerate marketplace launch by 60 days',
-        confidence: 62,
-        signal_ids: ['sig-090']
       }
     ],
+    predictions: [
+      {
+        prediction: 'Strategic partnerships will accelerate 2026 growth by 20%',
+        timeframe: '12 months',
+        confidence: 65,
+        signals: ['sig-090']
+      }
+    ],
+    action_mapping: {
+      this_week: [
+        { action: 'Finalize 2026 GTM plan', owner: 'Leadership', priority: 'high' },
+        { action: 'Kickoff AI acceleration workstream', owner: 'Product', priority: 'high' }
+      ],
+      monitor: [
+        { signal: 'AI feature competitive gap', trigger: 'Gap widening', action: 'Escalate to exec team' }
+      ]
+    },
     status: 'archived',
     created_at: '2026-01-05T12:00:00Z',
     metrics: {
