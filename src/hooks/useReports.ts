@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { IntelPacket, IntelSection, Bet, Prediction, ActionMapping } from '@/types/report';
 import { mockReports } from '@/data/mockReports';
+import { useAuth } from './useAuth';
 
 // Helper to safely parse JSON fields from Supabase
 const parseIntelSection = (data: unknown): IntelSection => {
@@ -111,8 +112,10 @@ const parseMarketWinners = (data: unknown): IntelPacket['market_winners'] => {
 };
 
 export const useReports = () => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ['intel-packets'],
+    queryKey: ['intel-packets', user?.id],
     queryFn: async (): Promise<IntelPacket[]> => {
       // Return mock data if Supabase isn't configured
       if (!supabase) {
@@ -120,10 +123,23 @@ export const useReports = () => {
         return mockReports;
       }
 
-      const { data, error } = await supabase
+      // Fetch packets: prefer personalized for this user, fall back to generic
+      // First try to get personalized packets for this user
+      let query = supabase
         .from('packets')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (user?.id) {
+        // Get both user's personalized packets AND generic packets
+        // Prioritize personalized ones
+        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+      } else {
+        // No user - only get generic packets
+        query = query.is('user_id', null);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.warn('Failed to fetch from Supabase, using mock data:', error.message);
@@ -164,6 +180,9 @@ export const useReports = () => {
           status: 'published',
           created_at: row.created_at,
           metrics: parseMetrics(sections.metrics),
+          // Company-aware fields
+          is_personalized: row.is_personalized || false,
+          user_company_name: row.user_company_name || null,
         };
       });
     },

@@ -1,7 +1,7 @@
 import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
-import { Radio } from 'lucide-react';
+import { Radio, Target } from 'lucide-react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 
 interface ReportListProps {
@@ -10,7 +10,7 @@ interface ReportListProps {
 }
 
 export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
-  const { profile } = useOnboarding();
+  const { profile, competitors } = useOnboarding();
   const totalSignals = reports.reduce((sum, r) => sum + (r.metrics?.signals_detected || 0), 0);
   const avgConfidence = Math.round(
     reports.reduce((sum, r) => sum + (r.metrics?.confidence_score || 0), 0) / reports.length
@@ -22,11 +22,23 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         <div className="flex items-center gap-3 mb-2">
           <Radio className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground font-mono">
-            Control Plane<span className="cursor-blink"></span>
+            {profile?.company_name ? (
+              <>{profile.company_name} Intelligence</>
+            ) : (
+              <>Control Plane</>
+            )}
+            <span className="cursor-blink"></span>
           </h1>
         </div>
-        <p className="text-muted-foreground font-mono text-sm">
-          Weekly GTM Intelligence Packets
+        <p className="text-muted-foreground font-mono text-sm flex items-center gap-2">
+          {profile?.company_name && competitors && competitors.length > 0 ? (
+            <>
+              <Target className="h-4 w-4" />
+              Tracking {competitors.length} competitor{competitors.length !== 1 ? 's' : ''}
+            </>
+          ) : (
+            <>Weekly GTM Intelligence Packets</>
+          )}
         </p>
       </div>
 
@@ -58,7 +70,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
           <div className="metric-label">Avg Confidence</div>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {reports.map((report) => (
           <ReportCard

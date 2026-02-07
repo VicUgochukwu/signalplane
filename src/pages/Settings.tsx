@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogOut, ArrowLeft } from 'lucide-react';
 import { DeliveryIntegrations } from '@/components/DeliveryIntegrations';
+import { CompanyProfileSettings } from '@/components/settings/CompanyProfileSettings';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -81,8 +82,10 @@ const Settings = () => {
 
         <header className="space-y-3">
           <h1 className="text-3xl font-bold text-zinc-100">Settings</h1>
-          <p className="text-zinc-400">Configure how you receive weekly reports</p>
+          <p className="text-zinc-400">Configure your profile and delivery preferences</p>
         </header>
+
+        <CompanyProfileSettings />
 
         <DeliveryIntegrations />
       </div>

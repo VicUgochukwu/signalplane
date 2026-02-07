@@ -68,6 +68,9 @@ export interface IntelPacket {
     confidence_score?: number;
     impact_score?: number;
   };
+  // Company-aware fields
+  is_personalized?: boolean;
+  user_company_name?: string | null;
 }
 
 // Section configuration for display
