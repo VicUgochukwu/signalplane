@@ -6,12 +6,13 @@ import { ObjectionLibraryTab } from '@/components/control-plane/artifacts/Object
 import { SwipeFileTab } from '@/components/control-plane/artifacts/SwipeFileTab';
 import { BattlecardsTab } from '@/components/control-plane/artifacts/BattlecardsTab';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
+import { Footer } from '@/components/Footer';
 
 export default function Artifacts() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <AppNavigation />
-      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8">
+      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
         {/* Back Link */}
         <div className="mb-6">
           <Link to="/control-plane">
@@ -57,6 +58,9 @@ export default function Artifacts() {
             <BattlecardsTab />
           </TabsContent>
         </Tabs>
+      </div>
+      <div className="container max-w-6xl mx-auto px-4">
+        <Footer />
       </div>
     </div>
   );
