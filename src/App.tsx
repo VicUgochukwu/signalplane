@@ -18,6 +18,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
 import AdminSystemOverview from "./pages/admin/AdminSystemOverview";
+import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
 import AdminApiHealth from "./pages/admin/AdminApiHealth";
 import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
@@ -76,6 +77,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminSystemOverview />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/system-health"
+              element={
+                <AdminRoute>
+                  <AdminSystemHealth />
                 </AdminRoute>
               }
             />
