@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { BarChart3, FileText, ArrowRightLeft, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import signalPlaneLogo from '@/assets/signal-plane-logo.png';
+import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';

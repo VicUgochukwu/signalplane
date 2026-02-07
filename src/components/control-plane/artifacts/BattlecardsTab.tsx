@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Copy, Check, AlertTriangle, Trophy, ThumbsDown, Sparkles, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Copy, Check, AlertTriangle, Trophy, ThumbsDown, Sparkles, ChevronRight, Swords, ArrowLeft } from 'lucide-react';
 import { useBattlecards } from '@/hooks/useArtifacts';
 import { ArtifactHeader } from './ArtifactHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -201,8 +202,20 @@ export function BattlecardsTab() {
 
   if (competitors.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        No battlecard data available. Data will appear after the weekly AI analysis runs.
+      <div className="text-center py-12 space-y-4">
+        <Swords className="h-12 w-12 mx-auto text-muted-foreground/50" />
+        <div className="space-y-2">
+          <p className="text-foreground font-medium">No battlecard data yet</p>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Once the weekly packet generates, this tab will display per-competitor battlecards with what changed this week, talk tracks, landmines to avoid, and win/lose themes. One card per competitor, updated weekly.
+          </p>
+        </div>
+        <Link to="/control-plane">
+          <Button variant="outline" size="sm" className="gap-2 mt-4">
+            <ArrowLeft className="h-4 w-4" />
+            View Intel Packets
+          </Button>
+        </Link>
       </div>
     );
   }
