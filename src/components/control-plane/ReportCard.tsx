@@ -17,8 +17,19 @@ const statusConfig: Record<PacketStatus, { label: string; class: string }> = {
 
 export const ReportCard = ({ report, onClick }: ReportCardProps) => {
   const status = statusConfig[report.status];
-  const formattedStartDate = format(parseISO(report.week_start), 'MMM d');
-  const formattedEndDate = format(parseISO(report.week_end), 'MMM d, yyyy');
+  
+  // Safely format dates with fallbacks
+  const formatDate = (dateStr: string | undefined | null, formatStr: string) => {
+    if (!dateStr) return '—';
+    try {
+      return format(parseISO(dateStr), formatStr);
+    } catch {
+      return dateStr;
+    }
+  };
+  
+  const formattedStartDate = formatDate(report.week_start, 'MMM d');
+  const formattedEndDate = formatDate(report.week_end, 'MMM d, yyyy');
 
   return (
     <Card 

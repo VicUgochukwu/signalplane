@@ -138,19 +138,23 @@ export const useReports = () => {
       // Map database columns to IntelPacket type
       return data.map((row): IntelPacket => {
         const sections = row.sections as Record<string, unknown> || {};
+        
+        // Handle date fields with fallbacks
+        const weekStart = row.week_start || row.date || new Date().toISOString().split('T')[0];
+        const weekEnd = row.week_end || weekStart;
 
         return {
           id: row.id,
-          week_start: row.week_start,
-          week_end: row.week_end || row.week_start,
-          packet_title: row.packet_title,
+          week_start: weekStart,
+          week_end: weekEnd,
+          packet_title: row.packet_title || row.headline || 'Untitled Packet',
           exec_summary: row.exec_summary || [],
           sections: {
-            messaging: parseIntelSection(sections.messaging),
-            narrative: parseIntelSection(sections.narrative),
+            messaging: parseIntelSection(sections.messaging || sections.competitive_intel),
+            narrative: parseIntelSection(sections.narrative || sections.market_intel),
             icp: parseIntelSection(sections.icp),
             horizon: parseIntelSection(sections.horizon),
-            objection: parseIntelSection(sections.objection),
+            objection: parseIntelSection(sections.objection || sections.pipeline_intel),
           },
           key_questions: row.key_questions || [],
           bets: parseBets(row.bets),
