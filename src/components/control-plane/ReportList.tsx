@@ -1,6 +1,8 @@
 import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
+import { OnboardingBanner } from './OnboardingBanner';
 import { Radio } from 'lucide-react';
+import { useOnboarding } from '@/hooks/useOnboarding';
 
 interface ReportListProps {
   reports: IntelPacket[];
@@ -8,6 +10,7 @@ interface ReportListProps {
 }
 
 export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
+  const { profile } = useOnboarding();
   const totalSignals = reports.reduce((sum, r) => sum + (r.metrics?.signals_detected || 0), 0);
   const avgConfidence = Math.round(
     reports.reduce((sum, r) => sum + (r.metrics?.confidence_score || 0), 0) / reports.length
@@ -26,6 +29,9 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
           Weekly GTM Intelligence Packets
         </p>
       </div>
+
+      {/* Onboarding Banner */}
+      <OnboardingBanner />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -59,6 +65,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
             key={report.id}
             report={report}
             onClick={() => onSelectReport(report)}
+            isPersonalized={!!profile?.company_name}
           />
         ))}
       </div>

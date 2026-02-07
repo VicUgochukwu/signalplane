@@ -1,11 +1,13 @@
 import { IntelPacket, PacketStatus } from '@/types/report';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Radio } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Radio, Sparkles } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface ReportCardProps {
   report: IntelPacket;
   onClick: () => void;
+  isPersonalized?: boolean;
 }
 
 const statusConfig: Record<PacketStatus, { label: string; class: string }> = {
@@ -15,7 +17,7 @@ const statusConfig: Record<PacketStatus, { label: string; class: string }> = {
   archived: { label: 'ARCHIVED', class: 'badge-error' },
 };
 
-export const ReportCard = ({ report, onClick }: ReportCardProps) => {
+export const ReportCard = ({ report, onClick, isPersonalized = false }: ReportCardProps) => {
   const status = statusConfig[report.status];
   
   // Safely format dates with fallbacks
@@ -76,9 +78,20 @@ export const ReportCard = ({ report, onClick }: ReportCardProps) => {
         </ul>
         
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono text-muted-foreground">
-            {report.exec_summary.length} key insights
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-muted-foreground">
+              {report.exec_summary.length} key insights
+            </span>
+            {isPersonalized && (
+              <Badge 
+                variant="outline" 
+                className="text-[10px] px-1.5 py-0 h-4 border-[hsl(180,20%,52%)]/40 text-[hsl(180,20%,52%)] bg-[hsl(180,20%,52%)]/10"
+              >
+                <Sparkles className="h-2.5 w-2.5 mr-0.5" />
+                Personalized
+              </Badge>
+            )}
+          </div>
           {report.metrics?.signals_detected !== undefined && (
             <span className="text-xs font-mono text-terminal-green">
               {report.metrics.signals_detected} signals
