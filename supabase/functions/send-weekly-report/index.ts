@@ -263,7 +263,85 @@ async function sendNotionReport(
     throw new Error('Notion database_id not configured');
   }
 
+  const magnitudeEmoji: Record<string, string> = {
+    minor: '🟢',
+    moderate: '🟡',
+    major: '🔴',
+  };
+
+  // Group changes by company for batched page creation
+  const byCompany: Record<string, ClassifiedChange[]> = {};
   for (const change of changes) {
+    if (!byCompany[change.company_name]) byCompany[change.company_name] = [];
+    byCompany[change.company_name].push(change);
+  }
+
+  // Create one page per company (instead of one per change)
+  for (const [company, companyChanges] of Object.entries(byCompany)) {
+    // Build child blocks for all changes in this company
+    const children: any[] = [];
+    for (const change of companyChanges) {
+      const emoji = magnitudeEmoji[change.change_magnitude] || '⚪';
+
+      // Heading for each change
+      children.push({
+        object: 'block',
+        type: 'heading_3',
+        heading_3: {
+          rich_text: [{ type: 'text', text: { content: `${emoji} ${change.primary_tag} (${change.change_magnitude})` } }],
+        },
+      });
+
+      // Diff summary
+      if (change.diff_summary) {
+        children.push({
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ type: 'text', text: { content: change.diff_summary } }],
+          },
+        });
+      }
+
+      // Implication callout
+      if (change.implication) {
+        children.push({
+          object: 'block',
+          type: 'callout',
+          callout: {
+            rich_text: [{ type: 'text', text: { content: change.implication } }],
+            icon: { emoji: '💡' as const },
+          },
+        });
+      }
+
+      // Link to page
+      if (change.url) {
+        children.push({
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [
+              { type: 'text', text: { content: 'View page → ', link: { url: change.url } } },
+            ],
+          },
+        });
+      }
+
+      // Divider between changes
+      children.push({ object: 'block', type: 'divider', divider: {} });
+    }
+
+    // Remove trailing divider
+    if (children.length > 0 && children[children.length - 1].type === 'divider') {
+      children.pop();
+    }
+
+    const topMagnitude = companyChanges.reduce((top, c) => {
+      const order: Record<string, number> = { major: 3, moderate: 2, minor: 1 };
+      return (order[c.change_magnitude] || 0) > (order[top] || 0) ? c.change_magnitude : top;
+    }, 'minor');
+
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
@@ -274,40 +352,23 @@ async function sendNotionReport(
       body: JSON.stringify({
         parent: { database_id: config.database_id },
         properties: {
-          Company: { title: [{ text: { content: change.company_name } }] },
-          Tag: { rich_text: [{ text: { content: change.primary_tag } }] },
-          Magnitude: { select: { name: change.change_magnitude } },
+          Company: { title: [{ text: { content: company } }] },
+          Tag: { rich_text: [{ text: { content: companyChanges.map(c => c.primary_tag).join(', ') } }] },
+          Magnitude: { select: { name: topMagnitude } },
           Week: { date: { start: weekStart } },
-          URL: { url: change.url },
+          URL: { url: companyChanges[0].url },
         },
-        children: [
-          {
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: change.diff_summary || '' } }],
-            },
-          },
-          ...(change.implication
-            ? [
-                {
-                  object: 'block' as const,
-                  type: 'callout' as const,
-                  callout: {
-                    rich_text: [{ type: 'text' as const, text: { content: change.implication } }],
-                    icon: { emoji: '💡' as const },
-                  },
-                },
-              ]
-            : []),
-        ],
+        children,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Notion API error: ${errorText}`);
+      throw new Error(`Notion API error for ${company}: ${errorText}`);
     }
+
+    // Rate limit: 350ms delay between API calls (Notion limit: 3 req/sec)
+    await new Promise((r) => setTimeout(r, 350));
   }
 
   await supabase.from('delivery_logs').insert({
