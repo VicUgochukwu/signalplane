@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft, Radio, Zap, Shield, HelpCircle, Target,
   MessageSquare, BookOpen, Users, Compass, ShieldAlert,
-  Clock, AlertTriangle, CheckCircle2
+  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
+import { useExportPacket } from '@/hooks/useExportPacket';
 
 interface ReportDetailProps {
   report: IntelPacket;
@@ -126,6 +127,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
   const status = statusConfig[report.status];
   const formattedStartDate = format(parseISO(report.week_start), 'MMM d');
   const formattedEndDate = format(parseISO(report.week_end), 'MMM d, yyyy');
+  const { emailPacket, isEmailing, downloadAsMarkdown } = useExportPacket();
 
   return (
     <div className="animate-slide-up space-y-6">
@@ -163,6 +165,31 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm font-mono">
               <span className="badge-range">{formattedStartDate} – {formattedEndDate}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => emailPacket(report.id)}
+                disabled={isEmailing}
+                className="text-xs font-mono"
+              >
+                {isEmailing ? (
+                  <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                ) : (
+                  <Mail className="h-3 w-3 mr-1.5" />
+                )}
+                Email to me
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => downloadAsMarkdown(report)}
+                className="text-xs font-mono"
+              >
+                <Download className="h-3 w-3 mr-1.5" />
+                Download .md
+              </Button>
             </div>
           </div>
         </div>

@@ -8,6 +8,7 @@ import { DeliveryIntegrations } from '@/components/DeliveryIntegrations';
 import { CompanyProfileSettings } from '@/components/settings/CompanyProfileSettings';
 import { AccountSettings } from '@/components/settings/AccountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const VALID_TABS = ['profile', 'integrations', 'account'] as const;
 type SettingsTab = (typeof VALID_TABS)[number];
@@ -40,6 +41,10 @@ const Settings = () => {
         title: 'Slack Connected',
         description: 'Your Slack workspace has been connected successfully.',
       });
+      // Fire Loops event (fire-and-forget)
+      supabase.functions.invoke('loops-sync', {
+        body: { action: 'track_event', event_name: 'integration_connected', properties: { channel: 'slack' } },
+      }).catch(() => {});
       toastShown = true;
     }
 
@@ -59,6 +64,10 @@ const Settings = () => {
         description:
           'Your Notion workspace has been connected successfully.',
       });
+      // Fire Loops event (fire-and-forget)
+      supabase.functions.invoke('loops-sync', {
+        body: { action: 'track_event', event_name: 'integration_connected', properties: { channel: 'notion' } },
+      }).catch(() => {});
       toastShown = true;
     }
 

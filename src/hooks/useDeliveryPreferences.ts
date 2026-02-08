@@ -13,6 +13,13 @@ interface DeliveryPreference {
   updated_at: string;
 }
 
+export interface NotionDatabase {
+  id: string;
+  title: string;
+  icon: string | null;
+  url: string | null;
+}
+
 export function useDeliveryPreferences() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -67,6 +74,7 @@ export function useDeliveryPreferences() {
     },
   });
 
+  // --- Slack OAuth ---
   const connectSlack = async () => {
     setIsConnecting(true);
     try {
@@ -79,31 +87,58 @@ export function useDeliveryPreferences() {
     }
   };
 
-  const saveNotionConfig = useMutation({
-    mutationFn: async ({ apiToken, databaseId }: { apiToken: string; databaseId: string }) => {
-      // Server-side validation
-      const token = apiToken.trim();
-      const dbId = databaseId.trim();
-      if (!token || token.length < 10) throw new Error('Invalid Notion integration token');
-      if (!dbId || dbId.length < 10) throw new Error('Invalid Notion database ID');
-      if (!/^(ntn_|secret_)/.test(token)) throw new Error('Notion token must start with ntn_ or secret_');
-      if (!/^[a-f0-9-]{32,}$/i.test(dbId.replace(/-/g, ''))) throw new Error('Invalid database ID format');
+  // --- Notion OAuth ---
+  const connectNotion = async () => {
+    setIsConnecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('notion-oauth-start');
+      if (error) throw error;
+      window.location.href = data.url;
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to start Notion connection', variant: 'destructive' });
+      setIsConnecting(false);
+    }
+  };
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+  // --- Notion Database Operations ---
+  const fetchNotionDatabases = async (): Promise<NotionDatabase[]> => {
+    const { data, error } = await supabase.functions.invoke('notion-databases', {
+      body: { action: 'list' },
+    });
+    if (error) throw error;
+    return data.databases;
+  };
 
-      const { error } = await supabase.rpc('save_notion_config', {
-        p_api_token: token,
-        p_database_id: dbId,
+  const selectNotionDatabase = useMutation({
+    mutationFn: async ({ databaseId, databaseName }: { databaseId: string; databaseName: string }) => {
+      const { data, error } = await supabase.functions.invoke('notion-databases', {
+        body: { action: 'select', database_id: databaseId, database_name: databaseName },
       });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-preferences'] });
-      toast({ title: 'Notion connected', description: 'Your Notion integration has been saved.' });
+      toast({ title: 'Database selected', description: 'Your Notion database has been configured.' });
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const testNotionConnection = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('notion-databases', {
+        body: { action: 'test' },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: 'Connection verified', description: 'Test page was successfully created and removed.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Test failed', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -111,9 +146,13 @@ export function useDeliveryPreferences() {
     preferences,
     isLoading,
     connectSlack,
-    saveNotionConfig: (apiToken: string, databaseId: string) =>
-      saveNotionConfig.mutate({ apiToken, databaseId }),
-    isSavingNotion: saveNotionConfig.isPending,
+    connectNotion,
+    fetchNotionDatabases,
+    selectNotionDatabase: (databaseId: string, databaseName: string) =>
+      selectNotionDatabase.mutate({ databaseId, databaseName }),
+    isSelectingDatabase: selectNotionDatabase.isPending,
+    testNotionConnection: () => testNotionConnection.mutate(),
+    isTestingNotion: testNotionConnection.isPending,
     disconnectChannel: (channelType: string) => disconnectMutation.mutate(channelType),
     toggleChannel: (channelType: string, enabled: boolean) =>
       toggleMutation.mutate({ channelType, enabled }),

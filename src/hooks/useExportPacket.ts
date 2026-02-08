@@ -1,0 +1,171 @@
+import { useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { IntelPacket } from '@/types/report';
+
+export function useExportPacket() {
+  const { toast } = useToast();
+
+  const emailMutation = useMutation({
+    mutationFn: async (packetId: string) => {
+      const { data, error } = await supabase.functions.invoke('export-packet', {
+        body: { action: 'email', packet_id: packetId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({ title: 'Packet sent', description: data.message || 'Check your email.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Export failed', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const downloadAsMarkdown = (report: IntelPacket) => {
+    const md = generateMarkdown(report);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.packet_title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_')}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Downloaded', description: 'Packet saved as Markdown file.' });
+  };
+
+  return {
+    emailPacket: (packetId: string) => emailMutation.mutate(packetId),
+    isEmailing: emailMutation.isPending,
+    downloadAsMarkdown,
+  };
+}
+
+function generateMarkdown(report: IntelPacket): string {
+  const lines: string[] = [];
+
+  lines.push(`# ${report.packet_title}`);
+  lines.push(`**${report.week_start} — ${report.week_end}**`);
+  lines.push('');
+
+  // Metrics
+  if (report.metrics) {
+    const items: string[] = [];
+    if (report.metrics.signals_detected != null) items.push(`Signals: ${report.metrics.signals_detected}`);
+    if (report.metrics.confidence_score != null) items.push(`Confidence: ${report.metrics.confidence_score}%`);
+    if (report.metrics.impact_score != null) items.push(`Impact: ${report.metrics.impact_score}`);
+    if (items.length) {
+      lines.push(items.join(' | '));
+      lines.push('');
+    }
+  }
+
+  // Executive Summary
+  if (report.exec_summary?.length) {
+    lines.push('## Executive Summary');
+    for (const item of report.exec_summary) {
+      lines.push(`- ${item}`);
+    }
+    lines.push('');
+  }
+
+  // Intel Sections
+  const sectionNames: Record<string, string> = {
+    messaging: 'Messaging Intel',
+    narrative: 'Narrative Intel',
+    icp: 'ICP Intel',
+    horizon: 'Horizon Intel',
+    objection: 'Objection Intel',
+  };
+
+  if (report.sections) {
+    for (const [key, section] of Object.entries(report.sections)) {
+      if (!section || (!section.summary && !section.highlights?.length)) continue;
+
+      lines.push(`## ${sectionNames[key] || key}`);
+
+      if (section.summary) {
+        lines.push(section.summary);
+        lines.push('');
+      }
+
+      if (section.highlights?.length) {
+        lines.push('### Highlights');
+        for (const h of section.highlights) {
+          lines.push(`- ${h}`);
+        }
+        lines.push('');
+      }
+
+      if (section.action_items?.length) {
+        lines.push('### Action Items');
+        for (const a of section.action_items) {
+          lines.push(`- ${a}`);
+        }
+        lines.push('');
+      }
+    }
+  }
+
+  // Predictions
+  if (report.predictions?.length) {
+    lines.push('## Predictions');
+    lines.push('');
+    lines.push('| Prediction | Timeframe | Confidence |');
+    lines.push('|------------|-----------|------------|');
+    for (const p of report.predictions) {
+      lines.push(`| ${p.prediction} | ${p.timeframe} | ${p.confidence}% |`);
+    }
+    lines.push('');
+  }
+
+  // Action Mapping
+  if (report.action_mapping) {
+    if (report.action_mapping.this_week?.length) {
+      lines.push('## This Week');
+      lines.push('');
+      lines.push('| Action | Owner | Priority |');
+      lines.push('|--------|-------|----------|');
+      for (const a of report.action_mapping.this_week) {
+        lines.push(`| ${a.action} | ${a.owner} | ${a.priority} |`);
+      }
+      lines.push('');
+    }
+
+    if (report.action_mapping.monitor?.length) {
+      lines.push('## Monitor');
+      lines.push('');
+      for (const m of report.action_mapping.monitor) {
+        lines.push(`**${m.signal}**`);
+        lines.push(`- Trigger: ${m.trigger}`);
+        lines.push(`- Action: ${m.action}`);
+        lines.push('');
+      }
+    }
+  }
+
+  // Strategic Bets
+  if (report.bets?.length) {
+    lines.push('## Strategic Bets');
+    lines.push('');
+    for (const b of report.bets) {
+      lines.push(`- **${b.hypothesis}** (Confidence: ${b.confidence}%, ${b.signal_ids.length} signals)`);
+    }
+    lines.push('');
+  }
+
+  // Key Questions
+  if (report.key_questions?.length) {
+    lines.push('## Key Questions');
+    lines.push('');
+    for (let i = 0; i < report.key_questions.length; i++) {
+      lines.push(`${i + 1}. ${report.key_questions[i]}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('---');
+  lines.push('*Generated by [Signal Plane](https://signalplane.dev)*');
+
+  return lines.join('\n');
+}

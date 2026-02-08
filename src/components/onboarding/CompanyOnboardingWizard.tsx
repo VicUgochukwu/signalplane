@@ -231,6 +231,15 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
       description: `Your competitive intelligence feed is now configured for ${companyName}`,
     });
 
+    // Fire Loops event (fire-and-forget)
+    supabase.functions.invoke('loops-sync', {
+      body: {
+        action: 'track_event',
+        event_name: 'onboarding_completed',
+        properties: { company_name: companyName, industry, competitor_count: selectedCompetitors.length },
+      },
+    }).catch(() => {});
+
     onComplete();
   };
 
