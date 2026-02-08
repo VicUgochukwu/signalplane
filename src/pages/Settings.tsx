@@ -9,6 +9,7 @@ import { CompanyProfileSettings } from '@/components/settings/CompanyProfileSett
 import { AccountSettings } from '@/components/settings/AccountSettings';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 
 const VALID_TABS = ['profile', 'integrations', 'account'] as const;
 type SettingsTab = (typeof VALID_TABS)[number];
@@ -42,9 +43,11 @@ const Settings = () => {
         description: 'Your Slack workspace has been connected successfully.',
       });
       // Fire Loops event (fire-and-forget)
-      supabase.functions.invoke('loops-sync', {
-        body: { action: 'track_event', event_name: 'integration_connected', properties: { channel: 'slack' } },
-      }).catch(() => {});
+      invokeEdgeFunctionSilent('loops-sync', {
+        action: 'track_event',
+        event_name: 'integration_connected',
+        properties: { channel: 'slack' },
+      });
       toastShown = true;
     }
 
@@ -65,9 +68,11 @@ const Settings = () => {
           'Your Notion workspace has been connected successfully.',
       });
       // Fire Loops event (fire-and-forget)
-      supabase.functions.invoke('loops-sync', {
-        body: { action: 'track_event', event_name: 'integration_connected', properties: { channel: 'notion' } },
-      }).catch(() => {});
+      invokeEdgeFunctionSilent('loops-sync', {
+        action: 'track_event',
+        event_name: 'integration_connected',
+        properties: { channel: 'notion' },
+      });
       toastShown = true;
     }
 

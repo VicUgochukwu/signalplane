@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 
 interface DeliveryPreference {
   id: string;
@@ -102,20 +103,17 @@ export function useDeliveryPreferences() {
 
   // --- Notion Database Operations ---
   const fetchNotionDatabases = async (): Promise<NotionDatabase[]> => {
-    const { data, error } = await supabase.functions.invoke('notion-databases', {
-      body: { action: 'list' },
-    });
-    if (error) throw error;
+    const data = await invokeEdgeFunction<{ databases: NotionDatabase[] }>('notion-databases', { action: 'list' });
     return data.databases;
   };
 
   const selectNotionDatabase = useMutation({
     mutationFn: async ({ databaseId, databaseName }: { databaseId: string; databaseName: string }) => {
-      const { data, error } = await supabase.functions.invoke('notion-databases', {
-        body: { action: 'select', database_id: databaseId, database_name: databaseName },
+      return await invokeEdgeFunction('notion-databases', {
+        action: 'select',
+        database_id: databaseId,
+        database_name: databaseName,
       });
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-preferences'] });
@@ -128,11 +126,7 @@ export function useDeliveryPreferences() {
 
   const testNotionConnection = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('notion-databases', {
-        body: { action: 'test' },
-      });
-      if (error) throw error;
-      return data;
+      return await invokeEdgeFunction('notion-databases', { action: 'test' });
     },
     onSuccess: () => {
       toast({ title: 'Connection verified', description: 'Test page was successfully created and removed.' });

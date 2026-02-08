@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CompanyOnboardingWizard } from '@/components/onboarding/CompanyOnboardingWizard';
 import { OnboardingChoiceModal } from '@/components/onboarding/OnboardingChoiceModal';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -86,9 +87,10 @@ export function ProtectedRoute({ children, skipOnboarding = false }: ProtectedRo
           sessionStorage.setItem('skippedOnboarding', 'true');
           setUserSkippedOnboarding(true);
           // Fire Loops event (fire-and-forget)
-          supabase.functions.invoke('loops-sync', {
-            body: { action: 'track_event', event_name: 'onboarding_skipped' },
-          }).catch(() => {});
+          invokeEdgeFunctionSilent('loops-sync', {
+            action: 'track_event',
+            event_name: 'onboarding_skipped',
+          });
         }}
       />
     );

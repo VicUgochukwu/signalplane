@@ -1,18 +1,14 @@
 import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { IntelPacket } from '@/types/report';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 
 export function useExportPacket() {
   const { toast } = useToast();
 
   const emailMutation = useMutation({
     mutationFn: async (packetId: string) => {
-      const { data, error } = await supabase.functions.invoke('export-packet', {
-        body: { action: 'email', packet_id: packetId },
-      });
-      if (error) throw error;
-      return data;
+      return await invokeEdgeFunction('export-packet', { action: 'email', packet_id: packetId });
     },
     onSuccess: (data) => {
       toast({ title: 'Packet sent', description: data.message || 'Check your email.' });

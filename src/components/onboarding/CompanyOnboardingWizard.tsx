@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -232,13 +233,11 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
     });
 
     // Fire Loops event (fire-and-forget)
-    supabase.functions.invoke('loops-sync', {
-      body: {
-        action: 'track_event',
-        event_name: 'onboarding_completed',
-        properties: { company_name: companyName, industry, competitor_count: selectedCompetitors.length },
-      },
-    }).catch(() => {});
+    invokeEdgeFunctionSilent('loops-sync', {
+      action: 'track_event',
+      event_name: 'onboarding_completed',
+      properties: { company_name: companyName, industry, competitor_count: selectedCompetitors.length },
+    });
 
     onComplete();
   };
