@@ -41,8 +41,22 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/messaging-diff" element={<Index />} />
-            <Route path="/control-plane" element={<ControlPlane />} />
-            <Route path="/control-plane/artifacts" element={<Artifacts />} />
+            <Route
+              path="/control-plane"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <ControlPlane />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/control-plane/artifacts"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <Artifacts />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin"
               element={
