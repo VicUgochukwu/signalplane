@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi, Upload, BarChart3, DollarSign, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi, Upload, BarChart3, DollarSign, HeartPulse, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/admin/csv-upload', label: 'CSV Upload', icon: Upload },
   { to: '/admin/usage', label: 'Usage Reports', icon: BarChart3 },
   { to: '/admin/costs', label: 'Cost Dashboard', icon: DollarSign },
+  { to: '/admin/tracked-pages', label: 'Tracked Pages', icon: Globe },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

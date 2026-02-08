@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, X } from 'lucide-react';
+import { Building2, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,7 +14,6 @@ export const OnboardingBanner = () => {
     return localStorage.getItem(STORAGE_KEY) === 'true';
   });
 
-  // Don't show if: not logged in, onboarding complete, dismissed, or still loading
   if (!user || !needsOnboarding || isDismissed || isLoading) {
     return null;
   }
@@ -25,24 +24,27 @@ export const OnboardingBanner = () => {
   };
 
   return (
-    <div className="mb-6 p-4 rounded-lg bg-[hsl(180,20%,52%)]/10 border border-[hsl(180,20%,52%)]/20">
+    <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-[hsl(180,20%,52%)]/20 shrink-0">
-            <Building2 className="h-5 w-5 text-[hsl(180,20%,52%)]" />
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            <Building2 className="h-5 w-5 text-primary" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">
               Get personalized intelligence
             </p>
             <p className="text-sm text-muted-foreground">
-              Set up your company to see battlecards and signals filtered to your specific competitors
+              Set up your company to see battlecards and signals filtered to your specific competitors.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button asChild size="sm" className="bg-[hsl(180,20%,52%)] hover:bg-[hsl(180,20%,52%)]/80 text-white">
-            <Link to="/settings">Set Up Now</Link>
+          <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg">
+            <Link to="/settings" className="flex items-center gap-1.5">
+              Set Up Now
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </Button>
           <Button
             variant="ghost"

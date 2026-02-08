@@ -24,6 +24,7 @@ import AdminApiHealth from "./pages/admin/AdminApiHealth";
 import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
 import AdminUsageReports from "./pages/admin/AdminUsageReports";
 import AdminCostDashboard from "./pages/admin/AdminCostDashboard";
+import AdminTrackedPages from "./pages/admin/AdminTrackedPages";
 import CookiePolicy from "./pages/CookiePolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
@@ -142,6 +143,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminCostDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/tracked-pages"
+              element={
+                <AdminRoute>
+                  <AdminTrackedPages />
                 </AdminRoute>
               }
             />

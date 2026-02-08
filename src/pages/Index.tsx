@@ -7,7 +7,7 @@ import { WeekSection } from '@/components/WeekSection';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Globe, User, Plus, Radio, AlertCircle } from 'lucide-react';
+import { Globe, User, Plus, Activity, AlertCircle, ArrowRight, TrendingUp, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -16,12 +16,9 @@ const Index = () => {
   const navigate = useNavigate();
   const [showAllChanges, setShowAllChanges] = useState(false);
 
-  // Always fetch public feed (used when not signed in, or when "Browse all" is active)
   const publicFeed = useChangelog();
-  // Only fetch personalized feed when signed in and not browsing all
   const myFeed = useMyChangelog(!!user && !showAllChanges);
 
-  // Determine which feed to display
   const isPersonalized = !!user && !showAllChanges;
   const activeFeed = isPersonalized ? myFeed : publicFeed;
   const { data: entries, isLoading, error } = activeFeed;
@@ -61,73 +58,85 @@ const Index = () => {
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [filteredEntries]);
 
-  // Calculate stats
   const totalSignals = entries?.length || 0;
   const highPriorityCount = entries?.filter(e => e.change_magnitude === 'major').length || 0;
 
   return (
     <div className="min-h-screen bg-background">
       <AppNavigation />
-      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-6">
+      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-8">
         {/* Page Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <Radio className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground font-mono">
-                Signal Feed
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Real-time competitor changes feeding into weekly intelligence packets
-              </p>
-            </div>
-          </div>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-foreground">
+            Signal Feed
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Real-time competitor changes feeding into weekly intelligence packets
+          </p>
         </div>
 
         {/* Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="card-terminal">
+          <Card className="rounded-xl border border-border/50 bg-card">
             <CardContent className="p-4">
-              <div className="text-2xl font-mono font-bold text-foreground">{totalSignals}</div>
-              <div className="text-xs text-muted-foreground font-mono uppercase">Total Signals</div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-primary/10">
+                  <Activity className="h-3.5 w-3.5 text-primary" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-foreground tabular-nums">{totalSignals}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Total Signals</div>
             </CardContent>
           </Card>
-          <Card className="card-terminal">
+          <Card className="rounded-xl border border-border/50 bg-card">
             <CardContent className="p-4">
-              <div className="text-2xl font-mono font-bold text-terminal-red">{highPriorityCount}</div>
-              <div className="text-xs text-muted-foreground font-mono uppercase">High Priority</div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-rose-500/10">
+                  <TrendingUp className="h-3.5 w-3.5 text-rose-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-rose-400 tabular-nums">{highPriorityCount}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">High Priority</div>
             </CardContent>
           </Card>
-          <Card className="card-terminal">
+          <Card className="rounded-xl border border-border/50 bg-card">
             <CardContent className="p-4">
-              <div className="text-2xl font-mono font-bold text-primary">{companies.length}</div>
-              <div className="text-xs text-muted-foreground font-mono uppercase">Companies</div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-md bg-sky-500/10">
+                  <Building2 className="h-3.5 w-3.5 text-sky-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-sky-400 tabular-nums">{companies.length}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Companies</div>
             </CardContent>
           </Card>
-          <Card className="card-terminal">
+          <Card className="rounded-xl border border-border/50 bg-card group hover:border-primary/20 transition-colors">
             <CardContent className="p-4">
-              <Link to="/control-plane" className="block hover:opacity-80 transition-opacity">
-                <div className="text-sm font-mono font-bold text-terminal-green">View Packet →</div>
-                <div className="text-xs text-muted-foreground font-mono uppercase">Weekly Intel</div>
+              <Link to="/control-plane" className="block">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-md bg-emerald-500/10">
+                    <ArrowRight className="h-3.5 w-3.5 text-emerald-400" />
+                  </div>
+                </div>
+                <div className="text-sm font-semibold text-emerald-400 group-hover:text-emerald-300 transition-colors">View Packets →</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Weekly Intel</div>
               </Link>
             </CardContent>
           </Card>
         </div>
 
         {/* Feed Toggle & Filters */}
-        <div className="space-y-4 border-t border-border pt-6">
+        <div className="space-y-4 border-t border-border/50 pt-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Feed toggle for signed-in users */}
             {user && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
                 <button
                   onClick={() => setShowAllChanges(false)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-mono transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                     !showAllChanges
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground border border-transparent'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <User className="h-3.5 w-3.5" />
@@ -135,10 +144,10 @@ const Index = () => {
                 </button>
                 <button
                   onClick={() => setShowAllChanges(true)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-mono transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                     showAllChanges
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground border border-transparent'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <Globe className="h-3.5 w-3.5" />
@@ -148,8 +157,8 @@ const Index = () => {
             )}
 
             {!user && (
-              <div className="text-sm text-muted-foreground font-mono">
-                // Showing all public signals
+              <div className="text-sm text-muted-foreground">
+                Showing all public signals
               </div>
             )}
 
@@ -166,7 +175,7 @@ const Index = () => {
           </div>
 
           {isPersonalized && (
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="text-xs text-muted-foreground">
               Showing signals for your tracked companies only.
             </p>
           )}
@@ -177,10 +186,10 @@ const Index = () => {
           <div className="space-y-8">
             {[1, 2].map((week) => (
               <div key={week} className="space-y-4">
-                <Skeleton className="h-6 w-48 bg-muted" />
+                <Skeleton className="h-6 w-48 bg-muted rounded-lg" />
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[1, 2, 3].map((card) => (
-                    <Skeleton key={card} className="h-48 bg-muted" />
+                    <Skeleton key={card} className="h-48 bg-muted rounded-xl" />
                   ))}
                 </div>
               </div>
@@ -190,12 +199,14 @@ const Index = () => {
 
         {/* Error State */}
         {error && (
-          <Card className="card-terminal border-destructive/50">
+          <Card className="rounded-xl border border-destructive/20">
             <CardContent className="p-6">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <AlertCircle className="h-5 w-5 text-destructive" />
+                </div>
                 <div>
-                  <p className="font-mono font-medium text-destructive">Error loading signals</p>
+                  <p className="font-medium text-destructive">Error loading signals</p>
                   <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
                 </div>
               </div>
@@ -205,13 +216,13 @@ const Index = () => {
 
         {/* Personalized Empty State */}
         {!isLoading && !error && groupedByWeek.length === 0 && isPersonalized && (
-          <Card className="card-terminal">
-            <CardContent className="py-12 text-center space-y-4">
-              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+          <Card className="rounded-xl border border-border/50">
+            <CardContent className="py-16 text-center space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
                 <Plus className="h-6 w-6 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <p className="text-foreground font-mono font-medium">No signals for your tracked companies</p>
+                <p className="text-foreground font-medium">No signals for your tracked companies</p>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
                   Add companies to track on the My Pages dashboard, or browse all signals to see the full feed.
                 </p>
@@ -219,7 +230,7 @@ const Index = () => {
               <div className="flex items-center justify-center gap-3 pt-2">
                 <Button
                   onClick={() => navigate('/my-pages')}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Companies
@@ -227,7 +238,7 @@ const Index = () => {
                 <Button
                   variant="outline"
                   onClick={() => setShowAllChanges(true)}
-                  className="border-border text-foreground hover:bg-muted"
+                  className="border-border/50 text-foreground hover:bg-muted/50 rounded-lg"
                 >
                   <Globe className="h-4 w-4 mr-2" />
                   Browse All Signals
@@ -239,15 +250,15 @@ const Index = () => {
 
         {/* Generic Empty State */}
         {!isLoading && !error && groupedByWeek.length === 0 && !isPersonalized && (
-          <Card className="card-terminal">
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground font-mono">No signals found matching your filters.</p>
+          <Card className="rounded-xl border border-border/50">
+            <CardContent className="py-16 text-center">
+              <p className="text-muted-foreground">No signals found matching your filters.</p>
             </CardContent>
           </Card>
         )}
 
         {/* Signal Feed */}
-        <div className="space-y-8">
+        <div className="space-y-10">
           {groupedByWeek.map(([weekStart, weekEntries]) => (
             <WeekSection key={weekStart} weekStart={weekStart} entries={weekEntries} />
           ))}

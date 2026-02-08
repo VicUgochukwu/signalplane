@@ -1,64 +1,55 @@
-import { Mail, Linkedin, Calendar } from "lucide-react";
-
-const contactMethods = [
-  {
-    icon: Mail,
-    label: "Email",
-    value: "hello@signalplane.dev",
-    href: "mailto:hello@signalplane.dev",
-  },
-  {
-    icon: Linkedin,
-    label: "LinkedIn",
-    value: "Connect on LinkedIn",
-    href: "https://linkedin.com/in/victor-ugochukwu",
-  },
-  {
-    icon: Calendar,
-    label: "Book a call",
-    value: "Schedule on Calendly",
-    href: "https://calendly.com/victorugochukwu",
-  },
-];
+import { Link } from "react-router-dom";
+import { ArrowRight, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function ContactSection() {
   return (
-    <section id="contact" className="py-12 px-6 border-t border-border">
-      <div className="max-w-content mx-auto">
-        {/* Consultation callout */}
-        <div className="bg-card border border-primary/30 rounded-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-foreground mb-3">
-            Bring Control Plane to Your Team
-          </h3>
-          <p className="text-muted-foreground leading-relaxed">
-            Signal Plane can stand up Control Plane for your GTM team in 60 days. Week 1, your first competitive messaging snapshot. By week 8, a self-running intelligence product producing weekly packets, auto-updating battlecards, and a prediction accuracy record.
-          </p>
+    <section id="contact" className="py-20 md:py-28 px-6">
+      <div className="max-w-3xl mx-auto text-center">
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
+          Start getting weekly intel packets
+        </h2>
+        <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
+          Stand up Control Plane for your GTM team in 60 days. Week 1, your
+          first competitive snapshot. By week 8, a self-running intelligence
+          product.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+          <Link to="/login">
+            <Button
+              size="lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 h-11 text-sm font-medium"
+            >
+              Get Started
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+          <a
+            href="https://calendly.com/victorugochukwu"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-full px-6 h-11 text-sm font-medium border-border hover:bg-muted/50"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Book a Call
+            </Button>
+          </a>
         </div>
 
-        {/* Contact methods */}
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-foreground mb-4">
-            Get in Touch
-          </h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            Ready to bring evidence-grade competitive intelligence to your team? Reach out to discuss how Control Plane can support your GTM strategy.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {contactMethods.map((method) => (
-              <a
-                key={method.label}
-                href={method.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 px-6 py-3 rounded-lg border border-border bg-card hover:border-primary/30 transition-colors"
-              >
-                <method.icon className="w-5 h-5 text-primary" />
-                <span className="text-foreground">{method.label}</span>
-              </a>
-            ))}
-          </div>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Or reach out at{" "}
+          <a
+            href="mailto:hello@signalplane.dev"
+            className="text-primary hover:text-primary/80 transition-colors"
+          >
+            hello@signalplane.dev
+          </a>
+        </p>
       </div>
     </section>
   );

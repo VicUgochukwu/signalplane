@@ -3,15 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 const SUPABASE_URL = 'https://dnqjzgfunvbofsuibcsk.supabase.co';
 
 /**
- * Invoke a Supabase Edge Function directly (bypassing the Lovable relay).
- * Use this for functions deployed via the messaging-tracker repo.
+ * Invoke a Supabase Edge Function directly.
+ * Uses raw fetch with the user's JWT in the Authorization header.
+ * Edge Functions are deployed with --no-verify-jwt so the gateway
+ * passes the token through; the function validates auth internally.
  */
 export async function invokeEdgeFunction<T = any>(
   functionName: string,
   body?: Record<string, any>
 ): Promise<T> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
 
   if (!token) {
     throw new Error('Please log in to continue');

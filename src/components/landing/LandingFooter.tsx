@@ -3,26 +3,27 @@ import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 
 export function LandingFooter() {
   return (
-    <footer className="py-8 px-6 border-t border-border">
-      <div className="max-w-content mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <footer className="py-10 px-6 border-t border-border/50">
+      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <img src={signalPlaneLogo} alt="Signal Plane" className="w-5 h-5" />
+          <img src={signalPlaneLogo} alt="Signal Plane" className="w-5 h-5 opacity-60" />
           <p className="text-sm text-muted-foreground">
-            © 2026 Signal Plane
+            &copy; 2026 Signal Plane
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <div className="flex items-center gap-6">
+          <Link
+            to="/privacy-policy"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Privacy Policy
           </Link>
-          <span className="text-muted-foreground/50">·</span>
-          <Link to="/cookie-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            to="/cookie-policy"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Cookie Policy
           </Link>
-          <span className="text-muted-foreground/50">·</span>
-          <p className="text-sm text-muted-foreground">
-            Built with conviction
-          </p>
         </div>
       </div>
     </footer>

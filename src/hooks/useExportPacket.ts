@@ -7,8 +7,12 @@ export function useExportPacket() {
   const { toast } = useToast();
 
   const emailMutation = useMutation({
-    mutationFn: async (packetId: string) => {
-      return await invokeEdgeFunction('export-packet', { action: 'email', packet_id: packetId });
+    mutationFn: async (report: IntelPacket) => {
+      return await invokeEdgeFunction('export-packet', {
+        action: 'email',
+        packet_id: report.id,
+        packet_data: report,
+      });
     },
     onSuccess: (data) => {
       toast({ title: 'Packet sent', description: data.message || 'Check your email.' });
@@ -31,7 +35,7 @@ export function useExportPacket() {
   };
 
   return {
-    emailPacket: (packetId: string) => emailMutation.mutate(packetId),
+    emailPacket: (report: IntelPacket) => emailMutation.mutate(report),
     isEmailing: emailMutation.isPending,
     downloadAsMarkdown,
   };

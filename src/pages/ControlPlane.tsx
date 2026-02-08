@@ -15,8 +15,11 @@ const ControlPlane = () => {
     return (
       <div className="min-h-screen bg-background">
         <AppNavigation />
-        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading intelligence packets...</p>
+          </div>
         </div>
       </div>
     );
@@ -27,9 +30,9 @@ const ControlPlane = () => {
       <div className="min-h-screen bg-background">
         <AppNavigation />
         <div className="container max-w-6xl mx-auto px-4 py-8">
-          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive">
-            <p className="font-medium">Error loading intelligence packets</p>
-            <p className="text-sm mt-1">{error.message}</p>
+          <div className="rounded-xl bg-destructive/5 border border-destructive/10 p-6">
+            <p className="font-medium text-destructive">Error loading intelligence packets</p>
+            <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
           </div>
         </div>
       </div>

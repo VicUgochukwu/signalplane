@@ -1,26 +1,21 @@
 export function MetricsBanner() {
   const metrics = [
-    { value: "10", label: "Live Monitors" },
+    { value: "10+", label: "Automated Monitors" },
     { value: "25", label: "Signals Per Packet" },
-    { value: "7", label: "Day Recency Decay" },
-    { value: "52", label: "Packets Per Year" },
+    { value: "Weekly", label: "Delivery Cadence" },
+    { value: "100%", label: "Evidence-Linked" },
   ];
 
   return (
-    <div className="py-8 px-6">
-      <div className="max-w-content mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0">
-          {metrics.map((metric, index) => (
-            <div
-              key={metric.label}
-              className={`flex flex-col items-center justify-center text-center py-4 ${
-                index < metrics.length - 1 ? "md:border-r md:border-border" : ""
-              }`}
-            >
-              <span className="text-3xl font-mono font-bold text-primary">
+    <div className="py-12 px-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
+          {metrics.map((metric) => (
+            <div key={metric.label} className="text-center">
+              <span className="text-2xl md:text-3xl font-bold text-foreground">
                 {metric.value}
               </span>
-              <span className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+              <span className="block text-xs text-muted-foreground mt-1.5 tracking-wide">
                 {metric.label}
               </span>
             </div>

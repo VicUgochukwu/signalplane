@@ -10,7 +10,7 @@ import { UserMenu } from './UserMenu';
 const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: BarChart3 },
   { to: '/control-plane/artifacts', label: 'Artifacts', icon: FileText },
-  { to: '/messaging-diff', label: 'Messaging Diff', icon: ArrowRightLeft },
+  { to: '/messaging-diff', label: 'Signal Feed', icon: ArrowRightLeft },
 ];
 
 const navItemFlags: Record<string, string> = {
@@ -25,17 +25,17 @@ export function AppNavigation() {
   const { isEnabled } = useFeatureFlag();
 
   return (
-    <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container max-w-6xl mx-auto px-4">
-        <div className="flex h-14 items-center gap-4 sm:gap-6">
-          {/* Logo - always visible */}
-          <Link to="/" className="flex-shrink-0 flex items-center gap-2 font-mono font-semibold text-foreground">
-            <img src={signalPlaneLogo} alt="Signal Plane" className="w-8 h-8" />
-            <span className="hidden xs:inline">Signal Plane</span>
+        <div className="flex h-16 items-center gap-6">
+          {/* Logo */}
+          <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 font-semibold text-foreground hover:opacity-80 transition-opacity">
+            <img src={signalPlaneLogo} alt="Signal Plane" className="w-7 h-7" />
+            <span className="hidden sm:inline text-sm">Signal Plane</span>
           </Link>
 
-          {/* Navigation tabs - horizontally scrollable on mobile */}
-          <ScrollArea className="flex-1 -mx-4 px-4">
+          {/* Navigation tabs */}
+          <ScrollArea className="flex-1">
             <div className="flex items-center gap-1">
               {navItems
                 .filter(item => {
@@ -43,35 +43,35 @@ export function AppNavigation() {
                   return !flagKey || isEnabled(flagKey);
                 })
                 .map((item) => {
-                  const isActive = location.pathname === item.to || 
+                  const isActive = location.pathname === item.to ||
                     (item.to !== '/' && location.pathname.startsWith(item.to));
                   return (
                     <Link
                       key={item.to}
                       to={item.to}
                       className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                        'flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
                         isActive
                           ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       )}
                     >
                       <item.icon className="h-4 w-4" />
                       <span className="hidden sm:inline">{item.label}</span>
-                      <span className="sm:hidden">{item.label.split(' ')[0]}</span>
+                      <span className="sm:hidden text-xs">{item.label.split(' ')[0]}</span>
                     </Link>
                   );
                 })}
 
-              {/* Admin link - only visible to admins with feature flag enabled */}
+              {/* Admin link */}
               {isAdmin && isEnabled('admin_panel') && (
                 <Link
                   to="/admin"
                   className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                    'flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
                     location.pathname.startsWith('/admin')
                       ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
                 >
                   <Shield className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function AppNavigation() {
             <ScrollBar orientation="horizontal" className="invisible" />
           </ScrollArea>
 
-          {/* User menu - avatar dropdown with settings, my pages, sign out */}
+          {/* User menu */}
           <div className="flex-shrink-0">
             <UserMenu />
           </div>

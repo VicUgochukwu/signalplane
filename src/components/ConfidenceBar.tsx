@@ -8,15 +8,15 @@ export function ConfidenceBar({ confidence }: ConfidenceBarProps) {
   const percentage = Math.round(confidence * 100);
 
   const getColor = () => {
-    if (confidence >= 0.8) return 'bg-terminal-green';
-    if (confidence >= 0.5) return 'bg-terminal-amber';
-    return 'bg-terminal-red';
+    if (confidence >= 0.8) return 'bg-emerald-500';
+    if (confidence >= 0.5) return 'bg-amber-500';
+    return 'bg-rose-500';
   };
 
   const getTextColor = () => {
-    if (confidence >= 0.8) return 'text-terminal-green';
-    if (confidence >= 0.5) return 'text-terminal-amber';
-    return 'text-terminal-red';
+    if (confidence >= 0.8) return 'text-emerald-400';
+    if (confidence >= 0.5) return 'text-amber-400';
+    return 'text-rose-400';
   };
 
   return (
@@ -27,7 +27,7 @@ export function ConfidenceBar({ confidence }: ConfidenceBarProps) {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <span className={cn('text-xs font-mono', getTextColor())}>{percentage}%</span>
+      <span className={cn('text-xs font-medium tabular-nums', getTextColor())}>{percentage}%</span>
     </div>
   );
 }

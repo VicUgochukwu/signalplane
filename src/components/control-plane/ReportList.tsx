@@ -1,7 +1,7 @@
 import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
-import { Radio, Target } from 'lucide-react';
+import { BarChart3, Target, Zap, TrendingUp } from 'lucide-react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 
 interface ReportListProps {
@@ -17,27 +17,24 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
   );
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8 terminal-header">
-        <div className="flex items-center gap-3 mb-2">
-          <Radio className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold text-foreground font-mono">
-            {profile?.company_name ? (
-              <>{profile.company_name} Intelligence</>
-            ) : (
-              <>Control Plane</>
-            )}
-            <span className="cursor-blink"></span>
-          </h1>
-        </div>
-        <p className="text-muted-foreground font-mono text-sm flex items-center gap-2">
+    <div className="animate-fade-in space-y-8">
+      {/* Page Header */}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-foreground">
+          {profile?.company_name ? (
+            <>{profile.company_name} Intelligence</>
+          ) : (
+            <>Intel Packets</>
+          )}
+        </h1>
+        <p className="text-muted-foreground text-sm flex items-center gap-2">
           {profile?.company_name && competitors && competitors.length > 0 ? (
             <>
               <Target className="h-4 w-4" />
               Tracking {competitors.length} competitor{competitors.length !== 1 ? 's' : ''}
             </>
           ) : (
-            <>Weekly GTM Intelligence Packets</>
+            <>Weekly GTM intelligence packets</>
           )}
         </p>
       </div>
@@ -46,31 +43,52 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
       <OnboardingBanner />
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="card-terminal p-4 rounded-lg">
-          <div className="metric-value">{reports.length}</div>
-          <div className="metric-label">Intel Packets</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-foreground tabular-nums">{reports.length}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Intel Packets</div>
         </div>
-        <div className="card-terminal p-4 rounded-lg">
-          <div className="metric-value text-terminal-green">
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 rounded-md bg-emerald-500/10">
+              <Zap className="h-3.5 w-3.5 text-emerald-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-emerald-400 tabular-nums">
             {reports.filter(r => r.status === 'live').length}
           </div>
-          <div className="metric-label">Live</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Live</div>
         </div>
-        <div className="card-terminal p-4 rounded-lg">
-          <div className="metric-value text-terminal-cyan">
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 rounded-md bg-sky-500/10">
+              <TrendingUp className="h-3.5 w-3.5 text-sky-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-sky-400 tabular-nums">
             {totalSignals}
           </div>
-          <div className="metric-label">Signals Detected</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Signals Detected</div>
         </div>
-        <div className="card-terminal p-4 rounded-lg">
-          <div className="metric-value text-terminal-purple">
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 rounded-md bg-violet-500/10">
+              <BarChart3 className="h-3.5 w-3.5 text-violet-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-violet-400 tabular-nums">
             {avgConfidence}%
           </div>
-          <div className="metric-label">Avg Confidence</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Avg Confidence</div>
         </div>
       </div>
 
+      {/* Report Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {reports.map((report) => (
           <ReportCard

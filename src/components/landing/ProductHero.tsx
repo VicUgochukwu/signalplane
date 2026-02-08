@@ -1,25 +1,52 @@
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ProductHero() {
   return (
-    <section className="pt-32 pb-20 px-6">
-      <div className="max-w-content mx-auto">
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
-          Every week, your GTM team makes decisions based on what they heard last.
+    <section className="pt-28 pb-16 md:pt-36 md:pb-24 px-6">
+      <div className="max-w-3xl mx-auto text-center">
+        {/* Category badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-glow-pulse" />
+          <span className="text-xs font-medium text-primary tracking-wide">
+            GTM Intelligence Infrastructure
+          </span>
+        </div>
+
+        {/* Headline */}
+        <h1 className="text-4xl md:text-[3.5rem] font-bold text-foreground leading-[1.1] tracking-tight mb-6">
+          Competitive intelligence that{" "}
+          <span className="text-primary">ships every Monday</span>
         </h1>
-        <p className="text-xl md:text-2xl text-primary font-medium mb-6">
-          Control Plane replaces hearsay with evidence.
+
+        {/* Subheadline */}
+        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          Automated monitors track competitor signals weekly. One structured
+          decision packet lands in your inbox every Monday — evidence-linked,
+          severity-ranked, ready to act on.
         </p>
-        <p className="text-lg text-muted-foreground max-w-2xl mb-8 leading-relaxed">
-          12+ automated monitors. One weekly decision packet. Every claim evidence-linked. Every prediction tracked.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button asChild size="lg">
-            <a href="#intelligence">See the intelligence</a>
-          </Button>
-        <Button variant="outline" size="lg" asChild>
-            <a href="#contact">Request a Demo</a>
-          </Button>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link to="/login">
+            <Button
+              size="lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 h-11 text-sm font-medium"
+            >
+              Get Started
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+          <Link to="/control-plane">
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-full px-6 h-11 text-sm font-medium border-border hover:bg-muted/50"
+            >
+              View Live Demo
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

@@ -36,7 +36,7 @@ export function TagBadge({ tag }: TagBadgeProps) {
       <TooltipTrigger asChild>
         <Badge
           variant="outline"
-          className="text-xs border-primary/30 text-primary font-mono cursor-help hover:border-primary/50 hover:bg-primary/10"
+          className="text-xs border-primary/20 text-primary/80 font-medium cursor-help hover:border-primary/40 hover:bg-primary/5 transition-colors"
         >
           {tag.replace(/_/g, ' ')}
         </Badge>
@@ -50,7 +50,7 @@ export function TagBadge({ tag }: TagBadgeProps) {
 
 export function TagLegend() {
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
       <HelpCircle className="h-4 w-4" />
       <span>Hover tags for explanations</span>
     </div>
