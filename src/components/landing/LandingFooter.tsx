@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 
 export function LandingFooter() {
@@ -11,9 +12,13 @@ export function LandingFooter() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            Control Plane, by Signal Plane
-          </p>
+          <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Privacy Policy
+          </Link>
+          <span className="text-muted-foreground/50">·</span>
+          <Link to="/cookie-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Cookie Policy
+          </Link>
           <span className="text-muted-foreground/50">·</span>
           <p className="text-sm text-muted-foreground">
             Built with conviction
