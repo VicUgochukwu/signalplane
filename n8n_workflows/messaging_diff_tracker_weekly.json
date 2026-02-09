@@ -1,0 +1,465 @@
+{
+  "name": "Messaging Diff Tracker – Weekly",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Weekly Cron (Mon 6am UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, company_id, company_name, company_slug, url, url_type, page_type, enabled FROM core.tracked_pages WHERE enabled = true;",
+        "options": {}
+      },
+      "id": "fetch-tracked-pages",
+      "name": "Postgres: Get Tracked Pages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [250, 200],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-pages",
+      "name": "Loop Over Pages",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          },
+          "headers": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (compatible; MessagingDiffBot/1.0)"
+              }
+            ]
+          }
+        }
+      },
+      "id": "http-fetch-page",
+      "name": "HTTP: Fetch Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Normalize HTML to plain text ──\nconst html = $input.first().json.data || $input.first().json.body || '';\n\n// Check for HTTP failure from previous node\nif ($input.first().json.error) {\n  return [{ json: {\n    error: true,\n    errorMessage: $input.first().json.error.message || 'HTTP request failed',\n    tracked_page_id: $('Loop Over Pages').first().json.id,\n    company_name: $('Loop Over Pages').first().json.company_name\n  }}];\n}\n\n// Strip script, style, nav, footer, header, cookie-banner tags and their content\nlet text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<nav[\\s\\S]*?<\\/nav>/gi, '')\n  .replace(/<footer[\\s\\S]*?<\\/footer>/gi, '')\n  .replace(/<header[\\s\\S]*?<\\/header>/gi, '')\n  .replace(/<div[^>]*(?:cookie|consent|banner)[^>]*>[\\s\\S]*?<\\/div>/gi, '');\n\n// Strip remaining HTML tags\ntext = text.replace(/<[^>]+>/g, ' ');\n\n// Decode common HTML entities\ntext = text\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"')\n  .replace(/&#39;/g, \"'\")\n  .replace(/&nbsp;/g, ' ');\n\n// Collapse whitespace\ntext = text.replace(/\\s+/g, ' ').trim();\n\n// Compute content hash (FNV-1a 64-bit, no require needed)\nfunction fnv1a64(str) {\n  let h1 = 0x811c9dc5 >>> 0;\n  let h2 = 0xcbf29ce4 >>> 0;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (c >> 8 | c), 0x01000193) >>> 0;\n  }\n  return h2.toString(16).padStart(8, '0') + h1.toString(16).padStart(8, '0');\n}\nconst contentHash = fnv1a64(text);\n\n// Compute week_start_date (Monday of current ISO week, UTC)\nconst now = new Date();\nconst day = now.getUTCDay(); // 0=Sun\nconst diff = day === 0 ? 6 : day - 1;\nconst monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - diff));\nconst weekStartDate = monday.toISOString().slice(0, 10);\n\nconst page = $('Loop Over Pages').first().json;\n\nreturn [{ json: {\n  error: false,\n  tracked_page_id: page.id,\n  company_name: page.company_name,\n  company_slug: page.company_slug,\n  url: page.url,\n  url_type: page.url_type,\n  week_start_date: weekStartDate,\n  text_content: text,\n  content_hash: contentHash,\n  http_status: $input.first().json.statusCode || 200\n}}];"
+      },
+      "id": "normalize-and-hash",
+      "name": "Normalize HTML & Hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "err-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "name": "filter.boolean.equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-fetch-failed",
+      "name": "If Fetch Failed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO page_snapshots (tracked_page_id, week_start_date, fetched_at, status, http_status, text_content, content_hash)\nVALUES (\n  '{{ $json.tracked_page_id }}',\n  '{{ $json.week_start_date }}',\n  now(),\n  'success',\n  {{ $json.http_status }},\n  '{{ $json.text_content.replace(/'/g, \"''\") }}',\n  '{{ $json.content_hash }}'\n)\nON CONFLICT (tracked_page_id, week_start_date)\nDO UPDATE SET fetched_at = now(), status = 'success', http_status = EXCLUDED.http_status, text_content = EXCLUDED.text_content, content_hash = EXCLUDED.content_hash\nRETURNING id, tracked_page_id, week_start_date, content_hash, text_content;",
+        "options": {}
+      },
+      "id": "upsert-snapshot",
+      "name": "Postgres: Upsert Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1500, 100],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, content_hash, week_start_date, text_content FROM page_snapshots\nWHERE tracked_page_id = '{{ $json.tracked_page_id }}'\n  AND week_start_date < '{{ typeof $json.week_start_date === \"string\" ? $json.week_start_date.slice(0, 10) : new Date($json.week_start_date).toISOString().slice(0, 10) }}'\nORDER BY week_start_date DESC\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "query-prev-snapshot",
+      "name": "Postgres: Get Previous Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1750, 100],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Helpers ──\nfunction truncateText(text, maxLen) {\n  if (!text) return '';\n  if (text.length <= maxLen) return text;\n  return text.slice(0, maxLen) + '\\n[...truncated]';\n}\n\nfunction computeSimpleDiff(oldText, newText) {\n  if (!oldText || !newText) return 'No previous text available for comparison.';\n  const oldSentences = new Set(oldText.split(/(?<=[.!?])\\s+/).filter(s => s.length > 10));\n  const newSentences = new Set(newText.split(/(?<=[.!?])\\s+/).filter(s => s.length > 10));\n  const added = [...newSentences].filter(s => !oldSentences.has(s));\n  const removed = [...oldSentences].filter(s => !newSentences.has(s));\n  let summary = '';\n  if (added.length > 0) {\n    summary += 'ADDED (' + added.length + ' sentences):\\n' + added.slice(0, 15).map(s => '+ ' + s.slice(0, 200)).join('\\n') + '\\n';\n  }\n  if (removed.length > 0) {\n    summary += 'REMOVED (' + removed.length + ' sentences):\\n' + removed.slice(0, 15).map(s => '- ' + s.slice(0, 200)).join('\\n') + '\\n';\n  }\n  if (!summary) summary = 'Minor wording changes detected (no full sentences added or removed).';\n  return summary;\n}\n\n// ── Main ──\nconst current = $('Postgres: Upsert Snapshot').first().json;\nconst prevRows = $('Postgres: Get Previous Snapshot').all();\nconst pageData = $('Normalize HTML & Hash').first().json;\n\nif (!prevRows.length || prevRows[0].json.content_hash === undefined) {\n  return [{ json: { changed: false, reason: 'no_previous_snapshot' } }];\n}\n\nconst prev = prevRows[0].json;\n\nif (prev.content_hash === current.content_hash) {\n  return [{ json: { changed: false, reason: 'hash_unchanged' } }];\n}\n\n// Truncate texts to ~3K tokens each for LLM efficiency\nconst MAX_TEXT_LEN = 12000;\nconst oldTextTruncated = truncateText(prev.text_content, MAX_TEXT_LEN);\nconst newTextTruncated = truncateText(current.text_content, MAX_TEXT_LEN);\nconst diffSummaryText = computeSimpleDiff(prev.text_content, current.text_content);\n\nreturn [{ json: {\n  changed: true,\n  tracked_page_id: current.tracked_page_id,\n  week_start_date: current.week_start_date,\n  new_snapshot_id: current.id,\n  old_snapshot_id: prev.id,\n  new_hash: current.content_hash,\n  old_hash: prev.content_hash,\n  company_name: pageData.company_name,\n  company_slug: pageData.company_slug,\n  url: pageData.url,\n  url_type: pageData.url_type,\n  old_text_truncated: oldTextTruncated,\n  new_text_truncated: newTextTruncated,\n  diff_summary_text: diffSummaryText\n}}];"
+      },
+      "id": "check-diff",
+      "name": "Check If Changed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "changed-check",
+              "leftValue": "={{ $json.changed }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "name": "filter.boolean.equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-changed",
+      "name": "If Hash Changed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2250, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1000,\n  \"temperature\": 0.2,\n  \"system\": \"You are a B2B messaging analyst. You will receive the OLD and NEW text content of a company webpage, plus a sentence-level diff summary showing what was added and removed.\\n\\nClassify the change into EXACTLY ONE primary tag from this set: ICP_SHIFT, VALUE_PROP_CHANGE, CATEGORY_POSITIONING, PROOF_POINTS, FEATURE_PROMINENCE, PRICING_PACKAGING, TRUST_RISK, AI_REFRAMING, CTA_CHANGE, DESIGN_STRUCTURE, NOISE.\\n\\nAlso provide: secondary_tags (array, 0-2 from the same set), a short rationale, a one-sentence implication for competitors/market, confidence (0-1), and change_magnitude (minor|moderate|major).\\n\\nRespond ONLY with valid JSON: {\\\"primary_tag\\\":\\\"...\\\",\\\"secondary_tags\\\":[],\\\"rationale\\\":\\\"...\\\",\\\"implication\\\":\\\"...\\\",\\\"confidence\\\":0.0,\\\"change_magnitude\\\":\\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Company: {{ $json.company_name }}\\nURL: {{ $json.url }} ({{ $json.url_type }})\\nWeek: {{ $json.week_start_date }}\\n\\n=== DIFF SUMMARY ===\\n{{ $json.diff_summary_text }}\\n\\n=== OLD PAGE TEXT (truncated) ===\\n{{ $json.old_text_truncated }}\\n\\n=== NEW PAGE TEXT (truncated) ===\\n{{ $json.new_text_truncated }}\\n\\nClassify this change.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "llm-classify",
+      "name": "LLM: Classify Change",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2500, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ANTHROPIC_HEADER_AUTH_ID",
+          "name": "Header Auth account 3"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const VALID_TAGS = new Set([\n  'ICP_SHIFT','VALUE_PROP_CHANGE','CATEGORY_POSITIONING','PROOF_POINTS',\n  'FEATURE_PROMINENCE','PRICING_PACKAGING','TRUST_RISK','AI_REFRAMING',\n  'CTA_CHANGE','DESIGN_STRUCTURE','NOISE'\n]);\n\nconst diffData = $('If Hash Changed').first().json;\nlet classification;\n\ntry {\n  const raw = $input.first().json;\n  const content = raw.content?.[0]?.text || raw.choices?.[0]?.message?.content || '{}';\n  classification = JSON.parse(content);\n} catch (e) {\n  classification = {\n    primary_tag: 'NOISE',\n    secondary_tags: [],\n    rationale: 'LLM response could not be parsed',\n    implication: 'Unknown',\n    confidence: 0,\n    change_magnitude: 'minor'\n  };\n}\n\n// Validate primary_tag\nif (!VALID_TAGS.has(classification.primary_tag)) {\n  classification.primary_tag = 'NOISE';\n}\n\n// Validate secondary_tags\nif (Array.isArray(classification.secondary_tags)) {\n  classification.secondary_tags = classification.secondary_tags.filter(t => VALID_TAGS.has(t));\n} else {\n  classification.secondary_tags = [];\n}\n\n// Validate change_magnitude\nconst validMagnitudes = new Set(['minor','moderate','major']);\nif (!validMagnitudes.has(classification.change_magnitude)) {\n  classification.change_magnitude = 'minor';\n}\n\n// Build diff_summary with actual rationale\nconst diffSummary = `${classification.primary_tag} (${classification.change_magnitude}): ${classification.rationale || 'No rationale provided'}`;\n\nreturn [{ json: {\n  ...diffData,\n  diff_summary: diffSummary,\n  change_magnitude: classification.change_magnitude,\n  primary_tag: classification.primary_tag,\n  secondary_tags: classification.secondary_tags,\n  rationale: classification.rationale,\n  implication: classification.implication,\n  confidence: classification.confidence\n}}];"
+      },
+      "id": "validate-classification",
+      "name": "Validate & Build Diff",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2750, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO page_diffs (tracked_page_id, week_start_date, old_snapshot_id, new_snapshot_id, old_hash, new_hash, diff_summary, change_magnitude)\nVALUES (\n  '{{ $json.tracked_page_id }}',\n  '{{ typeof $json.week_start_date === \"string\" ? $json.week_start_date.slice(0, 10) : new Date($json.week_start_date).toISOString().slice(0, 10) }}',\n  '{{ $json.old_snapshot_id }}',\n  '{{ $json.new_snapshot_id }}',\n  '{{ $json.old_hash }}',\n  '{{ $json.new_hash }}',\n  '{{ $json.diff_summary.replace(/'/g, \"''\") }}',\n  '{{ $json.change_magnitude }}'\n)\nON CONFLICT (tracked_page_id, week_start_date) DO UPDATE\nSET old_snapshot_id = EXCLUDED.old_snapshot_id, new_snapshot_id = EXCLUDED.new_snapshot_id, old_hash = EXCLUDED.old_hash, new_hash = EXCLUDED.new_hash, diff_summary = EXCLUDED.diff_summary, change_magnitude = EXCLUDED.change_magnitude\nRETURNING id;",
+        "options": {}
+      },
+      "id": "insert-diff",
+      "name": "Postgres: Insert Diff",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3000, 0],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO classified_changes (page_diff_id, primary_tag, secondary_tags, rationale, implication, confidence)\nVALUES (\n  '{{ $json.id }}',\n  '{{ $('Validate & Build Diff').first().json.primary_tag }}',\n  ARRAY[{{ $('Validate & Build Diff').first().json.secondary_tags.map(t => \"'\" + t + \"'\").join(',') }}]::text[],\n  '{{ ($('Validate & Build Diff').first().json.rationale || \"\").replace(/'/g, \"''\") }}',\n  '{{ ($('Validate & Build Diff').first().json.implication || \"\").replace(/'/g, \"''\") }}',\n  {{ $('Validate & Build Diff').first().json.confidence || 0 }}\n)\nON CONFLICT (page_diff_id) DO UPDATE\nSET primary_tag = EXCLUDED.primary_tag, secondary_tags = EXCLUDED.secondary_tags, rationale = EXCLUDED.rationale, implication = EXCLUDED.implication, confidence = EXCLUDED.confidence;",
+        "options": {}
+      },
+      "id": "insert-classification",
+      "name": "Postgres: Insert Classification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [3250, 0],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect failure from errored fetch\nconst page = $('Loop Over Pages').first().json;\nconst errorMsg = $json.errorMessage || 'Unknown fetch error';\n\n// Compute week_start_date (Monday of current ISO week, UTC)\nconst now = new Date();\nconst day = now.getUTCDay(); // 0=Sun\nconst diff = day === 0 ? 6 : day - 1;\nconst monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - diff));\nconst weekStartDate = monday.toISOString().slice(0, 10);\n\nreturn [{ json: {\n  failure: true,\n  tracked_page_id: page.id,\n  company_name: page.company_name,\n  url: page.url,\n  error: errorMsg,\n  week_start_date: weekStartDate\n}}];"
+      },
+      "id": "collect-failure",
+      "name": "Collect Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 350]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO page_snapshots (tracked_page_id, week_start_date, fetched_at, status, http_status, text_content, content_hash)\nVALUES (\n  '{{ $json.tracked_page_id }}',\n  '{{ $json.week_start_date }}',\n  now(),\n  'failed',\n  0,\n  NULL,\n  NULL\n)\nON CONFLICT (tracked_page_id, week_start_date)\nDO UPDATE SET fetched_at = now(), status = 'failed', http_status = 0\nRETURNING id;",
+        "options": {}
+      },
+      "id": "upsert-failed-snapshot",
+      "name": "Postgres: Record Failed Fetch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1750, 350],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-op-unchanged",
+      "name": "No Change – Skip",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2500, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map change_magnitude to severity and prepare signal data\nconst diffData = $('Validate & Build Diff').first().json;\nconst classificationId = $('Postgres: Insert Classification').first().json.id;\nconst diffId = $('Postgres: Insert Diff').first().json.id;\n\n// Skip NOISE signals\nif (diffData.primary_tag === 'NOISE') {\n  return [{ json: { skip: true, reason: 'NOISE tag' } }];\n}\n\n// Map change_magnitude to severity\nlet severity = 2; // default: Low\nif (diffData.change_magnitude === 'major') severity = 4; // High\nelse if (diffData.change_magnitude === 'moderate') severity = 3; // Medium\n\n// Build title and summary\nconst title = `${diffData.company_name}: ${diffData.primary_tag.replace(/_/g, ' ')} (${diffData.change_magnitude})`;\nconst summary = `${diffData.rationale} Implication: ${diffData.implication}`;\n\n// Evidence URL is the tracked page URL\nconst evidenceUrls = [diffData.url];\n\nreturn [{ json: {\n  skip: false,\n  signal_type: 'messaging',\n  severity: severity,\n  confidence: diffData.confidence,\n  title: title,\n  summary: summary,\n  evidence_urls: evidenceUrls,\n  source_schema: 'public',\n  source_table: 'classified_changes',\n  source_id: diffId,\n  meta: {\n    company_name: diffData.company_name,\n    company_slug: diffData.company_slug,\n    url_type: diffData.url_type,\n    primary_tag: diffData.primary_tag,\n    secondary_tags: diffData.secondary_tags,\n    change_magnitude: diffData.change_magnitude,\n    week_start_date: diffData.week_start_date\n  }\n}}];"
+      },
+      "id": "prepare-signal",
+      "name": "Prepare Signal Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3500, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "skip-check",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals", "name": "filter.boolean.equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-emit-signal",
+      "name": "If Should Emit",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3750, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO control_plane.signals (signal_type, severity, confidence, title, summary, evidence_urls, source_schema, source_table, source_id, meta)\nVALUES (\n  '{{ $json.signal_type }}',\n  {{ $json.severity }},\n  {{ $json.confidence }},\n  '{{ $json.title.replace(/'/g, \"''\") }}',\n  '{{ $json.summary.replace(/'/g, \"''\") }}',\n  ARRAY[{{ $json.evidence_urls.map(u => \"'\" + u.replace(/'/g, \"''\") + \"'\").join(',') }}],\n  '{{ $json.source_schema }}',\n  '{{ $json.source_table }}',\n  '{{ $json.source_id }}',\n  '{{ JSON.stringify($json.meta).replace(/'/g, \"''\") }}'::jsonb\n)\nON CONFLICT (signal_type, source_schema, source_table, source_id) DO UPDATE\nSET severity = EXCLUDED.severity, confidence = EXCLUDED.confidence, title = EXCLUDED.title, summary = EXCLUDED.summary, evidence_urls = EXCLUDED.evidence_urls, meta = EXCLUDED.meta;",
+        "options": {}
+      },
+      "id": "emit-signal",
+      "name": "Emit control_plane.signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [4000, -100],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [{ "node": "Postgres: Get Tracked Pages", "type": "main", "index": 0 }]
+      ]
+    },
+    "Weekly Cron (Mon 6am UTC)": {
+      "main": [
+        [{ "node": "Postgres: Get Tracked Pages", "type": "main", "index": 0 }]
+      ]
+    },
+    "Postgres: Get Tracked Pages": {
+      "main": [
+        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+      ]
+    },
+    "Loop Over Pages": {
+      "main": [
+        [{ "node": "HTTP: Fetch Page", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "HTTP: Fetch Page": {
+      "main": [
+        [{ "node": "Normalize HTML & Hash", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize HTML & Hash": {
+      "main": [
+        [{ "node": "If Fetch Failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "If Fetch Failed": {
+      "main": [
+        [{ "node": "Collect Failure", "type": "main", "index": 0 }],
+        [{ "node": "Postgres: Upsert Snapshot", "type": "main", "index": 0 }]
+      ]
+    },
+    "Collect Failure": {
+      "main": [
+        [{ "node": "Postgres: Record Failed Fetch", "type": "main", "index": 0 }]
+      ]
+    },
+    "Postgres: Record Failed Fetch": {
+      "main": [
+        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+      ]
+    },
+    "Postgres: Upsert Snapshot": {
+      "main": [
+        [{ "node": "Postgres: Get Previous Snapshot", "type": "main", "index": 0 }]
+      ]
+    },
+    "Postgres: Get Previous Snapshot": {
+      "main": [
+        [{ "node": "Check If Changed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check If Changed": {
+      "main": [
+        [{ "node": "If Hash Changed", "type": "main", "index": 0 }]
+      ]
+    },
+    "If Hash Changed": {
+      "main": [
+        [{ "node": "LLM: Classify Change", "type": "main", "index": 0 }],
+        [{ "node": "No Change – Skip", "type": "main", "index": 0 }]
+      ]
+    },
+    "LLM: Classify Change": {
+      "main": [
+        [{ "node": "Validate & Build Diff", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate & Build Diff": {
+      "main": [
+        [{ "node": "Postgres: Insert Diff", "type": "main", "index": 0 }]
+      ]
+    },
+    "Postgres: Insert Diff": {
+      "main": [
+        [{ "node": "Postgres: Insert Classification", "type": "main", "index": 0 }]
+      ]
+    },
+    "Postgres: Insert Classification": {
+      "main": [
+        [{ "node": "Prepare Signal Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Signal Data": {
+      "main": [
+        [{ "node": "If Should Emit", "type": "main", "index": 0 }]
+      ]
+    },
+    "If Should Emit": {
+      "main": [
+        [{ "node": "Emit control_plane.signals", "type": "main", "index": 0 }],
+        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+      ]
+    },
+    "Emit control_plane.signals": {
+      "main": [
+        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+      ]
+    },
+    "No Change – Skip": {
+      "main": [
+        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v0"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
