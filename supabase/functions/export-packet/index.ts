@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { action, packet_id } = body;
+    const { action, packet_id, packet_data } = body;
 
     if (action !== 'email') {
       return new Response(
@@ -66,9 +66,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!packet_id) {
+    if (!packet_id && !packet_data) {
       return new Response(
-        JSON.stringify({ error: 'packet_id is required' }),
+        JSON.stringify({ error: 'packet_id or packet_data is required' }),
         { status: 400, headers }
       );
     }
@@ -77,27 +77,39 @@ Deno.serve(async (req) => {
       throw new Error('Email service not configured');
     }
 
-    // Fetch packet
-    const serviceClient = createServiceRoleClient();
-    const { data: packet, error: packetError } = await serviceClient
-      .schema('control_plane')
-      .from('packets')
-      .select('*')
-      .eq('id', packet_id)
-      .single();
+    let packet: IntelPacket | null = null;
 
-    if (packetError || !packet) {
+    // Try fetching from database first
+    if (packet_id) {
+      const serviceClient = createServiceRoleClient();
+      const { data, error: packetError } = await serviceClient
+        .schema('control_plane')
+        .from('packets')
+        .select('*')
+        .eq('id', packet_id)
+        .single();
+
+      if (!packetError && data) {
+        // Verify access: packet is generic (no user_id) or belongs to this user
+        if (data.user_id && data.user_id !== user.id) {
+          return new Response(
+            JSON.stringify({ error: 'Access denied' }),
+            { status: 403, headers }
+          );
+        }
+        packet = data as IntelPacket;
+      }
+    }
+
+    // Fall back to inline packet data (for mock/client-side data)
+    if (!packet && packet_data) {
+      packet = packet_data as IntelPacket;
+    }
+
+    if (!packet) {
       return new Response(
         JSON.stringify({ error: 'Packet not found' }),
         { status: 404, headers }
-      );
-    }
-
-    // Verify access: packet is generic (no user_id) or belongs to this user
-    if (packet.user_id && packet.user_id !== user.id) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied' }),
-        { status: 403, headers }
       );
     }
 
@@ -335,6 +347,7 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
   <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
     <!-- Header -->
     <div style="text-align:center;margin-bottom:32px;">
+      <img src="https://signalplane.dev/signal-plane-logo.png" alt="Signal Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
       <h1 style="margin:0 0 8px;color:#e5e7eb;font-size:22px;font-weight:700;">${escapeHtml(packet.packet_title)}</h1>
       <p style="margin:0;color:#9ca3af;font-size:13px;">${escapeHtml(packet.week_start)} &mdash; ${escapeHtml(packet.week_end)}</p>
     </div>
