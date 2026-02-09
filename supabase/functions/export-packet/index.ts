@@ -327,8 +327,15 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
   if (packet.metrics) {
     const items = [];
     if (packet.metrics.signals_detected != null) items.push(`${packet.metrics.signals_detected} signals`);
-    if (packet.metrics.confidence_score != null) items.push(`${packet.metrics.confidence_score}% confidence`);
-    if (packet.metrics.impact_score != null) items.push(`Impact: ${packet.metrics.impact_score}`);
+    if (packet.metrics.confidence_score != null) {
+      const confLabel = packet.metrics.confidence_score >= 80 ? 'Strong' : packet.metrics.confidence_score >= 60 ? 'Moderate' : 'Weak';
+      items.push(`${packet.metrics.confidence_score}% confidence (${confLabel})`);
+    }
+    if (packet.metrics.impact_score != null) {
+      const impactLabel = packet.metrics.impact_score >= 9 ? 'Critical' : packet.metrics.impact_score >= 7 ? 'High' : packet.metrics.impact_score >= 4 ? 'Moderate' : 'Low';
+      const impactColor = packet.metrics.impact_score >= 9 ? '#ef4444' : packet.metrics.impact_score >= 7 ? '#f59e0b' : packet.metrics.impact_score >= 4 ? '#06b6d4' : '#22c55e';
+      items.push(`Impact: <span style="color:${impactColor};font-weight:600;">${packet.metrics.impact_score}/10 (${impactLabel})</span>`);
+    }
 
     if (items.length) {
       metricsHtml = `

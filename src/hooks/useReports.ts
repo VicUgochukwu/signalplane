@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { IntelPacket, IntelSection, Bet, Prediction, ActionMapping } from '@/types/report';
 import { mockReports } from '@/data/mockReports';
 import { useAuth } from './useAuth';
+import { useDemo } from '@/contexts/DemoContext';
 
 // Helper to safely parse JSON fields from Supabase
 const parseIntelSection = (data: unknown): IntelSection => {
@@ -111,30 +112,78 @@ const parseMarketWinners = (data: unknown): IntelPacket['market_winners'] => {
   };
 };
 
+// Shared row → IntelPacket mapper
+const mapRowToPacket = (row: Record<string, any>): IntelPacket => {
+  const sections = row.sections as Record<string, unknown> || {};
+  const weekStart = row.week_start || row.date || new Date().toISOString().split('T')[0];
+  const weekEnd = row.week_end || weekStart;
+
+  return {
+    id: row.id,
+    week_start: weekStart,
+    week_end: weekEnd,
+    packet_title: row.packet_title || row.headline || 'Untitled Packet',
+    exec_summary: row.exec_summary || [],
+    sections: {
+      messaging: parseIntelSection(sections.messaging || sections.competitive_intel),
+      narrative: parseIntelSection(sections.narrative || sections.market_intel),
+      icp: parseIntelSection(sections.icp),
+      horizon: parseIntelSection(sections.horizon),
+      objection: parseIntelSection(sections.objection || sections.pipeline_intel),
+    },
+    key_questions: row.key_questions || [],
+    bets: parseBets(row.bets),
+    predictions: parsePredictions(row.predictions),
+    action_mapping: parseActionMapping(row.action_mapping),
+    market_winners: parseMarketWinners(row.market_winners),
+    status: 'published',
+    created_at: row.created_at,
+    metrics: parseMetrics(sections.metrics),
+    is_personalized: row.is_personalized || false,
+    user_company_name: row.user_company_name || null,
+  };
+};
+
 export const useReports = () => {
   const { user } = useAuth();
+  const demo = useDemo();
 
   return useQuery({
-    queryKey: ['intel-packets', user?.id],
+    queryKey: demo?.isDemo
+      ? ['demo-packets', demo.sectorSlug]
+      : ['intel-packets', user?.id],
     queryFn: async (): Promise<IntelPacket[]> => {
-      // Return mock data if Supabase isn't configured
       if (!supabase) {
         console.info('Supabase not configured, using mock data');
         return mockReports;
       }
 
-      // Fetch packets from public.packets (also exists as control_plane.packets)
+      // Demo mode: query demo schema filtered by sector
+      if (demo?.isDemo) {
+        const { data, error } = await supabase
+          .schema('demo' as any)
+          .from('packets')
+          .select('*')
+          .eq('sector_slug', demo.sectorSlug)
+          .order('created_at', { ascending: false });
+
+        if (error || !data || data.length === 0) {
+          console.info('No demo data for sector, using mock data');
+          return mockReports;
+        }
+
+        return data.map(mapRowToPacket);
+      }
+
+      // Normal mode: fetch from public.packets
       let query = supabase
         .from('packets')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (user?.id) {
-        // Get both user's personalized packets AND generic packets
-        // Prioritize personalized ones
         query = query.or(`user_id.eq.${user.id},user_id.is.null`);
       } else {
-        // No user - only get generic packets
         query = query.is('user_id', null);
       }
 
@@ -150,40 +199,7 @@ export const useReports = () => {
         return mockReports;
       }
 
-      // Map database columns to IntelPacket type
-      return data.map((row): IntelPacket => {
-        const sections = row.sections as Record<string, unknown> || {};
-        
-        // Handle date fields with fallbacks
-        const weekStart = row.week_start || row.date || new Date().toISOString().split('T')[0];
-        const weekEnd = row.week_end || weekStart;
-
-        return {
-          id: row.id,
-          week_start: weekStart,
-          week_end: weekEnd,
-          packet_title: row.packet_title || row.headline || 'Untitled Packet',
-          exec_summary: row.exec_summary || [],
-          sections: {
-            messaging: parseIntelSection(sections.messaging || sections.competitive_intel),
-            narrative: parseIntelSection(sections.narrative || sections.market_intel),
-            icp: parseIntelSection(sections.icp),
-            horizon: parseIntelSection(sections.horizon),
-            objection: parseIntelSection(sections.objection || sections.pipeline_intel),
-          },
-          key_questions: row.key_questions || [],
-          bets: parseBets(row.bets),
-          predictions: parsePredictions(row.predictions),
-          action_mapping: parseActionMapping(row.action_mapping),
-          market_winners: parseMarketWinners(row.market_winners),
-          status: 'published',
-          created_at: row.created_at,
-          metrics: parseMetrics(sections.metrics),
-          // Company-aware fields
-          is_personalized: row.is_personalized || false,
-          user_company_name: row.user_company_name || null,
-        };
-      });
+      return data.map(mapRowToPacket);
     },
   });
 };

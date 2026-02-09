@@ -1,5 +1,3 @@
-import victorProfile from "@/assets/victor-profile.png";
-
 const principles = [
   {
     title: "Infrastructure over decks",
@@ -27,25 +25,16 @@ export function AboutSection() {
   return (
     <section id="about" className="py-20 md:py-28 px-6 border-t border-border/50">
       <div className="max-w-5xl mx-auto">
-        {/* Founder */}
+        {/* Origin story */}
         <div className="text-center mb-20">
-          <img
-            src={victorProfile}
-            alt="Victor Ugochukwu"
-            className="w-16 h-16 rounded-full object-cover mx-auto mb-6"
-          />
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 tracking-tight">
             Built by a PMM who got tired of stale intel
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4 max-w-2xl mx-auto">
             Signal Plane brings a decade of B2B SaaS go-to-market experience
             across product marketing, competitive intelligence, and revenue
-            enablement. Control Plane is the system I wished existed when I was
+            enablement. Control Plane is the system we wished existed when we were
             running competitive programs manually — now anyone can use it.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Victor Ugochukwu</span>{" "}
-            · Founder, Signal Plane
           </p>
         </div>
 

@@ -229,6 +229,37 @@
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
+/* Radar pulse animation — concentric rings emitting from signal icon */
+@keyframes radar-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.radar-pulse {
+  position: relative;
+}
+.radar-pulse::before,
+.radar-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid currentColor;
+  opacity: 0;
+}
+.radar-pulse::before {
+  animation: radar-ping 2.4s ease-out infinite;
+}
+.radar-pulse::after {
+  animation: radar-ping 2.4s ease-out infinite 1.2s;
+}
+
 /* Slide up animation */
 @keyframes slideUp {
   from {

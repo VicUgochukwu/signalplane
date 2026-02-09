@@ -3,6 +3,8 @@ import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
 import { BarChart3, Target, Zap, TrendingUp } from 'lucide-react';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useDemo } from '@/contexts/DemoContext';
+import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
 
 interface ReportListProps {
   reports: IntelPacket[];
@@ -10,6 +12,7 @@ interface ReportListProps {
 }
 
 export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
+  const demo = useDemo();
   const { profile, competitors } = useOnboarding();
   const totalSignals = reports.reduce((sum, r) => sum + (r.metrics?.signals_detected || 0), 0);
   const avgConfidence = Math.round(
@@ -20,11 +23,13 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
     <div className="animate-fade-in space-y-8">
       {/* Page Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-foreground">
-          {profile?.company_name ? (
-            <>{profile.company_name} Intelligence</>
+        <h1 className="text-2xl font-bold text-foreground font-mono">
+          {demo?.isDemo ? (
+            <span className="cursor-blink">{demo.sectorName} Control Plane</span>
+          ) : profile?.company_name ? (
+            <span className="cursor-blink">{profile.company_name} Control Plane</span>
           ) : (
-            <>Intel Packets</>
+            <span className="cursor-blink">Control Plane</span>
           )}
         </h1>
         <p className="text-muted-foreground text-sm flex items-center gap-2">
@@ -39,8 +44,8 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         </p>
       </div>
 
-      {/* Onboarding Banner */}
-      <OnboardingBanner />
+      {/* Onboarding Banner (hidden in demo) */}
+      {!demo?.isDemo && <OnboardingBanner />}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -99,6 +104,9 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
           />
         ))}
       </div>
+
+      {/* Demo CTA */}
+      <DemoCtaBanner />
     </div>
   );
 };

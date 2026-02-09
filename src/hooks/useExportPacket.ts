@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { IntelPacket } from '@/types/report';
-import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { invokeEdgeFunction, invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 
 export function useExportPacket() {
   const { toast } = useToast();
@@ -16,6 +16,11 @@ export function useExportPacket() {
     },
     onSuccess: (data) => {
       toast({ title: 'Packet sent', description: data.message || 'Check your email.' });
+      invokeEdgeFunctionSilent('loops-sync', {
+        action: 'track_event',
+        event_name: 'packet_emailed',
+        properties: { packet_title: emailMutation.variables?.packet_title || '' },
+      });
     },
     onError: (error: Error) => {
       toast({ title: 'Export failed', description: error.message, variant: 'destructive' });
@@ -32,6 +37,11 @@ export function useExportPacket() {
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: 'Downloaded', description: 'Packet saved as Markdown file.' });
+    invokeEdgeFunctionSilent('loops-sync', {
+      action: 'track_event',
+      event_name: 'packet_downloaded',
+      properties: { packet_title: report.packet_title },
+    });
   };
 
   return {

@@ -1,25 +1,37 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { 
-  ObjectionLibraryVersion, 
-  SwipeFileVersion, 
-  BattlecardVersion 
+import type {
+  ObjectionLibraryVersion,
+  SwipeFileVersion,
+  BattlecardVersion
 } from '@/types/artifacts';
+import { useDemo } from '@/contexts/DemoContext';
 
 export const useObjectionLibrary = () => {
+  const demo = useDemo();
+
   return useQuery({
-    queryKey: ['objection-library'],
+    queryKey: demo?.isDemo
+      ? ['demo-objection-library', demo.sectorSlug]
+      : ['objection-library'],
     queryFn: async (): Promise<ObjectionLibraryVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
         return [];
       }
 
-      const { data, error } = await supabase
-        .schema('gtm_artifacts' as any)
+      const schema = demo?.isDemo ? 'demo' : 'gtm_artifacts';
+      let query = supabase
+        .schema(schema as any)
         .from('objection_library_versions')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (demo?.isDemo) {
+        query = query.eq('sector_slug', demo.sectorSlug);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Failed to fetch objection library:', error.message);
@@ -42,19 +54,30 @@ export const useObjectionLibrary = () => {
 };
 
 export const useSwipeFile = () => {
+  const demo = useDemo();
+
   return useQuery({
-    queryKey: ['swipe-file'],
+    queryKey: demo?.isDemo
+      ? ['demo-swipe-file', demo.sectorSlug]
+      : ['swipe-file'],
     queryFn: async (): Promise<SwipeFileVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
         return [];
       }
 
-      const { data, error } = await supabase
-        .schema('gtm_artifacts' as any)
+      const schema = demo?.isDemo ? 'demo' : 'gtm_artifacts';
+      let query = supabase
+        .schema(schema as any)
         .from('swipe_file_versions')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (demo?.isDemo) {
+        query = query.eq('sector_slug', demo.sectorSlug);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Failed to fetch swipe file:', error.message);
@@ -77,19 +100,30 @@ export const useSwipeFile = () => {
 };
 
 export const useBattlecards = () => {
+  const demo = useDemo();
+
   return useQuery({
-    queryKey: ['battlecards'],
+    queryKey: demo?.isDemo
+      ? ['demo-battlecards', demo.sectorSlug]
+      : ['battlecards'],
     queryFn: async (): Promise<BattlecardVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
         return [];
       }
 
-      const { data, error } = await supabase
-        .schema('gtm_artifacts' as any)
+      const schema = demo?.isDemo ? 'demo' : 'gtm_artifacts';
+      let query = supabase
+        .schema(schema as any)
         .from('battlecard_versions')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (demo?.isDemo) {
+        query = query.eq('sector_slug', demo.sectorSlug);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Failed to fetch battlecards:', error.message);
@@ -102,7 +136,7 @@ export const useBattlecards = () => {
         week_start: row.week_start,
         week_end: row.week_end,
         packet_id: row.packet_id,
-        content_json: row.content_json || { 
+        content_json: row.content_json || {
           competitor_name: row.competitor_name,
           what_changed_this_week: [],
           talk_tracks: [],

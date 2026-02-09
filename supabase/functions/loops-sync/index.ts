@@ -177,6 +177,25 @@ async function handleBackfill(
       .eq('user_id', user.id)
       .maybeSingle();
 
+    // Fetch competitor count
+    const { count: competitorCount } = await serviceClient
+      .from('tracked_companies')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    // Fetch packet count and latest packet date
+    const { data: packetStats } = await serviceClient
+      .from('intel_packets')
+      .select('created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const { count: packetCount } = await serviceClient
+      .from('intel_packets')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
     const displayName =
       user.user_metadata?.display_name ||
       user.user_metadata?.full_name ||
@@ -194,6 +213,9 @@ async function handleBackfill(
       companyName: profile?.company_name || undefined,
       industry: profile?.industry || undefined,
       onboardingCompleted: !!profile?.onboarding_completed_at,
+      competitorCount: competitorCount || 0,
+      packetCount: packetCount || 0,
+      lastPacketDate: packetStats?.[0]?.created_at || undefined,
     });
 
     if (success) synced++;

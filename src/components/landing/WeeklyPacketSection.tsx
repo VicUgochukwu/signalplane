@@ -31,7 +31,7 @@ export function WeeklyPacketSection() {
               ))}
             </ul>
             <Link
-              to="/control-plane"
+              to="/demo/developer-tools"
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
             >
               View sample packets

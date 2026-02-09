@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ProductHero() {
@@ -28,23 +28,23 @@ export function ProductHero() {
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="#demo-sectors">
+            <Button
+              size="lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-7 h-12 text-sm font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
+            >
+              <Play className="w-4 h-4 mr-2 fill-current" />
+              Live Demo
+            </Button>
+          </a>
           <Link to="/login">
             <Button
               size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 h-11 text-sm font-medium"
+              className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-7 h-12 text-sm font-semibold shadow-lg transition-all"
             >
               Get Started
               <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
-          <Link to="/control-plane">
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-full px-6 h-11 text-sm font-medium border-border hover:bg-muted/50"
-            >
-              View Live Demo
             </Button>
           </Link>
         </div>

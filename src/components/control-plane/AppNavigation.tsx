@@ -10,7 +10,7 @@ import { UserMenu } from './UserMenu';
 const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: BarChart3 },
   { to: '/control-plane/artifacts', label: 'Artifacts', icon: FileText },
-  { to: '/messaging-diff', label: 'Signal Feed', icon: ArrowRightLeft },
+  { to: '/messaging-diff', label: 'Competitor Messaging', icon: ArrowRightLeft },
   { to: '/control-plane/submit', label: 'Submit Signal', icon: PlusCircle },
 ];
 

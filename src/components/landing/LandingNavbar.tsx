@@ -53,12 +53,12 @@ export function LandingNavbar() {
           >
             FAQ
           </a>
-          <Link
-            to="/control-plane"
-            className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
+          <a
+            href="#demo-sectors"
+            className="px-3 py-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors rounded-full border border-primary/30 hover:bg-primary/5"
           >
             Live Demo
-          </Link>
+          </a>
         </div>
 
         {/* Desktop Auth */}
@@ -106,9 +106,9 @@ export function LandingNavbar() {
             <a href="#faq" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
               FAQ
             </a>
-            <Link to="/control-plane" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
+            <a href="#demo-sectors" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
               Live Demo
-            </Link>
+            </a>
             <div className="pt-3 mt-3 border-t border-border/50 flex flex-col gap-2">
               <Link to="/login" onClick={closeMobileMenu}>
                 <Button variant="ghost" className="w-full justify-center text-muted-foreground">Log in</Button>

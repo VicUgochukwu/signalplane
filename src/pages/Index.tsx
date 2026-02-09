@@ -68,7 +68,7 @@ const Index = () => {
         {/* Page Header */}
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-foreground">
-            Signal Feed
+            Competitor Messaging
           </h1>
           <p className="text-sm text-muted-foreground">
             Real-time competitor changes feeding into weekly intelligence packets
@@ -257,7 +257,7 @@ const Index = () => {
           </Card>
         )}
 
-        {/* Signal Feed */}
+        {/* Competitor Messaging */}
         <div className="space-y-10">
           {groupedByWeek.map(([weekStart, weekEntries]) => (
             <WeekSection key={weekStart} weekStart={weekStart} entries={weekEntries} />

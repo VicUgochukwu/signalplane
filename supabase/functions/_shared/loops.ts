@@ -14,6 +14,9 @@ export interface LoopsContact {
   onboardingCompleted?: boolean;
   hasSlack?: boolean;
   hasNotion?: boolean;
+  packetCount?: number;
+  competitorCount?: number;
+  lastPacketDate?: string;
 }
 
 /**

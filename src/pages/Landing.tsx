@@ -1,5 +1,6 @@
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { ProductHero } from "@/components/landing/ProductHero";
+import { SectorPickerSection } from "@/components/landing/SectorPickerSection";
 import { MetricsBanner } from "@/components/landing/MetricsBanner";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WeeklyPacketSection } from "@/components/landing/WeeklyPacketSection";
@@ -19,8 +20,9 @@ const Landing = () => {
     <div ref={containerRef} className="min-h-screen bg-background">
       <LandingNavbar />
       <main>
-        {/* Hero + metrics — above the fold */}
+        {/* Hero + sector picker + metrics — above the fold */}
         <ProductHero />
+        <SectorPickerSection />
         <MetricsBanner />
 
         {/* Progressive disclosure: How → Packet → Intelligence → Artifacts → Personas */}

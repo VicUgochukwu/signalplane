@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { IntelPacket, PacketStatus, IntelSection, SectionKey } from '@/types/report';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,6 +12,8 @@ import {
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
 import { useExportPacket } from '@/hooks/useExportPacket';
+import { useDemo } from '@/contexts/DemoContext';
+import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
 
 interface ReportDetailProps {
   report: IntelPacket;
@@ -67,6 +70,13 @@ const getConfidenceBg = (confidence: number) => {
   return 'bg-rose-500/5 border-rose-500/20';
 };
 
+const getImpactSeverity = (score: number): { label: string; color: string; bgColor: string } => {
+  if (score >= 9) return { label: 'Critical', color: 'text-rose-400', bgColor: 'bg-rose-500/10' };
+  if (score >= 7) return { label: 'High', color: 'text-amber-400', bgColor: 'bg-amber-500/10' };
+  if (score >= 4) return { label: 'Moderate', color: 'text-sky-400', bgColor: 'bg-sky-500/10' };
+  return { label: 'Low', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' };
+};
+
 const getPriorityColor = (priority: string) => {
   switch (priority.toLowerCase()) {
     case 'high': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
@@ -81,6 +91,11 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
   const formattedStartDate = format(parseISO(report.week_start), 'MMM d');
   const formattedEndDate = format(parseISO(report.week_end), 'MMM d, yyyy');
   const { emailPacket, isEmailing, downloadAsMarkdown } = useExportPacket();
+  const demo = useDemo();
+
+  useEffect(() => {
+    demo?.trackExploration('view_packet');
+  }, [report.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="animate-slide-up space-y-6">
@@ -96,8 +111,8 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Button>
 
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-            <Radio className="h-8 w-8 text-primary" />
+          <div className="p-3 rounded-xl bg-primary/10 shrink-0 radar-pulse text-primary">
+            <Radio className="h-8 w-8" />
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -144,8 +159,8 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-border/50 bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-sky-500/10">
-                <Radio className="h-5 w-5 text-sky-400" />
+              <div className="p-2 rounded-lg bg-sky-500/10 radar-pulse text-sky-400">
+                <Radio className="h-5 w-5" />
               </div>
               <div>
                 <div className="text-2xl font-bold text-foreground tabular-nums">
@@ -156,37 +171,67 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-violet-500/10">
-                <Shield className="h-5 w-5 text-violet-400" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-violet-400 tabular-nums">
-                  {report.metrics.confidence_score !== undefined
-                    ? `${report.metrics.confidence_score}%`
-                    : '—'}
+          {(() => {
+            const conf = report.metrics.confidence_score;
+            const confLabel = conf !== undefined
+              ? conf >= 80 ? 'Strong' : conf >= 60 ? 'Moderate' : 'Weak'
+              : null;
+            const confColor = conf !== undefined ? getConfidenceColor(conf) : 'text-violet-400';
+            return (
+              <div className="rounded-xl border border-border/50 bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-500/10">
+                    <Shield className={`h-5 w-5 ${confColor}`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className={`text-2xl font-bold tabular-nums ${confColor}`}>
+                      {conf !== undefined ? `${conf}%` : '—'}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-muted-foreground">Confidence</span>
+                      {confLabel && (
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/10 ${confColor}`}>
+                          {confLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">Confidence Score</div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
-          <div className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <Zap className="h-5 w-5 text-amber-400" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-amber-400 tabular-nums">
-                  {report.metrics.impact_score !== undefined
-                    ? `${report.metrics.impact_score}`
-                    : '—'}
+          {(() => {
+            const score = report.metrics.impact_score;
+            const severity = score !== undefined ? getImpactSeverity(score) : null;
+            return (
+              <div className="rounded-xl border border-border/50 bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${severity?.bgColor || 'bg-amber-500/10'}`}>
+                    <Zap className={`h-5 w-5 ${severity?.color || 'text-amber-400'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-2xl font-bold tabular-nums ${severity?.color || 'text-amber-400'}`}>
+                        {score ?? '—'}
+                      </span>
+                      {score !== undefined && (
+                        <span className="text-sm text-muted-foreground font-medium">/10</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-muted-foreground">Impact Score</span>
+                      {severity && (
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${severity.bgColor} ${severity.color}`}>
+                          {severity.label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">Impact Score</div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
 
@@ -465,6 +510,9 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           emerging={report.market_winners.emerging || []}
         />
       )}
+
+      {/* Demo CTA */}
+      <DemoCtaBanner />
     </div>
   );
 };

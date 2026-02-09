@@ -39,7 +39,7 @@ const faqs = [
   {
     question: "Can I see a sample decision packet?",
     answer:
-      "Yes — click 'View Live Demo' in the nav to browse real packets with full structure: executive summary, key shifts, open questions, 90-day hypotheses, and signal detail. You can also email any packet to yourself or download it as Markdown.",
+      "Yes — click 'Live Demo' in the nav to browse real packets with full structure: executive summary, key shifts, open questions, 90-day hypotheses, and signal detail. You can also email any packet to yourself or download it as Markdown.",
   },
   {
     question: "How does internal company data plug in?",

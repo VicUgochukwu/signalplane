@@ -27,6 +27,8 @@ import AdminCsvUpload from "./pages/admin/AdminCsvUpload";
 import AdminUsageReports from "./pages/admin/AdminUsageReports";
 import AdminCostDashboard from "./pages/admin/AdminCostDashboard";
 import AdminTrackedPages from "./pages/admin/AdminTrackedPages";
+import DemoControlPlane from "./pages/DemoControlPlane";
+import DemoArtifacts from "./pages/DemoArtifacts";
 import CookiePolicy from "./pages/CookiePolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
@@ -43,7 +45,14 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/messaging-diff" element={<Index />} />
+            <Route
+              path="/messaging-diff"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <Index />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/control-plane"
               element={
@@ -189,6 +198,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* Demo routes — public, no auth required */}
+            <Route path="/demo/:sectorSlug" element={<DemoControlPlane />} />
+            <Route path="/demo/:sectorSlug/artifacts" element={<DemoArtifacts />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
