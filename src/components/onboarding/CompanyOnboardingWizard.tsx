@@ -236,7 +236,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
     invokeEdgeFunctionSilent('loops-sync', {
       action: 'track_event',
       event_name: 'onboarding_completed',
-      properties: { company_name: companyName, industry, competitor_count: selectedCompetitors.length },
+      properties: { company_name: companyName, industry, competitor_count: competitors.length },
     });
 
     onComplete();
