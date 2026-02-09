@@ -6,7 +6,7 @@ const steps = [
     icon: Antenna,
     title: "Collect",
     description:
-      "10+ automated monitors scan public competitor signals weekly — messaging changes, narrative shifts, pricing edits, hiring patterns, and more.",
+      "10+ automated monitors scan public competitor signals weekly — messaging changes, narrative shifts, pricing edits, hiring patterns, and more. Bring your own internal data too: Gong snippets, win/loss notes, and enrichment signals from tools like Clay.",
   },
   {
     number: "02",

@@ -46,6 +46,11 @@ const faqs = [
     answer:
       "Today, Control Plane monitors public competitor signals and accepts internal data through manual submission and CSV upload — paste a Gong snippet, support ticket, or win/loss note directly into the platform. The system processes internal signals through the same scoring engine as external ones, making your weekly packets increasingly customized to your competitive landscape.",
   },
+  {
+    question: "I already use Clay. Do I need this?",
+    answer:
+      "Yes — they solve different problems. Clay enriches accounts and contacts: who to sell to, what tech they use, whether they just raised funding. Control Plane monitors what competitors are doing: messaging changes, pricing edits, positioning shifts, narrative pivots. Clay tells your reps who to call. Control Plane tells them what to say when the prospect asks 'why not Competitor X?' Teams that use both have enrichment and intelligence covered.",
+  },
 ];
 
 export function FAQSection() {

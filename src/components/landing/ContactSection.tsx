@@ -45,6 +45,10 @@ export function ContactSection() {
           </a>
         </p>
 
+        <p className="text-xs text-muted-foreground/60 mb-6">
+          Works alongside Clay, HubSpot, Salesforce, Gong, and your existing GTM stack.
+        </p>
+
         <div className="pt-6 border-t border-border/30">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Enterprise teams:</span>{" "}
