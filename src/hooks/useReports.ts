@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { IntelPacket, IntelSection, Bet, Prediction, ActionMapping } from '@/types/report';
+import { IntelPacket, IntelSection, Bet, Prediction, PredictionOutcome, ActionMapping, JudgmentLoopData, JudgmentLoopStats } from '@/types/report';
 import { mockReports } from '@/data/mockReports';
 import { useAuth } from './useAuth';
 import { useDemo } from '@/contexts/DemoContext';
@@ -30,17 +30,68 @@ const parseBets = (data: unknown): Bet[] => {
   });
 };
 
+const VALID_OUTCOMES: PredictionOutcome[] = ['correct', 'incorrect', 'partial', 'pending'];
+
 const parsePredictions = (data: unknown): Prediction[] => {
   if (!Array.isArray(data)) return [];
   return data.map((pred) => {
     const p = pred as Record<string, unknown>;
+    const outcome = typeof p.outcome === 'string' && VALID_OUTCOMES.includes(p.outcome as PredictionOutcome)
+      ? (p.outcome as PredictionOutcome)
+      : undefined;
     return {
       prediction: typeof p.prediction === 'string' ? p.prediction : '',
       timeframe: typeof p.timeframe === 'string' ? p.timeframe : '',
       confidence: typeof p.confidence === 'number' ? p.confidence : 0,
       signals: Array.isArray(p.signals) ? p.signals : [],
+      outcome,
+      outcome_notes: typeof p.outcome_notes === 'string' ? p.outcome_notes : undefined,
+      scored_at: typeof p.scored_at === 'string' ? p.scored_at : undefined,
     };
   });
+};
+
+const parseJudgmentLoop = (data: unknown): JudgmentLoopData | undefined => {
+  if (typeof data !== 'object' || data === null) return undefined;
+  const obj = data as Record<string, unknown>;
+
+  const parseStats = (s: unknown): JudgmentLoopStats => {
+    const defaults: JudgmentLoopStats = {
+      total_predictions: 0, scored: 0, correct: 0, incorrect: 0, partial: 0, pending: 0,
+      accuracy_rate: 0, confidence_calibration: 0,
+    };
+    if (typeof s !== 'object' || s === null) return defaults;
+    const st = s as Record<string, unknown>;
+    return {
+      total_predictions: typeof st.total_predictions === 'number' ? st.total_predictions : 0,
+      scored: typeof st.scored === 'number' ? st.scored : 0,
+      correct: typeof st.correct === 'number' ? st.correct : 0,
+      incorrect: typeof st.incorrect === 'number' ? st.incorrect : 0,
+      partial: typeof st.partial === 'number' ? st.partial : 0,
+      pending: typeof st.pending === 'number' ? st.pending : 0,
+      accuracy_rate: typeof st.accuracy_rate === 'number' ? st.accuracy_rate : 0,
+      confidence_calibration: typeof st.confidence_calibration === 'number' ? st.confidence_calibration : 0,
+    };
+  };
+
+  const parseHistory = (h: unknown) => {
+    if (!Array.isArray(h)) return [];
+    return h.map((entry) => {
+      const e = entry as Record<string, unknown>;
+      return {
+        week_start: typeof e.week_start === 'string' ? e.week_start : '',
+        predictions_made: typeof e.predictions_made === 'number' ? e.predictions_made : 0,
+        scored: typeof e.scored === 'number' ? e.scored : 0,
+        correct: typeof e.correct === 'number' ? e.correct : 0,
+        accuracy_rate: typeof e.accuracy_rate === 'number' ? e.accuracy_rate : 0,
+      };
+    });
+  };
+
+  return {
+    current_stats: parseStats(obj.current_stats),
+    history: parseHistory(obj.history),
+  };
 };
 
 const parseActionMapping = (data: unknown): ActionMapping => {
@@ -136,6 +187,7 @@ const mapRowToPacket = (row: Record<string, any>): IntelPacket => {
     predictions: parsePredictions(row.predictions),
     action_mapping: parseActionMapping(row.action_mapping),
     market_winners: parseMarketWinners(row.market_winners),
+    judgment_loop: parseJudgmentLoop(row.judgment_loop),
     status: 'published',
     created_at: row.created_at,
     metrics: parseMetrics(sections.metrics),

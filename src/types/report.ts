@@ -14,11 +14,39 @@ export interface Bet {
   signal_ids: string[];
 }
 
+export type PredictionOutcome = 'correct' | 'incorrect' | 'partial' | 'pending';
+
 export interface Prediction {
   prediction: string;
   timeframe: string;
   confidence: number;
   signals: string[];
+  // Judgment Loop outcome tracking
+  outcome?: PredictionOutcome;
+  outcome_notes?: string;
+  scored_at?: string; // ISO date when outcome was evaluated
+}
+
+export interface JudgmentLoopStats {
+  total_predictions: number;
+  scored: number;
+  correct: number;
+  incorrect: number;
+  partial: number;
+  pending: number;
+  accuracy_rate: number; // 0-100, calculated from scored predictions
+  confidence_calibration: number; // how well confidence matches actual accuracy
+}
+
+export interface JudgmentLoopData {
+  current_stats: JudgmentLoopStats;
+  history: Array<{
+    week_start: string;
+    predictions_made: number;
+    scored: number;
+    correct: number;
+    accuracy_rate: number;
+  }>;
 }
 
 export interface ActionItem {
@@ -61,6 +89,7 @@ export interface IntelPacket {
   predictions: Prediction[];
   action_mapping: ActionMapping;
   market_winners?: MarketWinnersData;
+  judgment_loop?: JudgmentLoopData;
   status: PacketStatus;
   created_at: string;
   metrics?: {

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
+import { JudgmentLoopCard } from './JudgmentLoopCard';
 import { useExportPacket } from '@/hooks/useExportPacket';
 import { useDemo } from '@/contexts/DemoContext';
 import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
@@ -374,27 +375,56 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {report.predictions.map((pred, index) => (
-                <div
-                  key={index}
-                  className={`p-4 rounded-xl border ${getConfidenceBg(pred.confidence)}`}
-                >
-                  <p className="text-foreground text-sm mb-2">{pred.prediction}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {pred.timeframe}
-                    </span>
-                    <span>
-                      Confidence: <span className={getConfidenceColor(pred.confidence)}>{pred.confidence}%</span>
-                    </span>
-                    <span>{pred.signals.length} signal{pred.signals.length !== 1 ? 's' : ''}</span>
+              {report.predictions.map((pred, index) => {
+                const outcomeBadge = pred.outcome ? {
+                  correct: { label: '✓ Correct', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                  incorrect: { label: '✗ Incorrect', cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
+                  partial: { label: '~ Partial', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+                  pending: { label: '◷ Pending', cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20' },
+                }[pred.outcome] : null;
+
+                return (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-xl border ${getConfidenceBg(pred.confidence)}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-foreground text-sm flex-1">{pred.prediction}</p>
+                      {outcomeBadge && (
+                        <Badge variant="outline" className={`text-xs shrink-0 ${outcomeBadge.cls}`}>
+                          {outcomeBadge.label}
+                        </Badge>
+                      )}
+                    </div>
+                    {pred.outcome_notes && (
+                      <p className="text-xs text-muted-foreground mt-2 italic border-l-2 border-border/50 pl-3">
+                        {pred.outcome_notes}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {pred.timeframe}
+                      </span>
+                      <span>
+                        Confidence: <span className={getConfidenceColor(pred.confidence)}>{pred.confidence}%</span>
+                      </span>
+                      <span>{pred.signals.length} signal{pred.signals.length !== 1 ? 's' : ''}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Judgment Loop */}
+      {report.judgment_loop && (
+        <JudgmentLoopCard
+          judgmentLoop={report.judgment_loop}
+          predictions={report.predictions}
+        />
       )}
 
       {/* Action Mapping */}
