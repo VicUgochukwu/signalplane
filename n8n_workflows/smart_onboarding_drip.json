@@ -1,0 +1,243 @@
+{
+  "name": "Smart Onboarding Drip [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "drip-cron-001",
+      "name": "Daily 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {},
+      "id": "drip-manual-001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Fetch recent users (< 14 days old) with their drip state\nWITH recent_users AS (\n  SELECT\n    au.id AS user_id,\n    au.email,\n    au.created_at AS signup_at,\n    EXTRACT(EPOCH FROM (NOW() - au.created_at)) / 86400 AS days_since_signup,\n    ucp.onboarding_completed_at,\n    CASE WHEN ucp.onboarding_completed_at IS NOT NULL\n      THEN EXTRACT(EPOCH FROM (NOW() - ucp.onboarding_completed_at)) / 86400\n      ELSE NULL\n    END AS days_since_onboarding\n  FROM auth.users au\n  LEFT JOIN public.user_company_profiles ucp ON ucp.user_id = au.id\n  WHERE au.created_at > NOW() - INTERVAL '14 days'\n    AND au.email IS NOT NULL\n),\nuser_drips AS (\n  SELECT user_id, ARRAY_AGG(drip_key) AS sent_drips\n  FROM public.onboarding_drip_log\n  GROUP BY user_id\n),\nuser_packets AS (\n  SELECT DISTINCT user_id, MIN(created_at) AS first_packet_at\n  FROM control_plane.packets\n  WHERE status = 'ready'\n  GROUP BY user_id\n)\nSELECT\n  ru.user_id,\n  ru.email,\n  ru.signup_at,\n  ru.days_since_signup,\n  ru.onboarding_completed_at,\n  ru.days_since_onboarding,\n  COALESCE(ud.sent_drips, ARRAY[]::text[]) AS sent_drips,\n  up.first_packet_at,\n  CASE WHEN up.first_packet_at IS NOT NULL THEN true ELSE false END AS has_packet,\n  EXTRACT(DOW FROM NOW()) AS day_of_week\nFROM recent_users ru\nLEFT JOIN user_drips ud ON ud.user_id = ru.user_id\nLEFT JOIN user_packets up ON up.user_id = ru.user_id\nORDER BY ru.signup_at;",
+        "options": {}
+      },
+      "id": "drip-query-001",
+      "name": "Fetch Users + Drip State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [300, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Two-track smart drip decision engine\n// Education track: edu_your_competitors (day 1), edu_reading_packets (day 3),\n//   edu_judgment_loop (day 5), edu_integrations (day 7), edu_power_tips (day 10)\n// Packet-aware track: pkt_preview, pkt_first_ready, pkt_already_waiting, setup_nudge\n\nconst EDU_SEQUENCE = [\n  { key: 'edu_your_competitors', minDay: 1 },\n  { key: 'edu_reading_packets', minDay: 3 },\n  { key: 'edu_judgment_loop', minDay: 5 },\n  { key: 'edu_integrations', minDay: 7 },\n  { key: 'edu_power_tips', minDay: 10 },\n];\n\nconst users = $input.all();\nconst emailsToSend = [];\n\nfor (const item of users) {\n  const u = item.json;\n  const sentDrips = u.sent_drips || [];\n  const daysSinceSignup = parseFloat(u.days_since_signup) || 0;\n  const daysSinceOnboarding = u.days_since_onboarding != null ? parseFloat(u.days_since_onboarding) : null;\n  const hasPacket = u.has_packet === true || u.has_packet === 'true';\n  const isMonday = parseInt(u.day_of_week) === 1;\n  const onboardingDone = u.onboarding_completed_at != null;\n\n  // Calculate days until next Monday (1=Mon, ..., 7=Sun in DOW where 0=Sun)\n  const dow = parseInt(u.day_of_week); // 0=Sun, 1=Mon, ..., 6=Sat\n  const daysUntilMonday = dow === 0 ? 1 : dow === 1 ? 0 : (8 - dow);\n\n  // Track emails for this user this run (max 2: 1 packet-aware + 1 edu)\n  let packetEmailSent = false;\n  let eduEmailSent = false;\n\n  // ── 1. Setup nudge (not onboarded yet) ──────────────────────────────\n  if (!onboardingDone && daysSinceSignup >= 1 && !sentDrips.includes('setup_nudge')) {\n    emailsToSend.push({ user_id: u.user_id, drip_key: 'setup_nudge' });\n    continue; // No further drip for non-onboarded users\n  }\n\n  if (!onboardingDone) continue;\n\n  // ── 2. Packet-aware track ───────────────────────────────────────────\n\n  // a) First packet ready (Monday, packet exists, never sent this drip)\n  if (isMonday && hasPacket && !sentDrips.includes('pkt_first_ready') && !sentDrips.includes('pkt_already_waiting')) {\n    emailsToSend.push({ user_id: u.user_id, drip_key: 'pkt_first_ready' });\n    packetEmailSent = true;\n  }\n\n  // b) Packet already waiting (onboarded recently, packet exists, not Monday)\n  if (!packetEmailSent && !isMonday && hasPacket && daysSinceOnboarding !== null && daysSinceOnboarding <= 2\n      && !sentDrips.includes('pkt_already_waiting') && !sentDrips.includes('pkt_first_ready')) {\n    emailsToSend.push({ user_id: u.user_id, drip_key: 'pkt_already_waiting' });\n    packetEmailSent = true;\n  }\n\n  // c) Packet preview (no packet yet, Saturday or Sunday before Monday)\n  if (!packetEmailSent && !hasPacket && daysUntilMonday >= 1 && daysUntilMonday <= 2\n      && !sentDrips.includes('pkt_preview') && !sentDrips.includes('pkt_first_ready') && !sentDrips.includes('pkt_already_waiting')) {\n    emailsToSend.push({ user_id: u.user_id, drip_key: 'pkt_preview' });\n    packetEmailSent = true;\n  }\n\n  // ── 3. Education track (never on Monday, max 1 per day) ─────────────\n  if (!isMonday && daysSinceOnboarding !== null) {\n    for (const edu of EDU_SEQUENCE) {\n      if (!sentDrips.includes(edu.key) && daysSinceOnboarding >= edu.minDay) {\n        emailsToSend.push({ user_id: u.user_id, drip_key: edu.key });\n        eduEmailSent = true;\n        break; // Max 1 edu email per day\n      }\n    }\n  }\n}\n\nif (emailsToSend.length === 0) {\n  return [{ json: { no_emails: true, message: 'No drip emails to send today' } }];\n}\n\nreturn emailsToSend.map(e => ({ json: e }));"
+      },
+      "id": "drip-decision-001",
+      "name": "Drip Decision Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-no-emails",
+              "leftValue": "={{ $json.no_emails }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "drip-filter-001",
+      "name": "Has Emails to Send?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [850, 100]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "batchSize": 1
+      },
+      "id": "drip-loop-001",
+      "name": "Loop Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/functions/v1/send-drip-email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-n8n-secret",
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || '' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"user_id\": \"{{ $json.user_id }}\",\n  \"drip_key\": \"{{ $json.drip_key }}\"\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "drip-send-001",
+      "name": "Send Drip Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1350, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log result and add delay between sends\nconst response = $input.first().json;\nconsole.log(`Drip sent: ${JSON.stringify(response)}`);\n\n// 500ms delay between sends to avoid rate limits\nawait new Promise(r => setTimeout(r, 500));\n\nreturn [{ json: { status: 'processed', ...response } }];"
+      },
+      "id": "drip-delay-001",
+      "name": "Log + Rate Limit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 100]
+    }
+  ],
+  "connections": {
+    "Daily 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Fetch Users + Drip State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Users + Drip State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Users + Drip State": {
+      "main": [
+        [
+          {
+            "node": "Drip Decision Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drip Decision Engine": {
+      "main": [
+        [
+          {
+            "node": "Has Emails to Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Emails to Send?": {
+      "main": [
+        [
+          {
+            "node": "Loop Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Emails": {
+      "main": [
+        null,
+        [
+          {
+            "node": "Send Drip Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Drip Email": {
+      "main": [
+        [
+          {
+            "node": "Log + Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log + Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}
