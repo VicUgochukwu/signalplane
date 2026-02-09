@@ -1,6 +1,3 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { ProductHero } from "@/components/landing/ProductHero";
 import { SectorPickerSection } from "@/components/landing/SectorPickerSection";
@@ -19,15 +16,6 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Landing = () => {
   const containerRef = useScrollAnimation();
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  // Redirect authenticated users to the control plane
-  useEffect(() => {
-    if (!loading && user) {
-      navigate('/control-plane', { replace: true });
-    }
-  }, [user, loading, navigate]);
 
   return (
     <div ref={containerRef} className="min-h-screen bg-background">

@@ -31,7 +31,7 @@ export function AppNavigation() {
       <div className="container max-w-6xl mx-auto px-4">
         <div className="flex h-16 items-center gap-6">
           {/* Logo */}
-          <Link to="/control-plane" className="flex-shrink-0 flex items-center gap-2.5 font-semibold text-foreground hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 font-semibold text-foreground hover:opacity-80 transition-opacity">
             <img src={signalPlaneLogo} alt="Signal Plane" className="w-7 h-7" />
             <span className="hidden sm:inline text-sm">Signal Plane</span>
           </Link>
