@@ -123,9 +123,8 @@ export const useReports = () => {
         return mockReports;
       }
 
-      // Fetch packets from control_plane schema
+      // Fetch packets from public.packets (also exists as control_plane.packets)
       let query = supabase
-        .schema('control_plane' as any)
         .from('packets')
         .select('*')
         .order('created_at', { ascending: false });
