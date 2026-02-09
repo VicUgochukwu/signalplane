@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export function WeeklyPacketSection() {
   return (
-    <section className="py-20 md:py-28 px-6 border-t border-border/50">
+    <section aria-label="Weekly decision packet" className="py-20 md:py-28 px-6 border-t border-border/50">
       <div className="max-w-5xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Left — copy */}

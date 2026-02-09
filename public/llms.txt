@@ -1,0 +1,59 @@
+# Signal Plane — Control Plane
+
+> Automated competitive intelligence infrastructure for B2B SaaS teams.
+
+## About
+
+- Company: Signal Plane
+- Product: Control Plane
+- Website: https://signalplane.dev
+- Category: Competitive Intelligence / B2B SaaS
+
+## What Control Plane Does
+
+Control Plane monitors competitor signals weekly using 10+ automated monitors. It tracks messaging changes, pricing edits, hiring patterns, partnership announcements, and more. Every Monday, a structured decision packet ships to Slack, Notion, or email — evidence-linked, severity-ranked, and mapped to owners and actions.
+
+## Key Capabilities
+
+- Automated competitor website monitoring (messaging, pricing, product pages)
+- Weekly decision packets with executive summaries and key shifts
+- 10+ intelligence monitors: competitive messaging, market narrative, targeting shifts, pricing, hiring, partnerships, social proof, early warning, post-launch intel, buyer resistance
+- Severity scoring (0-100) with per-category caps
+- 90-day hypothesis tracking with prediction accuracy
+- Auto-generated battlecards, objection libraries, and buyer language swipe files
+- Delivery to Slack, Notion, or email
+- Evidence-grade signals — every claim links to its source
+
+## Who It's For
+
+- Marketing Leaders — weekly evidence-linked intelligence for positioning decisions
+- Product Marketing — automated monitoring replaces manual competitor tracking
+- Revenue & Sales — fresh weekly battlecards with talk tracks and competitive positioning
+
+## How It Works
+
+1. Collect: 10+ automated monitors scan public competitor signals weekly
+2. Score & Filter: Every signal scored 0-100. Per-category caps prevent noise. Top 25 make the cut.
+3. Deliver: Structured decision packet ships to Slack, Notion, or email every Monday
+
+## Key Pages
+
+- Homepage: https://signalplane.dev
+- Live Demo: https://signalplane.dev/demo/developer-tools
+- Sign Up: https://signalplane.dev/login
+
+## Differentiators
+
+- Decision infrastructure, not content aggregation (unlike Klue or Crayon)
+- Evidence-grade: every claim links to a source, predictions tracked against outcomes
+- Automated end-to-end: no manual curation, no setup calls
+- Intelligence that compounds: predictions scored weekly, objections and buyer phrases persist
+
+## Industries Covered
+
+Developer Tools, Product Analytics, Cybersecurity, Sales Engagement, Customer Success, Marketing Automation, Data Infrastructure, Fintech Infrastructure, HR Tech, Collaboration, Cloud Infrastructure, AI/ML Platforms, DevOps & Observability, E-commerce Platforms, No-Code/Low-Code
+
+## Contact
+
+- Email: victor@signalplane.dev
+- Website: https://signalplane.dev

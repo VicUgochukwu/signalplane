@@ -26,7 +26,7 @@ const personas = [
 
 export function WhoItsForSection() {
   return (
-    <section className="py-20 md:py-28 px-6 border-t border-border/50">
+    <section aria-label="Who Control Plane is built for" className="py-20 md:py-28 px-6 border-t border-border/50">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
@@ -39,7 +39,7 @@ export function WhoItsForSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {personas.map((persona) => (
-            <div
+            <article
               key={persona.role}
               className="p-6 rounded-xl border border-border/60 bg-card/30 hover:border-primary/20 transition-all duration-200"
             >
@@ -55,7 +55,7 @@ export function WhoItsForSection() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {persona.outcome}
               </p>
-            </div>
+            </article>
           ))}
         </div>
       </div>

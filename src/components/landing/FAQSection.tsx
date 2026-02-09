@@ -55,7 +55,7 @@ const faqs = [
 
 export function FAQSection() {
   return (
-    <section id="faq" className="py-20 md:py-28 px-6 border-t border-border/50">
+    <section id="faq" aria-label="Frequently asked questions about Control Plane" className="py-20 md:py-28 px-6 border-t border-border/50">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">

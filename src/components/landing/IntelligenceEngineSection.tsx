@@ -28,7 +28,7 @@ const monitors = [
 
 export function IntelligenceEngineSection() {
   return (
-    <section id="intelligence" className="py-20 md:py-28 px-6 border-t border-border/50">
+    <section id="intelligence" aria-label="Intelligence monitoring capabilities" className="py-20 md:py-28 px-6 border-t border-border/50">
       <div className="max-w-5xl mx-auto">
         {/* Monitors */}
         <div className="text-center mb-16">

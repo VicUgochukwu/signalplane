@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function ContactSection() {
   return (
-    <section id="contact" className="py-20 md:py-28 px-6">
+    <section id="contact" aria-label="Get started with Control Plane" className="py-20 md:py-28 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
           Start getting weekly intel — where your team works

@@ -11,6 +11,7 @@ import { AboutSection } from "@/components/landing/AboutSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { StructuredData } from "@/components/StructuredData";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const Landing = () => {
@@ -18,6 +19,7 @@ const Landing = () => {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-background">
+      <StructuredData />
       <LandingNavbar />
       <main>
         {/* Hero + sector picker + metrics — above the fold */}

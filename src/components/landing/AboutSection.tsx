@@ -23,7 +23,7 @@ const principles = [
 
 export function AboutSection() {
   return (
-    <section id="about" className="py-20 md:py-28 px-6 border-t border-border/50">
+    <section id="about" aria-label="About Signal Plane" className="py-20 md:py-28 px-6 border-t border-border/50">
       <div className="max-w-5xl mx-auto">
         {/* Origin story */}
         <div className="text-center mb-20">
