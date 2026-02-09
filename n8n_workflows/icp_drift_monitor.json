@@ -1,0 +1,407 @@
+{
+  "name": "ICP Drift Monitor [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "name": "Cron Weekly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        256,
+        304
+      ],
+      "typeVersion": 1.2,
+      "id": "5ca267d0-3e7a-42bf-b442-4aa4096ebf11"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT tp.id AS tracked_page_id, tp.url, tp.url_type AS page_type, tp.company_id, c.name AS company_name FROM core.tracked_pages tp JOIN core.companies c ON tp.company_id = c.id JOIN icp_drift.surface_config sc ON sc.company_id = tp.company_id AND sc.surface = tp.url_type AND sc.enabled = true WHERE tp.enabled = true AND tp.url_type IN ('careers','case_studies','pricing','integrations');",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "name": "Load Tracked ICP Pages",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        480,
+        304
+      ],
+      "typeVersion": 2.5,
+      "id": "72edfeb5-5a1d-4d6d-9821-ad132d272682",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const url = $input.item.json.url;\nlet html = '';\ntry {\n  html = await this.helpers.httpRequest({ method: 'GET', url, timeout: 60000 });\n} catch(e) {\n  html = 'ERROR: ' + e.message;\n}\nreturn { json: { ...$input.item.json, data: typeof html === 'string' ? html : JSON.stringify(html) } };"
+      },
+      "name": "Fetch Page HTML",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        704,
+        304
+      ],
+      "typeVersion": 2,
+      "id": "e7f90381-8fe8-4668-b953-ecc1f6e95d2c"
+    },
+    {
+      "parameters": {
+        "type": "SHA256",
+        "value": "={{$json.normalized_text}}"
+      },
+      "name": "Hash Snapshot",
+      "type": "n8n-nodes-base.crypto",
+      "position": [
+        1200,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "c17203eb-acaa-47ad-adb7-6d1a8f5ddb2e"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO icp_drift.snapshots (company_id, tracked_page_id, page_type, snapshot_hash, normalized_text) VALUES ({{ '\\'' + $('Normalize Content (LLM)').item.json.company_id + '\\'' }}, {{ '\\'' + $('Normalize Content (LLM)').item.json.tracked_page_id + '\\'' }}, {{ '\\'' + $('Normalize Content (LLM)').item.json.page_type + '\\'' }}, {{ '\\'' + $json.data + '\\'' }}, {{ '$n8n$' + ($('Normalize Content (LLM)').item.json.normalized_text || '') + '$n8n$' }}) ON CONFLICT (tracked_page_id, snapshot_hash) DO UPDATE SET fetched_at = now() RETURNING id AS snapshot_id;",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "name": "Upsert Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1424,
+        304
+      ],
+      "typeVersion": 2.5,
+      "id": "8996c17e-c7db-4425-a28f-b5482e5e16d4",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id AS prev_snapshot_id, normalized_text AS prev_text FROM icp_drift.snapshots WHERE tracked_page_id = {{ '\\'' + $('Normalize Content (LLM)').item.json.tracked_page_id + '\\'' }} ORDER BY fetched_at DESC LIMIT 1 OFFSET 1;",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "name": "Load Previous Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1648,
+        304
+      ],
+      "typeVersion": 2.5,
+      "id": "8209ae23-69d8-4135-b63c-459b8569e7de",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO icp_drift.indicators (company_id, snapshot_id, page_type, buyer_titles, org_size_language, seniority_signals, functional_emphasis, integration_mix) VALUES ({{ '\\'' + $('Normalize Content (LLM)').item.json.company_id + '\\'' }}, {{ '\\'' + $('Upsert Snapshot').item.json.snapshot_id + '\\'' }}, {{ '\\'' + $('Normalize Content (LLM)').item.json.page_type + '\\'' }}, {{ '$n8n$' + JSON.stringify($json.buyer_signals || []) + '$n8n$' }}::jsonb, {{ '$n8n$' + JSON.stringify($json.segment_signals || []) + '$n8n$' }}::jsonb, {{ '$n8n$' + JSON.stringify($json.buyer_signals || []) + '$n8n$' }}::jsonb, {{ '$n8n$' + JSON.stringify([$json.inferred_buyer, $json.inferred_buyer_type].filter(Boolean)) + '$n8n$' }}::jsonb, {{ '$n8n$' + JSON.stringify($json.vertical_signals || []) + '$n8n$' }}::jsonb) ON CONFLICT DO NOTHING;",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "name": "Store Indicators",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2080,
+        304
+      ],
+      "typeVersion": 2.5,
+      "id": "6bf9855c-c29c-4dfd-aad4-d15dba850a7e",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO icp_drift.drift_events (company_id, tracked_page_id, page_type, prev_snapshot_id, snapshot_id, changed, drift_directions, evidence_sources, confidence, summary) VALUES ({{ '\\'' + $json.company_id + '\\'' }}, {{ '\\'' + $json.tracked_page_id + '\\'' }}, {{ '\\'' + $json.page_type + '\\'' }}, {{ $json.prev_snapshot_id ? '\\'' + $json.prev_snapshot_id + '\\'' : 'NULL' }}, {{ '\\'' + ($json.snapshot_id || '') + '\\'' }}, {{ $json.has_drift || false }}, {{ '\\'{' + ($json.drift_direction ? '\"' + $json.drift_direction + '\"' : '') + '}\\'' }}, '{}', 'low', $n8n${{ ($json.drift_summary || '') }}$n8n$) RETURNING id AS drift_event_id;",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "name": "Store Drift Event",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2528,
+        304
+      ],
+      "typeVersion": 2.5,
+      "id": "2ad6d503-4654-443c-8967-5bbe40a30838",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $input.first().json.confidence;\nlet severity = 2;\nif (c === 'medium') severity = 3;\nif (c === 'high') severity = 4;\nreturn [{json: {...$input.first().json, severity}}];"
+      },
+      "name": "Map Severity",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2752,
+        304
+      ],
+      "typeVersion": 2,
+      "id": "a9dba6f3-d053-4272-a8be-2ca683d9437d"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (signal_type, severity, title, summary, source_schema, source_table, source_id) VALUES ('icp', {{ $json.severity || 2 }}, 'ICP drift detected', 'ICP drift detected on tracked page', 'icp_drift', 'drift_events', {{ '\\'' + ($json.drift_event_id || '') + '\\'' }}) ON CONFLICT DO NOTHING;",
+        "options": {
+          "connectionTimeout": 30
+        }
+      },
+      "name": "Emit Control Plane Signal",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2960,
+        304
+      ],
+      "typeVersion": 2.5,
+      "id": "df4e4032-43a7-487f-b7c1-56eddf264b54",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = ($input.item.json.data || '').substring(0, 8000);\nconst prompt = 'You are extracting ICP-relevant text from a public web page.\\n\\nTask:\\n1) Remove navigation, footer, cookie banners, repeated UI labels.\\n2) Keep only ICP-relevant sections for the given page type.\\n3) Return STRICT JSON with keys: normalized_text (string).\\n\\nPage type: ' + $input.item.json.page_type + '\\nURL: ' + $input.item.json.url + '\\n\\nHTML (first 8000 chars):\\n' + html;\n\nconst data = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.anthropic.com/v1/messages',\n  headers: { \"x-api-key\": \"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\", \"anthropic-version\": \"2023-06-01\", \"content-type\": \"application/json\" },\n  body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, messages: [{ role: 'user', content: prompt }] })\n});\nconst text = data.content[0].text;\nlet parsed;\ntry { parsed = JSON.parse(text); } catch(e) {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  parsed = m ? JSON.parse(m[0]) : { normalized_text: text };\n}\nreturn { json: { ...$input.item.json, ...parsed, text: parsed.normalized_text } };"
+      },
+      "id": "36935cf2-7ada-40da-8b06-0dbc667cacda",
+      "name": "Normalize Content (LLM)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const normData = $('Normalize Content (LLM)').item.json;\nconst content = normData.text || normData.normalized_text || '';\nconst prompt = 'You are an ICP analyst. Given normalized page content and its surface type, extract ICP indicators.\\n\\nReturn STRICT JSON with keys:\\n- segment_signals: array of strings\\n- buyer_signals: array of strings\\n- vertical_signals: array of strings\\n- inferred_segment: one of SMB, Mid-market, Enterprise or null\\n- inferred_buyer: one of operator, manager, executive or null\\n- inferred_buyer_type: one of technical, economic or null\\n- inferred_verticality: one of horizontal, vertical or null\\n\\nSurface: ' + normData.page_type + '\\nCompany: ' + normData.company_name + '\\n\\nContent:\\n' + content;\n\nconst data = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.anthropic.com/v1/messages',\n  headers: { \"x-api-key\": \"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\", \"anthropic-version\": \"2023-06-01\", \"content-type\": \"application/json\" },\n  body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, messages: [{ role: 'user', content: prompt }] })\n});\nconst text = data.content[0].text;\nlet parsed;\ntry { parsed = JSON.parse(text); } catch(e) {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  parsed = m ? JSON.parse(m[0]) : {};\n}\n// Merge all upstream data\nreturn { json: { ...normData, ...$input.item.json, ...parsed, indicators: parsed } };"
+      },
+      "id": "3c0ea632-7dae-4e53-9d05-ffde46aa8ecb",
+      "name": "Extract ICP Indicators (LLM)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const extractData = $('Extract ICP Indicators (LLM)').item.json;\nconst prevData = $('Load Previous Snapshot').item.json;\nconst current = JSON.stringify(extractData.indicators || extractData);\nconst previous = JSON.stringify(prevData || {});\nconst prompt = 'You are an ICP drift detector. Compare current vs previous ICP indicators.\\n\\nReturn STRICT JSON with keys:\\n- has_drift: boolean\\n- drift_direction: one of the fixed taxonomy or null\\n- drift_summary: string or null\\n- confidence_inputs: integer\\n\\nCurrent:\\n' + current + '\\n\\nPrevious:\\n' + previous;\n\nconst data = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.anthropic.com/v1/messages',\n  headers: { \"x-api-key\": \"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\", \"anthropic-version\": \"2023-06-01\", \"content-type\": \"application/json\" },\n  body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, messages: [{ role: 'user', content: prompt }] })\n});\nconst text = data.content[0].text;\nlet parsed;\ntry { parsed = JSON.parse(text); } catch(e) {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  parsed = m ? JSON.parse(m[0]) : { has_drift: false };\n}\nconst normData = $('Normalize Content (LLM)').item.json;\nreturn { json: { ...normData, ...extractData, ...parsed, prev_snapshot_id: prevData.prev_snapshot_id || null, snapshot_id: $('Upsert Snapshot').item.json.snapshot_id || '' } };"
+      },
+      "id": "777b359d-2740-4568-93de-a0da7453d251",
+      "name": "Detect Drift vs Previous (LLM)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Weekly": {
+      "main": [
+        [
+          {
+            "node": "Load Tracked ICP Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Tracked ICP Pages": {
+      "main": [
+        [
+          {
+            "node": "Fetch Page HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Page HTML": {
+      "main": [
+        [
+          {
+            "node": "Normalize Content (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hash Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Upsert Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Load Previous Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Previous Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Extract ICP Indicators (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Indicators": {
+      "main": [
+        [
+          {
+            "node": "Detect Drift vs Previous (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Drift Event": {
+      "main": [
+        [
+          {
+            "node": "Map Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Severity": {
+      "main": [
+        [
+          {
+            "node": "Emit Control Plane Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Content (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Hash Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract ICP Indicators (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Store Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Drift vs Previous (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Store Drift Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 3600,
+    "executionOrder": "v0"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {}
+}

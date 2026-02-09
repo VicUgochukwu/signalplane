@@ -1,0 +1,727 @@
+{
+  "name": "Control Plane v2 [cloud]",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d2aff5de-2527-4d77-b686-c42b2e1ee2a6",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute week range: previous Monday 00:00 UTC to Sunday 23:59:59 UTC\nconst now = new Date();\nconst day = now.getUTCDay(); // 0=Sun, 1=Mon, ...\n\n// Find this Monday\nconst thisMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));\nconst diff = day === 0 ? 6 : day - 1;\nthisMonday.setUTCDate(thisMonday.getUTCDate() - diff);\n\n// Previous Monday is 7 days before this Monday\nconst prevMonday = new Date(thisMonday);\nprevMonday.setUTCDate(prevMonday.getUTCDate() - 7);\n\n// Sunday is 6 days after previous Monday\nconst prevSunday = new Date(prevMonday);\nprevSunday.setUTCDate(prevSunday.getUTCDate() + 6);\n\nconst weekStart = prevMonday.toISOString().slice(0, 10);\nconst weekEnd = prevSunday.toISOString().slice(0, 10);\n\nreturn [{ json: { week_start: weekStart, week_end: weekEnd } }];"
+      },
+      "id": "3a043bcf-c4eb-4679-831b-30ea01f43b89",
+      "name": "Compute Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH week_bounds AS (\n  SELECT * FROM control_plane.get_week_boundaries('America/New_York', NOW(), 'sunday')\n)\nSELECT s.* \nFROM control_plane.signals s, week_bounds wb\nWHERE s.created_at >= wb.week_start \n  AND s.created_at < wb.week_end\nORDER BY s.severity DESC, s.created_at DESC;\n",
+        "options": {}
+      },
+      "id": "4ca2c01f-e883-4f8a-a822-253f387cc252",
+      "name": "Load Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        192
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Score + Select Top Signals v4 (with all 11 signal types including experiment)\n// Includes: messaging, narrative, icp, horizon, objection, pricing, proof, distribution, hiring, launch_decay, experiment\n// Max per section varies by ship, max 45 total\n\nconst signals = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n\n// Configuration: per-ship caps (from Control Plane v2 implementation plan Phase 6)\nconst SHIP_CAPS = {\n  // Original ships\n  messaging: 8,\n  narrative: 5,\n  icp: 5,\n  horizon: 3,\n  objection: 5,\n  // New ships from Phase 2-3\n  pricing: 4,\n  proof: 3,\n  distribution: 3,\n  hiring: 2,\n  launch_decay: 2,\n  // Experiment surveillance\n  experiment: 5\n};\n\nconst MAX_PER_SECTION = 6;\nconst MAX_TOTAL = 45;\n\n// Scoring weights\nconst WEIGHTS = {\n  severity: 8,      // 1-5 severity * 8 = 0-40 points\n  recency: 30,      // max 30 points, decays over 7 days\n  confidence: 15,   // 0-1 confidence * 15 = 0-15 points\n  source_quality: 15 // high=15, medium=10, low=5\n};\n\n// Compute actual score for a signal\nfunction computeScore(signal) {\n  const now = new Date();\n  const createdAt = new Date(signal.created_at);\n  const daysOld = (now - createdAt) / (1000 * 60 * 60 * 24);\n\n  // Severity weight (0-40 points)\n  const severityScore = (signal.severity || 3) * WEIGHTS.severity;\n\n  // Recency weight (decays over 7 days)\n  const recencyScore = Math.max(0, WEIGHTS.recency - (daysOld * 4.3));\n\n  // Confidence weight (0-15 points)\n  const confidenceScore = (parseFloat(signal.confidence) || 0.5) * WEIGHTS.confidence;\n\n  // Source quality weight\n  const sourceQuality = signal.source_quality || 'medium';\n  const sourceScore = sourceQuality === 'high' ? 15 : sourceQuality === 'medium' ? 10 : 5;\n\n  // Experiment signals get a boost based on combined_score from surveillance\n  let experimentBoost = 0;\n  if (signal.signal_type === 'experiment' && signal.meta?.combined_score) {\n    experimentBoost = Math.min(signal.meta.combined_score * 0.5, 20);\n  }\n\n  return Math.round((severityScore + recencyScore + confidenceScore + sourceScore + experimentBoost) * 100) / 100;\n}\n\n// Infer decision_type based on signal type and content\nfunction inferDecisionType(signal) {\n  const signalType = signal.signal_type;\n  const title = (signal.title || '').toLowerCase();\n  const summary = (signal.summary || '').toLowerCase();\n\n  // Original ships\n  if (signalType === 'messaging') {\n    if (title.includes('pricing') || summary.includes('pricing')) return 'packaging';\n    if (title.includes('compet') || summary.includes('compet')) return 'positioning';\n    return 'positioning';\n  }\n  if (signalType === 'narrative') {\n    if (title.includes('risk') || summary.includes('risk')) return 'risk';\n    return 'positioning';\n  }\n  if (signalType === 'icp') {\n    if (title.includes('churn') || summary.includes('churn')) return 'risk';\n    if (title.includes('expand') || summary.includes('expand')) return 'distribution';\n    return 'distribution';\n  }\n  if (signalType === 'horizon') {\n    if (title.includes('threat') || summary.includes('threat')) return 'risk';\n    return 'proof';\n  }\n  if (signalType === 'objection') {\n    if (title.includes('pricing') || summary.includes('price')) return 'packaging';\n    if (title.includes('compet') || summary.includes('alternative')) return 'positioning';\n    return 'enablement';\n  }\n\n  // New ships from Phase 2-3\n  if (signalType === 'pricing') {\n    return 'packaging';\n  }\n  if (signalType === 'proof') {\n    return 'proof';\n  }\n  if (signalType === 'distribution') {\n    return 'distribution';\n  }\n  if (signalType === 'hiring') {\n    return 'risk'; // Competitive intelligence\n  }\n  if (signalType === 'launch_decay') {\n    return 'positioning';\n  }\n\n  // Experiment surveillance\n  if (signalType === 'experiment') {\n    // Use category from meta if available\n    const category = signal.meta?.pattern_category || signal.decision_type;\n    if (category === 'packaging') return 'packaging';\n    if (category === 'proof') return 'proof';\n    if (category === 'distribution') return 'distribution';\n    if (category === 'strategy') return 'risk';\n    return 'positioning';\n  }\n\n  return 'enablement';\n}\n\n// Infer recommended_asset based on decision_type\nfunction inferRecommendedAsset(decisionType) {\n  const mapping = {\n    positioning: 'homepage',\n    packaging: 'pricing',\n    distribution: 'deck',\n    proof: 'talk_track',\n    enablement: 'talk_track',\n    risk: 'deck',\n    hiring: 'battlecard'\n  };\n  return mapping[decisionType] || 'none';\n}\n\n// Infer owner_team based on decision_type\nfunction inferOwnerTeam(decisionType) {\n  const mapping = {\n    positioning: 'PMM',\n    packaging: 'PMM',\n    distribution: 'sales',\n    proof: 'PMM',\n    enablement: 'sales',\n    risk: 'exec',\n    hiring: 'exec'\n  };\n  return mapping[decisionType] || 'PMM';\n}\n\n// Infer time_sensitivity based on severity\nfunction inferTimeSensitivity(severity) {\n  if (severity >= 4) return 'now';\n  if (severity >= 3) return 'this_week';\n  return 'monitor';\n}\n\n// Process each signal: compute score and action mapping\nconst enrichedSignals = signals.map(signal => {\n  const score = computeScore(signal);\n  const decisionType = inferDecisionType(signal);\n\n  return {\n    ...signal,\n    score: score,\n    promo_score: score,\n    decision_type: decisionType,\n    recommended_asset: inferRecommendedAsset(decisionType),\n    owner_team: inferOwnerTeam(decisionType),\n    time_sensitivity: inferTimeSensitivity(signal.severity || 3),\n    summary_short: signal.summary ? signal.summary.substring(0, 100) + (signal.summary.length > 100 ? '...' : '') : ''\n  };\n});\n\n// All sections including experiment\nconst sections = [\n  'messaging', 'narrative', 'icp', 'horizon', 'objection',\n  'pricing', 'proof', 'distribution', 'hiring', 'launch_decay',\n  'experiment'\n];\n\nconst selectedBySection = {};\nlet totalSelected = [];\n\nfor (const section of sections) {\n  const cap = SHIP_CAPS[section] || MAX_PER_SECTION;\n\n  // Get signals for this section, sort by score descending\n  const sectionSignals = enrichedSignals\n    .filter(s => s.signal_type === section)\n    .sort((a, b) => b.score - a.score)\n    .slice(0, cap);\n\n  selectedBySection[section] = sectionSignals;\n  totalSelected = totalSelected.concat(sectionSignals);\n}\n\n// Enforce total cap (keep highest scores)\nif (totalSelected.length > MAX_TOTAL) {\n  totalSelected.sort((a, b) => b.score - a.score);\n  totalSelected = totalSelected.slice(0, MAX_TOTAL);\n}\n\n// Build signal summaries for Anthropic prompt\nconst signalSummaries = {};\nfor (const section of sections) {\n  signalSummaries[section] = (selectedBySection[section] || []).map(s => ({\n    id: s.id,\n    severity: s.severity,\n    title: s.title,\n    summary_short: s.summary_short,\n    score: s.score,\n    decision_type: s.decision_type,\n    time_sensitivity: s.time_sensitivity,\n    // Include experiment-specific fields\n    ...(s.signal_type === 'experiment' ? {\n      survivorship_score: s.meta?.survivorship_score,\n      propagation_score: s.meta?.propagation_score,\n      companies: s.meta?.companies\n    } : {})\n  }));\n}\n\n// Build action mapping summary for prompt\nconst actionSummary = {\n  positioning: totalSelected.filter(s => s.decision_type === 'positioning').length,\n  packaging: totalSelected.filter(s => s.decision_type === 'packaging').length,\n  distribution: totalSelected.filter(s => s.decision_type === 'distribution').length,\n  proof: totalSelected.filter(s => s.decision_type === 'proof').length,\n  enablement: totalSelected.filter(s => s.decision_type === 'enablement').length,\n  risk: totalSelected.filter(s => s.decision_type === 'risk').length,\n  urgent_count: totalSelected.filter(s => s.time_sensitivity === 'now').length,\n  this_week_count: totalSelected.filter(s => s.time_sensitivity === 'this_week').length\n};\n\n// Build system prompt with strict JSON schema (updated for all signal types including experiment)\nconst systemPrompt = `You are a GTM intelligence analyst creating weekly packets for a PMM team. Synthesize signals into actionable intelligence.\n\nSIGNAL CATEGORIES:\n- messaging: Homepage and positioning changes\n- narrative: Market narrative shifts\n- icp: Target audience signals\n- horizon: Platform and market shifts\n- objection: Customer objections and concerns\n- pricing: Pricing and packaging changes\n- proof: Trust signals and social proof\n- distribution: Integration and partnership moves\n- hiring: Hiring signals indicating strategy\n- launch_decay: Post-launch momentum tracking\n- experiment: Market-wide pattern winners (proven and emerging)\n\nCRITICAL: Output STRICT JSON only. No markdown, no explanations outside the JSON.\n\nRequired JSON schema:\n{\n  \"packet_title\": \"string (Week of YYYY-MM-DD: descriptive title)\",\n  \"exec_summary\": [\"string (max 7 bullets, each under 100 chars)\"],\n  \"sections\": {\n    \"messaging\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"narrative\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"icp\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"horizon\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"objection\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"pricing\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"proof\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"distribution\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"hiring\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]},\n    \"launch_decay\": {\"summary\": \"string\", \"highlights\": [\"string\"], \"action_items\": [\"string\"]}\n  },\n  \"market_winners\": {\n    \"proven\": [\n      {\n        \"pattern_label\": \"string\",\n        \"what_changed\": \"string (1 line)\",\n        \"where_seen\": [\"company names\"],\n        \"survival_weeks\": number,\n        \"why_it_matters\": \"string\",\n        \"implementation_guidance\": \"string\"\n      }\n    ],\n    \"emerging\": [\n      {\n        \"pattern_label\": \"string\",\n        \"what_changed\": \"string\",\n        \"where_seen\": [\"company names\"],\n        \"why_it_matters\": \"string\"\n      }\n    ]\n  },\n  \"key_questions\": [\"string (3-5 strategic questions)\"],\n  \"predictions\": [\n    {\n      \"hypothesis\": \"string (testable prediction)\",\n      \"what_to_watch\": \"string (evidence to track)\",\n      \"signal_ids\": [\"uuid\"],\n      \"confidence\": \"low|medium|high\",\n      \"timeframe\": \"string (e.g., 'next 2 weeks')\"\n    }\n  ],\n  \"action_mapping\": {\n    \"this_week\": [{\"action\": \"string\", \"owner\": \"PMM|sales|CS|product|exec\", \"asset\": \"string\"}],\n    \"monitor\": [\"string (things to track)\"]\n  },\n  \"bets\": [\n    {\n      \"hypothesis\": \"string\",\n      \"signal_ids\": [\"uuid\"],\n      \"confidence\": \"low|medium|high\"\n    }\n  ]\n}\n\nCONSTRAINTS:\n- exec_summary: max 7 bullets\n- predictions: 2-5 items, must be testable hypotheses\n- bets: max 3 items\n- All signal_ids must be valid UUIDs from the input\n- For sections with no signals, use {\"summary\": \"No signals this week\", \"highlights\": [], \"action_items\": []}\n- market_winners: synthesize experiment signals into actionable patterns\n  - proven: max 3 patterns with high survivorship\n  - emerging: max 3 patterns gaining traction`;\n\n// Build user content with all signal types\nconst userContent = `Week: ${weekRange.week_start} to ${weekRange.week_end}\nTotal signals loaded: ${signals.length}\nSelected for packet: ${totalSelected.length}\n\nACTION MAPPING SUMMARY:\n- Positioning signals: ${actionSummary.positioning}\n- Packaging signals: ${actionSummary.packaging}\n- Distribution signals: ${actionSummary.distribution}\n- Proof signals: ${actionSummary.proof}\n- Enablement signals: ${actionSummary.enablement}\n- Risk signals: ${actionSummary.risk}\n- URGENT (act now): ${actionSummary.urgent_count}\n- This week priority: ${actionSummary.this_week_count}\n\nMESSAGING SIGNALS (${signalSummaries.messaging.length}):\n${JSON.stringify(signalSummaries.messaging, null, 2)}\n\nNARRATIVE SIGNALS (${signalSummaries.narrative.length}):\n${JSON.stringify(signalSummaries.narrative, null, 2)}\n\nICP SIGNALS (${signalSummaries.icp.length}):\n${JSON.stringify(signalSummaries.icp, null, 2)}\n\nHORIZON SIGNALS (${signalSummaries.horizon.length}):\n${JSON.stringify(signalSummaries.horizon, null, 2)}\n\nOBJECTION SIGNALS (${signalSummaries.objection.length}):\n${JSON.stringify(signalSummaries.objection, null, 2)}\n\nPRICING SIGNALS (${signalSummaries.pricing.length}):\n${JSON.stringify(signalSummaries.pricing, null, 2)}\n\nPROOF SIGNALS (${signalSummaries.proof.length}):\n${JSON.stringify(signalSummaries.proof, null, 2)}\n\nDISTRIBUTION SIGNALS (${signalSummaries.distribution.length}):\n${JSON.stringify(signalSummaries.distribution, null, 2)}\n\nHIRING SIGNALS (${signalSummaries.hiring.length}):\n${JSON.stringify(signalSummaries.hiring, null, 2)}\n\nLAUNCH DECAY SIGNALS (${signalSummaries.launch_decay.length}):\n${JSON.stringify(signalSummaries.launch_decay, null, 2)}\n\nEXPERIMENT SIGNALS (Market Winners) (${signalSummaries.experiment.length}):\n${JSON.stringify(signalSummaries.experiment, null, 2)}\n\nGenerate weekly GTM intelligence packet with predictions, action mapping, and Market Winners section.`;\n\n// Build Anthropic API body\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 5000,\n  temperature: 0.3,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    week_start: weekRange.week_start,\n    week_end: weekRange.week_end,\n    total_signals: signals.length,\n    selected_count: totalSelected.length,\n    selected_signals: totalSelected,\n    signal_summaries: signalSummaries,\n    action_summary: actionSummary,\n    anthropic_body: anthropicBody\n  }\n}];\n"
+      },
+      "id": "5973c037-1cf1-4a48-b2b9-2bf4d3131a87",
+      "name": "Score + Select Top Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "589cd760-e86a-46bf-8081-d4d43cac495a",
+      "name": "Anthropic Synthesize Packet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Packet JSON v3 (with predictions + action_mapping fallback + SQL escaping)\n// Handles Anthropic response and extracts structured packet data\n\nconst anthropicResponse = $input.first().json;\nconst weekData = $('Score + Select Top Signals').first().json;\n\n// Extract the text content from Anthropic response\nlet responseText = '';\nif (anthropicResponse.content && anthropicResponse.content[0]) {\n  responseText = anthropicResponse.content[0].text || '';\n} else if (typeof anthropicResponse === 'string') {\n  responseText = anthropicResponse;\n}\n\n// Clean up potential markdown code fences\nresponseText = responseText.trim();\nif (responseText.startsWith('```json')) {\n  responseText = responseText.slice(7);\n}\nif (responseText.startsWith('```')) {\n  responseText = responseText.slice(3);\n}\nif (responseText.endsWith('```')) {\n  responseText = responseText.slice(0, -3);\n}\nresponseText = responseText.trim();\n\n// Parse the JSON\nlet packet;\nconst jsonMatch = responseText.match(/\\{[\\s\\S]*\\}/);\nif (jsonMatch) {\n  try {\n    packet = JSON.parse(jsonMatch[0]);\n  } catch (e) {\n    throw new Error('Failed to parse packet JSON: ' + e.message);\n  }\n}\n\n// Ensure required fields with fallbacks\nconst parsedPacket = {\n  packet_title: packet.packet_title || `Week of ${weekData.week_start}: GTM Intelligence Packet`,\n  exec_summary: Array.isArray(packet.exec_summary) ? packet.exec_summary.slice(0, 7) : [],\n  sections: {\n    messaging: packet.sections?.messaging || { summary: '', highlights: [], action_items: [] },\n    narrative: packet.sections?.narrative || { summary: '', highlights: [], action_items: [] },\n    icp: packet.sections?.icp || { summary: '', highlights: [], action_items: [] },\n    horizon: packet.sections?.horizon || { summary: '', highlights: [], action_items: [] },\n    objection: packet.sections?.objection || { summary: '', highlights: [], action_items: [] }\n  },\n  key_questions: Array.isArray(packet.key_questions) ? packet.key_questions.slice(0, 5) : [],\n  bets: Array.isArray(packet.bets) ? packet.bets.slice(0, 3) : [],\n  predictions: Array.isArray(packet.predictions) ? packet.predictions.slice(0, 5) : [],\n  action_mapping: packet.action_mapping || { this_week: [], monitor: [] },\n  market_winners: packet.market_winners || { proven: [], emerging: [] }\n};\n\n// Helper function to escape a string for PostgreSQL SQL literals\nfunction escapeForPg(str) {\n  if (str === null || str === undefined) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\\\\\')\n    .replace(/'/g, \"''\");\n}\n\n// Helper to escape JSON for PostgreSQL jsonb column\nfunction escapeJsonForPg(obj) {\n  const jsonStr = JSON.stringify(obj);\n  return escapeForPg(jsonStr);\n}\n\n// Return with both original packet data AND pre-escaped versions for SQL\nreturn [{\n  json: {\n    week_start: weekData.week_start,\n    week_end: weekData.week_end,\n    packet: parsedPacket,\n    packet_title_escaped: escapeForPg(parsedPacket.packet_title),\n    exec_summary_escaped: parsedPacket.exec_summary.map(s => escapeForPg(s)),\n    sections_escaped: escapeJsonForPg(parsedPacket.sections),\n    key_questions_escaped: parsedPacket.key_questions.map(q => escapeForPg(q)),\n    bets_escaped: escapeJsonForPg(parsedPacket.bets),\n    predictions_escaped: escapeJsonForPg(parsedPacket.predictions),\n    action_mapping_escaped: escapeJsonForPg(parsedPacket.action_mapping),\n    selected_signals: weekData.selected_signals,\n    action_summary: weekData.action_summary,\n    total_signals: weekData.total_signals,\n    selected_count: weekData.selected_count\n  }\n}];\n"
+      },
+      "id": "bb1305ef-be80-4151-873a-600d055077f1",
+      "name": "Parse Packet JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO control_plane.packets (week_start, week_end, packet_title, exec_summary, sections, key_questions, bets, predictions, action_mapping)\nVALUES (\n  '{{ $json.week_start }}'::date,\n  '{{ $json.week_end }}'::date,\n  '{{ $json.packet_title_escaped }}',\n  ARRAY[{{ $json.exec_summary_escaped.map(s => \"'\" + s + \"'\").join(',') }}]::text[],\n  '{{ $json.sections_escaped }}'::jsonb,\n  ARRAY[{{ $json.key_questions_escaped.map(q => \"'\" + q + \"'\").join(',') }}]::text[],\n  '{{ $json.bets_escaped }}'::jsonb,\n  '{{ $json.predictions_escaped }}'::jsonb,\n  '{{ $json.action_mapping_escaped }}'::jsonb\n)\nON CONFLICT (week_start, week_end) DO UPDATE\nSET packet_title = EXCLUDED.packet_title, exec_summary = EXCLUDED.exec_summary, sections = EXCLUDED.sections,\n    key_questions = EXCLUDED.key_questions, bets = EXCLUDED.bets, predictions = EXCLUDED.predictions,\n    action_mapping = EXCLUDED.action_mapping\nRETURNING id;\n",
+        "options": {}
+      },
+      "id": "690d7eca-293c-4ac2-aeb1-70247c278059",
+      "name": "Upsert Packet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1344,
+        96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare packet_items for insertion\nconst packetId = $('Upsert Packet').first().json.id;\nconst selectData = $('Parse Packet JSON').first().json;\n\nconst items = selectData.selected_signals.map((signal, idx) => ({\n  packet_id: packetId,\n  signal_id: signal.id,\n  section: signal.signal_type,\n  rank: idx + 1,\n  score: signal.score\n}));\n\nreturn items.map(item => ({ json: item }));"
+      },
+      "id": "5d35f347-7982-4878-9418-28e86aeaac84",
+      "name": "Prepare Packet Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "batchSize": 1
+      },
+      "id": "b7944ba5-fd96-4022-8a70-143bbcb30a80",
+      "name": "Split Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO control_plane.packet_items (packet_id, related_signal_id, item_type, rank, title, detail)\nVALUES (\n  '{{ $json.packet_id }}',\n  '{{ $json.signal_id }}',\n  '{{ ($json.section || \"signal\").replace(/'/g, \"''\") }}',\n  {{ $json.rank }},\n  '{{ ($json.section || \"Signal\").replace(/'/g, \"''\") }}',\n  'Score: {{ $json.score }}'\n)\nON CONFLICT DO NOTHING;\n\nUPDATE control_plane.signals\nSET is_processed = TRUE, processed_at = now(), packet_id = '{{ $json.packet_id }}'\nWHERE id = '{{ $json.signal_id }}';",
+        "options": {}
+      },
+      "id": "d5799837-113b-40ff-bc74-3aecdda1de49",
+      "name": "Upsert Packet Items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2016,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builder 1: Living Objection Library\n// Uses n8n cross-node references to pull data from upstream nodes\n// Output: Versioned objection library markdown\n// Hard caps: max 12 objections, max 2 evidence links per objection in main view\n\n// Reference data from previous nodes using n8n syntax\nconst weekRange = $('Compute Week Range').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\n\n// Get signals (filtered to messaging, narrative, icp - most relevant for objections)\nconst signals = scoreResult.selected_signals.filter(s =>\n  ['messaging', 'narrative', 'icp'].includes(s.signal_type)\n);\n\n// Configuration\nconst MAX_OBJECTIONS = 12;\nconst MAX_EVIDENCE_PER_OBJECTION = 2;\n\n// Categories for taxonomy\nconst OBJECTION_CATEGORIES = [\n  'price_value',      // \"Too expensive\", \"ROI unclear\"\n  'timing',           // \"Not now\", \"Just renewed competitor\"\n  'complexity',       // \"Too complex\", \"Don't have resources\"\n  'risk',             // \"Security concerns\", \"Vendor stability\"\n  'fit',              // \"Not right for us\", \"Missing features\"\n  'competition',      // \"Competitor does X better\"\n  'inertia'           // \"Current solution works fine\", \"Change is hard\"\n];\n\n// Build system prompt for Anthropic\nconst systemPrompt = `You are a sales enablement expert building an Objection Library from GTM signals.\n\nCRITICAL: Output STRICT JSON only.\n\nSchema:\n{\n  \"objections\": [\n    {\n      \"category\": \"price_value|timing|complexity|risk|fit|competition|inertia\",\n      \"objection_text\": \"string (the objection as a buyer would say it)\",\n      \"frequency\": \"high|medium|low\",\n      \"personas\": [\"string (personas who raise this)\"],\n      \"segments\": [\"string (segments where common)\"],\n      \"evidence_urls\": [\"string (max ${MAX_EVIDENCE_PER_OBJECTION})\"],\n      \"rebuttal\": {\n        \"acknowledge\": \"string (validate the concern)\",\n        \"reframe\": \"string (shift perspective)\",\n        \"proof\": \"string (evidence to cite)\",\n        \"talk_track\": \"string (suggested response)\"\n      },\n      \"signal_ids\": [\"uuid (source signals)\"],\n      \"is_new_this_week\": true|false\n    }\n  ],\n  \"summary\": {\n    \"total_objections\": number,\n    \"top_category\": \"string\",\n    \"new_this_week\": number,\n    \"trending_up\": [\"string (objections growing)\"],\n    \"trending_down\": [\"string (objections fading)\"]\n  }\n}\n\nCONSTRAINTS:\n- Max ${MAX_OBJECTIONS} objections\n- Max ${MAX_EVIDENCE_PER_OBJECTION} evidence URLs per objection\n- Each objection must have at least one signal_id as evidence\n- Rebuttals must be specific and actionable, not generic\n- Mark objections as new_this_week if they appear for first time`;\n\n// Build user content with signals\nconst userContent = `Week: ${weekStart} to ${weekEnd}\nPacket ID: ${packetId}\n\nBuild an Objection Library from these signals:\n\nSIGNALS (${signals.length} total):\n${JSON.stringify(signals.map(s => ({\n  id: s.id,\n  type: s.signal_type,\n  severity: s.severity,\n  title: s.title,\n  summary: s.summary,\n  evidence_urls: s.evidence_urls || []\n})), null, 2)}\n\nExtract objections mentioned or implied in these signals. Group by category, provide evidence-linked rebuttals.`;\n\n// Build Anthropic API body\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 2500,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'objection_library',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        192
+      ],
+      "id": "00849e1c-a164-437e-8a07-129be0c4eb56",
+      "name": "Builder: Objection Library"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        192
+      ],
+      "id": "9b441e17-eeb2-40c0-affc-9c5d44244374",
+      "name": "Anthropic Build Objections",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Objection Library response from Anthropic\n// Input: Anthropic API response\n// Output: Parsed objection library data ready for database insert\n\nconst anthropicResponse = $input.first().json;\nconst builderData = $('Builder: Objection Library').first().json;\n\n// Extract the JSON content from Anthropic response\nconst content = anthropicResponse.content[0].text;\n\n// Parse the JSON\nlet objectionLibrary;\ntry {\n  objectionLibrary = JSON.parse(content);\n} catch (e) {\n  // If parsing fails, try to extract JSON from markdown code blocks\n  const jsonMatch = content.match(/```json?\\s*([\\s\\S]*?)```/);\n  if (jsonMatch) {\n    objectionLibrary = JSON.parse(jsonMatch[1]);\n  } else {\n    throw new Error('Failed to parse Anthropic response as JSON');\n  }\n}\n\n// Validate required fields\nif (!objectionLibrary.objections || !Array.isArray(objectionLibrary.objections)) {\n  objectionLibrary.objections = [];\n}\n\nif (!objectionLibrary.summary) {\n  objectionLibrary.summary = {\n    total_objections: objectionLibrary.objections.length,\n    top_category: objectionLibrary.objections[0]?.category || 'unknown',\n    new_this_week: objectionLibrary.objections.filter(o => o.is_new_this_week).length,\n    trending_up: [],\n    trending_down: []\n  };\n}\n\n// Build the output for database insert\nreturn [{\n  json: {\n    week_start: builderData.week_start,\n    week_end: builderData.week_end,\n    packet_id: builderData.packet_id,\n    content_json: objectionLibrary,\n    content_md: JSON.stringify(objectionLibrary, null, 2),\n    included_signal_ids: builderData.input_signal_ids,\n    objection_count: objectionLibrary.objections.length\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        192
+      ],
+      "id": "2633b975-d452-47ce-b354-a38f59e12640",
+      "name": "Parse Objection Library"
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "schema": "gtm_artifacts",
+        "tableId": "objection_library_versions",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        192
+      ],
+      "id": "9652c8f1-04f6-4108-83b5-68035dd0f6ff",
+      "name": "Insert Objection Library",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builder 2: Buyer Swipe File (language that grows)\n// Uses n8n cross-node references to pull data from upstream nodes\n// Output: Versioned swipe file markdown with persona-tagged phrases\n// Hard caps: max 30 phrases total, max 5 per persona\n\n// Reference data from previous nodes using n8n syntax\nconst weekRange = $('Compute Week Range').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\n\n// Get all signals (swipe file uses all types for buyer language)\nconst signals = scoreResult.selected_signals;\n\n// Define phrase categories for extraction\nconst PHRASE_CATEGORIES = [\n  'pain_points',\n  'desired_outcomes',\n  'objections',\n  'trigger_events',\n  'evaluation_criteria',\n  'competitive_mentions',\n  'budget_signals',\n  'timeline_indicators'\n];\n\n// Build the system prompt - MUST use backticks with unescaped quotes\nconst systemPrompt = `You are a PMM assistant specialized in creating buyer language swipe files. Your task is to extract authentic buyer phrases from market signals and organize them by persona and category. Rules: 1) Extract EXACT phrases when possible, light paraphrasing only when needed for clarity. 2) Tag each phrase with the persona most likely to use it. 3) Maximum 0 phrases total, maximum 5 per persona. 4) Include source attribution for traceability. 5) Focus on language that reveals pain, desired outcomes, objections, and buying triggers. IMPORTANT: If you need to include quotation marks inside a string value, you MUST escape them with a backslash like this: \\\\\"quoted text\\\\\". Never put unescaped double quotes inside JSON string values. Output raw JSON only without markdown code fences. Output valid JSON with structure:\n\n { \"swipe_file_version\": \"1.0\", \"phrases\": [{ \"text\": \"phrase\", \"category\": \"category_name\", \"persona\": \"persona_tag\", \"source_signal_id\": \"uuid\", \"confidence\": 0.9 }], \"persona_summary\": { \"persona_name\": { \"phrase_count\": 5, \"top_categories\": [\"cat1\", \"cat2\"] } } }`;\n\n// Build user message with signals\nconst signalSummaries = signals.map(s => {\n  return \"Signal ID: \" + s.id + \" | Type: \" + s.signal_type + \" | Title: \" + s.title + \" | Summary: \" + s.summary;\n}).join(\" --- \");\n\nconst userContent = \"Analyze these \" + signals.length + \" signals from the week of \" + weekStart + \" to \" + weekEnd + \" and extract buyer language phrases. Categories to extract: \" + PHRASE_CATEGORIES.join(', ') + \". Signals: \" + signalSummaries + \". Return a JSON swipe file with extracted phrases tagged by persona and category.\";\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 4096,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'swipe_file',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        608
+      ],
+      "id": "54b93749-bb4d-42a1-91a8-a04b388da4e2",
+      "name": "Builder: Swipe File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_body) }}\n",
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        608
+      ],
+      "id": "232246e9-eb3c-41d2-aad6-500282184fb4",
+      "name": "Anthropic Build Swipe File",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Swipe File response from Anthropic\n// Input: Anthropic API response\n// Output: Parsed swipe file data ready for database insert\n\nconst anthropicResponse = $input.first().json;\nconst builderData = $('Builder: Swipe File').first().json;\n\n// Extract the JSON content from Anthropic response\nconst content = anthropicResponse.content[0].text;\n\n// Parse the JSON\nlet swipeFile;\ntry {\n    // First try to extract JSON from markdown code blocks\n    const jsonMatch = content.match(/```json?\\s*([\\s\\S]*?)```/);\n    if (jsonMatch) {\n        swipeFile = JSON.parse(jsonMatch[1]);\n    } else {\n        // If no code blocks, try parsing directly\n        swipeFile = JSON.parse(content);\n    }\n} catch (e) {\n    throw new Error('Failed to parse Anthropic response as JSON: ' + e.message);\n}\n\n// Validate required fields\nif (!swipeFile.phrases || !Array.isArray(swipeFile.phrases)) {\n    swipeFile.phrases = [];\n}\n\nif (!swipeFile.summary) {\n    swipeFile.summary = {\n        total_phrases: swipeFile.phrases.length,\n        by_persona: {},\n        by_category: {},\n        new_this_week: swipeFile.phrases.filter(p => p.is_new_this_week).length,\n        trending_up: [],\n        trending_down: []\n    };\n}\n\nif (!swipeFile.usage_tips) {\n    swipeFile.usage_tips = [];\n}\n\n// Build the output for database insert\nreturn [{\n    json: {\n        week_start: builderData.week_start,\n        week_end: builderData.week_end,\n        packet_id: builderData.packet_id,\n        content_json: swipeFile,\n        content_md: JSON.stringify(swipeFile, null, 2),\n        included_signal_ids: builderData.input_signal_ids,\n        phrase_count: swipeFile.phrases.length\n    }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        608
+      ],
+      "id": "18e6bcb0-3fd8-4f57-bc41-40274aa224d7",
+      "name": "Parse Swipe File"
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "schema": "gtm_artifacts",
+        "tableId": "=swipe_file_versions",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        672,
+        608
+      ],
+      "id": "06d4305a-123a-470b-b69f-2316abdbae92",
+      "name": "Insert Swipe File",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builder 3: Battlecards that update themselves (delta-first)\n// Uses n8n cross-node references to pull data from upstream nodes\n// Output: Versioned battlecards per competitor\n// Hard caps: max 3 competitors per week\n\n// Reference data from previous nodes using n8n syntax\nconst weekRange = $('Compute Week Range').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\n\n// Get signals most relevant for battlecards (messaging and icp signals)\nconst signals = scoreResult.selected_signals.filter(s =>\n  ['messaging', 'icp'].includes(s.signal_type)\n);\n\n// Configuration\nconst MAX_COMPETITORS = 3;\n\n// Build system prompt for Anthropic\nconst systemPrompt = `You are a competitive intelligence expert building Battlecards from GTM signals.\n\nBattlecards are delta-focused: they emphasize WHAT CHANGED THIS WEEK and the implications.\n\nCRITICAL: Output STRICT JSON only. IMPORTANT: If you need to include quotation marks inside a string value, you MUST escape them with a backslash like this: \\\\\"quoted text\\\\\". Never put unescaped double quotes inside JSON string values.\n\n\nSchema:\n{\n  \"battlecards\": [\n    {\n      \"competitor_name\": \"string\",\n      \"what_changed_this_week\": [\n        {\n          \"change\": \"string (specific change observed)\",\n          \"implication\": \"string (what this means for us)\",\n          \"counter_move\": \"string (recommended response)\",\n          \"signal_ids\": [\"uuid\"],\n          \"evidence_urls\": [\"string\"]\n        }\n      ],\n      \"talk_tracks\": [\n        {\n          \"scenario\": \"string (when to use)\",\n          \"opener\": \"string (how to start)\",\n          \"key_points\": [\"string (3 bullets max)\"],\n          \"proof_point\": \"string (evidence to cite)\"\n        }\n      ],\n      \"landmines\": [\n        {\n          \"claim_to_avoid\": \"string (what NOT to say)\",\n          \"why\": \"string (why it's risky)\",\n          \"alternative\": \"string (what to say instead)\"\n        }\n      ],\n      \"win_themes\": [\"string (why we win against them)\"],\n      \"lose_themes\": [\"string (why we might lose)\"],\n      \"ideal_battleground\": \"string (where to steer the conversation)\"\n    }\n  ],\n  \"summary\": {\n    \"competitors_covered\": number,\n    \"total_changes_this_week\": number,\n    \"highest_priority_competitor\": \"string\",\n    \"key_market_shifts\": [\"string\"]\n  }\n}\n\nCONSTRAINTS:\n- Max ${MAX_COMPETITORS} competitors\n- Focus on CHANGES this week, not static info\n- Talk tracks must be specific, not generic\n- Landmines are critical: what claims to AVOID\n- Each change needs evidence (signal_ids, evidence_urls)`;\n\n// Build user content with signals\nconst userContent = `Week: ${weekStart} to ${weekEnd}\nPacket ID: ${packetId}\n\nBuild Battlecards from these competitive signals:\n\nSIGNALS (${signals.length} total):\n${JSON.stringify(signals.map(s => ({\n  id: s.id,\n  type: s.signal_type,\n  severity: s.severity,\n  title: s.title,\n  summary: s.summary,\n  evidence_urls: s.evidence_urls || [],\n  decision_type: s.decision_type\n})), null, 2)}\n\nInstructions:\n1. Identify up to ${MAX_COMPETITORS} competitors mentioned or implied\n2. For each competitor, focus on WHAT CHANGED this week\n3. Provide specific talk tracks (not generic platitudes)\n4. Highlight landmines (claims we should NOT make)\n5. Include win/lose themes based on signal evidence`;\n\n// Build Anthropic API body\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 3000,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'battlecards',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        384
+      ],
+      "id": "d125683f-2093-43c6-9013-26f64a4efc85",
+      "name": "Builder: Battlecards"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_body) }}",
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        384
+      ],
+      "id": "2cafce71-65c2-4e03-abe6-85fded928374",
+      "name": "Anthropic Build Battlecards",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Battlecards response from Anthropic\n// Input: Anthropic API response\n// Output: Array of parsed battlecards ready for database insert (one per competitor)\n\nconst anthropicResponse = $input.first().json;\nconst builderData = $('Builder: Battlecards').first().json;\n\n// Extract the JSON content from Anthropic response\nconst rawContent = anthropicResponse.content[0].text;\n\n// Strip markdown fences if present (Claude often wraps JSON in ```json ... ```)\nconst cleaned = rawContent\n  .replace(/^```json\\s*\\n?/, '')\n  .replace(/^```\\s*\\n?/, '')\n  .replace(/\\n?```\\s*$/, '')\n  .trim();\n\n// Parse the JSON with improved error handling\nlet battlecardsData;\ntry {\n  battlecardsData = JSON.parse(cleaned);\n} catch (e) {\n  // Extract position from error message for context\n  const posMatch = e.message.match(/position (\\d+)/);\n  const position = posMatch ? parseInt(posMatch[1]) : 0;\n  \n  // Show context around the error position\n  const start = Math.max(0, position - 100);\n  const end = Math.min(cleaned.length, position + 100);\n  const context = cleaned.substring(start, end);\n  const marker = ' '.repeat(Math.min(100, position - start)) + '^';\n  \n  throw new Error(\n    `JSON parse failed at position ${position}.\\n` +\n    `Context: ...${context}...\\n` +\n    `         ${marker}\\n` +\n    `Original error: ${e.message}`\n  );\n}\n\n// Validate required fields\nif (!battlecardsData.battlecards || !Array.isArray(battlecardsData.battlecards)) {\n  battlecardsData.battlecards = [];\n}\n\n// Build the output - one item per competitor for database insert\nconst items = battlecardsData.battlecards.map(card => ({\n  json: {\n    competitor_name: card.competitor_name,\n    week_start: builderData.week_start,\n    week_end: builderData.week_end,\n    content_md: JSON.stringify(card, null, 2),\n    included_signal_ids: card.what_changed_this_week?.flatMap(c => c.signal_ids || []) || [],\n    what_changed_summary: card.what_changed_this_week?.map(c => c.change).join('; ') || ''\n  }\n}));\n\n// Return all items (n8n will process each as a separate insert)\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        384
+      ],
+      "id": "7609b3e3-88ad-40fd-ac9d-8a3630d8ad8f",
+      "name": "Parse Battlecards"
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "schema": "gtm_artifacts",
+        "tableId": "=battlecard_versions",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        384
+      ],
+      "id": "d9498b69-ccd4-4c41-b3ec-6280b32181ee",
+      "name": "Insert Battecards",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -512,
+        448
+      ],
+      "id": "c3e0bc33-50b7-4fa1-9939-99f93b6aaa11",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compute Week Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Week Range": {
+      "main": [
+        [
+          {
+            "node": "Load Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Signals": {
+      "main": [
+        [
+          {
+            "node": "Score + Select Top Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score + Select Top Signals": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Synthesize Packet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Synthesize Packet": {
+      "main": [
+        [
+          {
+            "node": "Parse Packet JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Packet JSON": {
+      "main": [
+        [
+          {
+            "node": "Upsert Packet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Packet": {
+      "main": [
+        [
+          {
+            "node": "Prepare Packet Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Builder: Objection Library",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Builder: Battlecards",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Builder: Swipe File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Packet Items": {
+      "main": [
+        [
+          {
+            "node": "Split Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Items": {
+      "main": [
+        [
+          {
+            "node": "Upsert Packet Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Packet Items": {
+      "main": [
+        [
+          {
+            "node": "Split Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Builder: Objection Library": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Build Objections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Build Objections": {
+      "main": [
+        [
+          {
+            "node": "Parse Objection Library",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Objection Library": {
+      "main": [
+        [
+          {
+            "node": "Insert Objection Library",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Builder: Swipe File": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Build Swipe File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Build Swipe File": {
+      "main": [
+        [
+          {
+            "node": "Parse Swipe File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Swipe File": {
+      "main": [
+        [
+          {
+            "node": "Insert Swipe File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Builder: Battlecards": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Build Battlecards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Build Battlecards": {
+      "main": [
+        [
+          {
+            "node": "Parse Battlecards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Battlecards": {
+      "main": [
+        [
+          {
+            "node": "Insert Battecards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compute Week Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v0",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {
+    "Manual Trigger": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  }
+}

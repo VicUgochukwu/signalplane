@@ -1,5 +1,5 @@
 {
-  "name": "Distribution Tracker Weekly",
+  "name": "Distribution Tracker Weekly [cloud]",
   "nodes": [
     {
       "parameters": {
@@ -12,10 +12,13 @@
           ]
         }
       },
-      "id": "schedule_trigger",
+      "id": "f7af0d63-6143-4a08-853d-3e4d03f46c09",
       "name": "Weekly Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "position": [100, 300],
+      "position": [
+        0,
+        0
+      ],
       "typeVersion": 1.2
     },
     {
@@ -24,14 +27,17 @@
         "query": "SELECT \n  tp.id AS tracked_page_id,\n  tp.url,\n  tp.company_id,\n  c.name AS company_name\nFROM public.tracked_pages tp\nJOIN public.companies c ON c.id = tp.company_id\nWHERE tp.enabled = true\n  AND tp.page_type = 'integrations'\nORDER BY tp.company_id;",
         "options": {}
       },
-      "id": "load_integration_pages",
+      "id": "53a8e09b-824e-4861-b666-e871f0a77052",
       "name": "Load Integration Pages",
       "type": "n8n-nodes-base.postgres",
-      "position": [300, 300],
+      "position": [
+        208,
+        0
+      ],
       "typeVersion": 2.5,
       "credentials": {
         "postgres": {
-          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
       }
@@ -41,11 +47,14 @@
         "batchSize": 5,
         "options": {}
       },
-      "id": "batch_pages",
+      "id": "8811a574-5129-4f60-965e-57146e26b345",
       "name": "Batch Pages",
       "type": "n8n-nodes-base.splitInBatches",
-      "position": [500, 300],
-      "typeVersion": 3
+      "position": [
+        400,
+        0
+      ],
+      "typeVersion": 2
     },
     {
       "parameters": {
@@ -54,20 +63,27 @@
           "timeout": 30000
         }
       },
-      "id": "fetch_page",
+      "id": "00c8c26b-f9c3-49b9-a832-e00f61eff10e",
       "name": "Fetch Integration Page",
       "type": "n8n-nodes-base.httpRequest",
-      "position": [700, 300],
-      "typeVersion": 4.2
+      "position": [
+        608,
+        0
+      ],
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "// Distribution Feature Extractor\n// Extracts integration signals from integration/apps pages\n\nconst INTEGRATION_PATTERNS = {\n  categories: {\n    crm: [/salesforce/i, /hubspot/i, /pipedrive/i, /zoho\\s*crm/i],\n    data: [/snowflake/i, /bigquery/i, /databricks/i, /redshift/i],\n    analytics: [/amplitude/i, /mixpanel/i, /heap/i, /segment/i],\n    communication: [/slack/i, /teams/i, /discord/i],\n    storage: [/aws\\s*s3/i, /gcs/i, /azure\\s*blob/i, /dropbox/i],\n    auth: [/okta/i, /auth0/i, /azure\\s*ad/i],\n    payment: [/stripe/i, /braintree/i, /adyen/i],\n    dev: [/github/i, /gitlab/i, /jira/i, /linear/i]\n  },\n  marketplaces: [\n    { pattern: /salesforce\\s*appexchange/i, name: 'salesforce_appexchange' },\n    { pattern: /hubspot\\s*marketplace/i, name: 'hubspot_marketplace' },\n    { pattern: /slack\\s*app\\s*directory/i, name: 'slack_app_directory' },\n    { pattern: /zapier/i, name: 'zapier' },\n    { pattern: /aws\\s*marketplace/i, name: 'aws_marketplace' },\n    { pattern: /google\\s*workspace\\s*marketplace/i, name: 'google_workspace' }\n  ],\n  api_signals: [\n    /api\\s*docs/i,\n    /api\\s*reference/i,\n    /developer\\s*docs/i,\n    /rest\\s*api/i,\n    /graphql/i,\n    /webhooks/i,\n    /sdk/i\n  ],\n  partner_patterns: [\n    /partner/i,\n    /certified/i,\n    /premier/i,\n    /gold\\s*partner/i,\n    /platinum/i\n  ]\n};\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction extractIntegrations(html) {\n  const text = stripHtml(html);\n  const lowercaseText = text.toLowerCase();\n  \n  const integration_names = [];\n  const integration_categories = {};\n  \n  // Extract by category\n  for (const [category, patterns] of Object.entries(INTEGRATION_PATTERNS.categories)) {\n    integration_categories[category] = [];\n    for (const pattern of patterns) {\n      const match = lowercaseText.match(pattern);\n      if (match) {\n        const name = match[0].replace(/\\s+/g, ' ').trim();\n        integration_names.push(name);\n        integration_categories[category].push(name);\n      }\n    }\n  }\n  \n  // Detect marketplace presence\n  const marketplace_presence = [];\n  for (const { pattern, name } of INTEGRATION_PATTERNS.marketplaces) {\n    if (pattern.test(lowercaseText)) {\n      marketplace_presence.push(name);\n    }\n  }\n  \n  // Detect API signals\n  const has_public_api = INTEGRATION_PATTERNS.api_signals.some(p => p.test(lowercaseText));\n  const api_doc_match = html.match(/href=[\"']([^\"']*(?:api|developer|docs)[^\"']*)[\"']/i);\n  const api_doc_url = api_doc_match ? api_doc_match[1] : null;\n  \n  // Detect partner mentions\n  const partner_mentions = [];\n  for (const pattern of INTEGRATION_PATTERNS.partner_patterns) {\n    const match = lowercaseText.match(pattern);\n    if (match) {\n      partner_mentions.push(match[0]);\n    }\n  }\n  \n  return {\n    integration_count: [...new Set(integration_names)].length,\n    integration_names: [...new Set(integration_names)],\n    integration_categories,\n    marketplace_presence: [...new Set(marketplace_presence)],\n    partner_mentions: [...new Set(partner_mentions)],\n    has_public_api,\n    api_doc_url\n  };\n}\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const html = item.json.data || '';\n  const features = extractIntegrations(html);\n  \n  results.push({\n    json: {\n      ...item.json,\n      features,\n      content_hash: require('crypto').createHash('md5').update(html).digest('hex'),\n      extracted_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "function fnv1a64(str) {\n  let h1 = 0x811c9dc5 >>> 0;\n  let h2 = 0xcbf29ce4 >>> 0;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (c >> 8 | c), 0x01000193) >>> 0;\n  }\n  return h2.toString(16).padStart(8, '0') + h1.toString(16).padStart(8, '0');\n}\n\n// Distribution Feature Extractor\n// Extracts integration signals from integration/apps pages\n\nconst INTEGRATION_PATTERNS = {\n  categories: {\n    crm: [/salesforce/i, /hubspot/i, /pipedrive/i, /zoho\\s*crm/i],\n    data: [/snowflake/i, /bigquery/i, /databricks/i, /redshift/i],\n    analytics: [/amplitude/i, /mixpanel/i, /heap/i, /segment/i],\n    communication: [/slack/i, /teams/i, /discord/i],\n    storage: [/aws\\s*s3/i, /gcs/i, /azure\\s*blob/i, /dropbox/i],\n    auth: [/okta/i, /auth0/i, /azure\\s*ad/i],\n    payment: [/stripe/i, /braintree/i, /adyen/i],\n    dev: [/github/i, /gitlab/i, /jira/i, /linear/i]\n  },\n  marketplaces: [\n    { pattern: /salesforce\\s*appexchange/i, name: 'salesforce_appexchange' },\n    { pattern: /hubspot\\s*marketplace/i, name: 'hubspot_marketplace' },\n    { pattern: /slack\\s*app\\s*directory/i, name: 'slack_app_directory' },\n    { pattern: /zapier/i, name: 'zapier' },\n    { pattern: /aws\\s*marketplace/i, name: 'aws_marketplace' },\n    { pattern: /google\\s*workspace\\s*marketplace/i, name: 'google_workspace' }\n  ],\n  api_signals: [\n    /api\\s*docs/i,\n    /api\\s*reference/i,\n    /developer\\s*docs/i,\n    /rest\\s*api/i,\n    /graphql/i,\n    /webhooks/i,\n    /sdk/i\n  ],\n  partner_patterns: [\n    /partner/i,\n    /certified/i,\n    /premier/i,\n    /gold\\s*partner/i,\n    /platinum/i\n  ]\n};\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction extractIntegrations(html) {\n  const text = stripHtml(html);\n  const lowercaseText = text.toLowerCase();\n  \n  const integration_names = [];\n  const integration_categories = {};\n  \n  // Extract by category\n  for (const [category, patterns] of Object.entries(INTEGRATION_PATTERNS.categories)) {\n    integration_categories[category] = [];\n    for (const pattern of patterns) {\n      const match = lowercaseText.match(pattern);\n      if (match) {\n        const name = match[0].replace(/\\s+/g, ' ').trim();\n        integration_names.push(name);\n        integration_categories[category].push(name);\n      }\n    }\n  }\n  \n  // Detect marketplace presence\n  const marketplace_presence = [];\n  for (const { pattern, name } of INTEGRATION_PATTERNS.marketplaces) {\n    if (pattern.test(lowercaseText)) {\n      marketplace_presence.push(name);\n    }\n  }\n  \n  // Detect API signals\n  const has_public_api = INTEGRATION_PATTERNS.api_signals.some(p => p.test(lowercaseText));\n  const api_doc_match = html.match(/href=[\"']([^\"']*(?:api|developer|docs)[^\"']*)[\"']/i);\n  const api_doc_url = api_doc_match ? api_doc_match[1] : null;\n  \n  // Detect partner mentions\n  const partner_mentions = [];\n  for (const pattern of INTEGRATION_PATTERNS.partner_patterns) {\n    const match = lowercaseText.match(pattern);\n    if (match) {\n      partner_mentions.push(match[0]);\n    }\n  }\n  \n  return {\n    integration_count: [...new Set(integration_names)].length,\n    integration_names: [...new Set(integration_names)],\n    integration_categories,\n    marketplace_presence: [...new Set(marketplace_presence)],\n    partner_mentions: [...new Set(partner_mentions)],\n    has_public_api,\n    api_doc_url\n  };\n}\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const html = item.json.data || '';\n  const features = extractIntegrations(html);\n  \n  results.push({\n    json: {\n      ...item.json,\n      features,\n      content_hash: fnv1a64(html),\n      extracted_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn results;"
       },
-      "id": "extract_features",
+      "id": "4ac4a119-3397-411d-b571-f95cb6ec82b7",
       "name": "Extract Integration Features",
       "type": "n8n-nodes-base.code",
-      "position": [900, 300],
+      "position": [
+        800,
+        0
+      ],
       "typeVersion": 2
     },
     {
@@ -76,14 +92,17 @@
         "query": "SELECT distribution_tracker.upsert_snapshot(\n  '{{ $json.company_id }}'::UUID,\n  '{{ $json.tracked_page_id }}'::UUID,\n  {{ $json.features.integration_count }},\n  ARRAY{{ $json.features.integration_names }}::TEXT[],\n  '{{ JSON.stringify($json.features.integration_categories) }}'::JSONB,\n  ARRAY{{ $json.features.marketplace_presence }}::TEXT[],\n  ARRAY{{ $json.features.partner_mentions }}::TEXT[],\n  {{ $json.features.has_public_api }},\n  {{ $json.features.api_doc_url ? \"'\" + $json.features.api_doc_url + \"'\" : 'NULL' }},\n  NULL,\n  '{{ $json.content_hash }}'\n) AS snapshot_id;",
         "options": {}
       },
-      "id": "upsert_snapshot",
+      "id": "28c4a213-088d-4340-ac9b-ad7d411c73a2",
       "name": "Upsert Snapshot",
       "type": "n8n-nodes-base.postgres",
-      "position": [1100, 300],
+      "position": [
+        1008,
+        0
+      ],
       "typeVersion": 2.5,
       "credentials": {
         "postgres": {
-          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
       }
@@ -94,14 +113,17 @@
         "query": "SELECT * FROM distribution_tracker.detect_changes(\n  '{{ $('Extract Integration Features').item.json.company_id }}'::UUID,\n  '{{ $json.snapshot_id }}'::UUID\n);",
         "options": {}
       },
-      "id": "detect_changes",
+      "id": "f012c83f-1a43-40ae-aa62-8388d79032c2",
       "name": "Detect Changes",
       "type": "n8n-nodes-base.postgres",
-      "position": [1300, 300],
+      "position": [
+        1200,
+        0
+      ],
       "typeVersion": 2.5,
       "credentials": {
         "postgres": {
-          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
       }
@@ -129,10 +151,13 @@
         },
         "options": {}
       },
-      "id": "filter_changes",
+      "id": "1bb6f176-9047-4672-b802-cea73428bc12",
       "name": "Has Changes?",
       "type": "n8n-nodes-base.filter",
-      "position": [1500, 300],
+      "position": [
+        1408,
+        0
+      ],
       "typeVersion": 2
     },
     {
@@ -141,14 +166,17 @@
         "query": "SELECT distribution_tracker.emit_signal('{{ $json.id }}'::UUID) AS signal_id;",
         "options": {}
       },
-      "id": "emit_signal",
+      "id": "a6de9c8c-afc7-4344-b013-d6b72cd2bea2",
       "name": "Emit Signal",
       "type": "n8n-nodes-base.postgres",
-      "position": [1700, 300],
+      "position": [
+        1600,
+        0
+      ],
       "typeVersion": 2.5,
       "credentials": {
         "postgres": {
-          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
       }
@@ -157,10 +185,13 @@
       "parameters": {
         "jsCode": "// Summary node\nconst items = $input.all();\n\nreturn [{\n  json: {\n    run_completed_at: new Date().toISOString(),\n    signals_emitted: items.length,\n    signal_ids: items.map(i => i.json.signal_id)\n  }\n}];"
       },
-      "id": "summary",
+      "id": "2919ebf7-e031-4089-8a3a-060e70e8affb",
       "name": "Run Summary",
       "type": "n8n-nodes-base.code",
-      "position": [1900, 300],
+      "position": [
+        1808,
+        0
+      ],
       "typeVersion": 2
     }
   ],
@@ -189,6 +220,7 @@
     },
     "Batch Pages": {
       "main": [
+        [],
         [
           {
             "node": "Fetch Integration Page",
@@ -264,5 +296,19 @@
         ]
       ]
     }
-  }
+  },
+  "settings": {
+    "executionOrder": "v0",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {}
 }

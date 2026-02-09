@@ -1,0 +1,878 @@
+{
+  "name": "Narrative Drift Monitor [cloud]",
+  "nodes": [
+    {
+      "id": "trigger-cron",
+      "name": "Weekly Cron (Mon 9am UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        460
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        340
+      ]
+    },
+    {
+      "name": "Get Active Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/tracked_pages?enabled=eq.true&select=id,url,url_type,company_id,company_name",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Profile",
+              "value": "core"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "id": "78086327-a473-43b7-a627-efb5f0537f8e"
+    },
+    {
+      "id": "get-snapshots",
+      "name": "Get This Week Snapshots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/page_snapshots?order=fetched_at.desc&limit=20",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept-Profile",
+              "value": "diff_tracker"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "merge-pages-snapshots",
+      "name": "Merge Pages + Snapshots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Get pages from the first node\nconst pages = $('Get Active Pages').all().map(i => i.json);\nconst snapshots = $('Get This Week Snapshots').all().map(i => i.json);\n\n// Build a lookup of snapshots by tracked_page_id\nconst snapMap = {};\nfor (const snap of snapshots) {\n  if (!snapMap[snap.tracked_page_id]) {\n    snapMap[snap.tracked_page_id] = snap;\n  }\n}\n\n// Join: for each page, find its latest snapshot\nconst results = [];\nfor (const page of pages) {\n  const snap = snapMap[page.id];\n  if (snap) {\n    results.push({\n      json: {\n        page_id: page.id,\n        company_id: page.company_id,\n        company_name: page.company_name,\n        url: page.url,\n        url_type: page.url_type,\n        snapshot_id: snap.id,\n        tracked_page_id: snap.tracked_page_id,\n        text_content: snap.text_content || '',\n        raw_html: snap.raw_html || snap.text_content || '',\n        week_start_date: snap.week_start_date\n      }\n    });\n  }\n}\n\nreturn results;\n"
+      }
+    },
+    {
+      "id": "llm-extract-copy",
+      "name": "LLM: Extract Copy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-4-20250514\", max_tokens: 1500, system: \"Extract only the core value proposition text (hero headline, subhead, pricing headline) from the following page text. Remove navigation, testimonials, UI labels, legal text. Return clean text only, no JSON.\", messages: [{ role: \"user\", content: $json.text_content || $json.raw_html || \"No content\" }] }) }}",
+        "genericAuthType": "httpHeaderAuth"
+      }
+    },
+    {
+      "id": "parse-extract",
+      "name": "Parse Extract + Hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        400
+      ],
+      "parameters": {
+        "jsCode": "function fnv1a64(str) {\n  let h1 = 0x811c9dc5 >>> 0;\n  let h2 = 0xcbf29ce4 >>> 0;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (c >> 8 | c), 0x01000193) >>> 0;\n  }\n  return h2.toString(16).padStart(8, '0') + h1.toString(16).padStart(8, '0');\n}\n\nconst input = $input.first().json;\nconst prev = $('Merge Pages + Snapshots').first().json;\nlet text = input.content?.[0]?.text || '';\nconst fenceMatch = text.match(/```(?:\\w*)\\s*([\\s\\S]*?)```/);\nif (fenceMatch) text = fenceMatch[1].trim();\nconst hash = fnv1a64(text);\nreturn [{json: {\n  tracked_page_id: prev.tracked_page_id,\n  company_id: prev.company_id,\n  company_name: prev.company_name,\n  url_type: prev.url_type,\n  week_start_date: prev.week_start_date,\n  extracted_copy: text,\n  copy_hash: hash\n}}];"
+      }
+    },
+    {
+      "id": "upsert-narrative",
+      "name": "Upsert Narrative Snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_snapshots?on_conflict=tracked_page_id,week_start_date",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Profile",
+              "value": "diff_tracker"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tracked_page_id",
+              "value": "={{ $json.tracked_page_id }}"
+            },
+            {
+              "name": "company_id",
+              "value": "={{ $json.company_id }}"
+            },
+            {
+              "name": "week_start_date",
+              "value": "={{ $json.week_start_date || \"2026-01-26\" }}"
+            },
+            {
+              "name": "extracted_copy",
+              "value": "={{ $json.extracted_copy || \"\" }}"
+            },
+            {
+              "name": "copy_hash",
+              "value": "={{ $json.copy_hash || \"\" }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "collect-all-narratives",
+      "name": "Collect All Narratives",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// After all pages processed, gather all narrative snapshots for drift analysis\nconst items = $input.all().map(i => i.json);\n// Group by company\nconst byCompany = {};\nfor (const item of items) {\n  const key = item.company_id || item.tracked_page_id;\n  if (!byCompany[key]) byCompany[key] = { items: [], company_name: '' };\n  if (Array.isArray(item)) {\n    item.forEach(r => {\n      byCompany[r.company_id] = byCompany[r.company_id] || {items:[], company_name: r.company_name || ''};\n      byCompany[r.company_id].items.push(r);\n    });\n  } else {\n    byCompany[key].items.push(item);\n    byCompany[key].company_name = item.company_name || byCompany[key].company_name;\n  }\n}\n// Pass all upserted snapshots forward as single item for next phase\nreturn [{json: {phase: 'drift_detection', snapshot_count: items.length, message: 'Ready for drift detection'}}];"
+      }
+    },
+    {
+      "id": "get-drift-data-direct",
+      "name": "Get Drift Pairs Direct",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "=https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_snapshots?select=id,tracked_page_id,company_id,week_start_date,extracted_copy,copy_hash&order=week_start_date.desc&limit=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept-Profile",
+              "value": "diff_tracker"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "build-drift-prompts",
+      "name": "Build Drift Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const snapshots = $input.all().map(i => i.json);\n// Group by company_id\nconst byCompany = {};\nfor (const s of snapshots) {\n  if (!byCompany[s.company_id]) byCompany[s.company_id] = [];\n  byCompany[s.company_id].push(s);\n}\nconst results = [];\nconst allCompanyCopy = [];\nfor (const [companyId, snaps] of Object.entries(byCompany)) {\n  snaps.sort((a,b) => b.week_start_date.localeCompare(a.week_start_date));\n  const current = snaps[0];\n  const previous = snaps.length > 1 ? snaps[1] : null;\n  allCompanyCopy.push({company_id: companyId, current_copy: current.extracted_copy, week: current.week_start_date});\n  if (previous && current.copy_hash !== previous.copy_hash) {\n    results.push({json: {\n      company_id: companyId,\n      week_start_date: current.week_start_date,\n      current_copy: current.extracted_copy,\n      previous_copy: previous.extracted_copy,\n      changed: true\n    }});\n  } else {\n    results.push({json: {\n      company_id: companyId,\n      week_start_date: current.week_start_date,\n      current_copy: current.extracted_copy,\n      previous_copy: previous ? previous.extracted_copy : '',\n      changed: false\n    }});\n  }\n}\n// Store all company copy for category analysis as last item\nresults.push({json: {\n  _is_category_data: true,\n  all_company_copy: allCompanyCopy,\n  week_start_date: snapshots[0]?.week_start_date || new Date().toISOString().slice(0,10)\n}});\nreturn results;"
+      }
+    },
+    {
+      "id": "filter-changed",
+      "name": "Filter: Has Drift?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.changed }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "llm-drift",
+      "name": "LLM: Detect Drift",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-4-20250514\", max_tokens: 1500, system: \"Compare previous and current value proposition text for this company. Identify if there is a meaningful narrative shift. Classify drift direction: Outcome, Control, Speed, Intelligence, Risk, Trust, Platform, Simplicity. Return valid JSON only: {changed: bool, drift_from: string, drift_to: string, drift_direction: string, gtm_implication: string, severity: 1-5}\", messages: [{ role: \"user\", content: \"Previous copy:\\n\" + ($json.previous_copy || \"N/A\") + \"\\n\\nCurrent copy:\\n\" + ($json.current_copy || \"N/A\") }] }) }}",
+        "genericAuthType": "httpHeaderAuth"
+      }
+    },
+    {
+      "id": "parse-drift",
+      "name": "Parse Drift Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst prev = $('Filter: Has Drift?').first().json;\nlet text = raw.content?.[0]?.text || '{}';\nconst fm = text.match(/```(?:\\w*)\\s*([\\s\\S]*?)```/);\nif (fm) text = fm[1].trim();\nlet c;\ntry { c = JSON.parse(text); } catch(e) { c = {drift_detected: false}; }\nreturn [{json: {\n  company_id: prev.company_id,\n  week_start_date: prev.week_start_date,\n  drift_detected: c.drift_detected || false,\n  drift_from: c.drift_from || null,\n  drift_to: c.drift_to || null,\n  drift_direction: c.drift_direction || null,\n  scope: 'single_company',\n  gtm_implication: c.gtm_implication || null,\n  severity: c.severity || 1,\n  raw_llm_response: c\n}}];"
+      }
+    },
+    {
+      "id": "upsert-drift",
+      "name": "Upsert Drift",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_drifts?on_conflict=company_id,week_start_date",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Profile",
+              "value": "diff_tracker"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { company_id: $json.company_id, week_start_date: $json.week_start_date || \"2026-01-26\", drift_detected: $json.changed || false, drift_from: $json.drift_from || null, drift_to: $json.drift_to || null, drift_direction: $json.drift_direction || null, scope: \"single_company\", gtm_implication: $json.gtm_implication || null, severity: $json.severity || 1, raw_llm_response: $json } }}"
+      }
+    },
+    {
+      "id": "emit-signal",
+      "name": "Emit Control Plane Signal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/signals",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Profile",
+              "value": "control_plane"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "signal_type",
+              "value": "narrative_drift"
+            },
+            {
+              "name": "company_id",
+              "value": "={{ $json.company_id }}"
+            },
+            {
+              "name": "severity",
+              "value": "={{ $json.severity || 1 }}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{ $json.confidence || 0.5 }}"
+            },
+            {
+              "name": "title",
+              "value": "={{ ($json.company_name || \"Unknown\") + \": \" + ($json.drift_direction || \"drift detected\") }}"
+            },
+            {
+              "name": "summary",
+              "value": "={{ ($json.drift_from || \"\") + \" to \" + ($json.drift_to || \"\") }}"
+            },
+            {
+              "name": "evidence_urls",
+              "value": "={{ \"{\" + ($json.url ? \"\"\" + $json.url + \"\"\" : \"\") + \"}\" }}"
+            },
+            {
+              "name": "source_schema",
+              "value": "diff_tracker"
+            },
+            {
+              "name": "source_table",
+              "value": "narrative_drifts"
+            },
+            {
+              "name": "source_id",
+              "value": "={{ $json.drift_id || $json.id || '00000000-0000-0000-0000-000000000000' }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "LLM: Category Drift Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-4-20250514\", max_tokens: 2000, system: \"You are a B2B PMM analyst. Given current messaging for all companies in RevOps/Sales Tech, identify: 1) convergence_signals: which narratives are becoming similar, 2) divergence_signals: which are breaking away, 3) pressure_indicators: what category pressure this indicates. Return valid JSON: {convergence_signals: [...], divergence_signals: [...], pressure_indicators: [...], summary: string}\", messages: [{ role: \"user\", content: \"Analyze these company messaging snapshots:\\n\\n\" + ($json.allNarratives || JSON.stringify($input.all().map(i => ({company: i.json.company_name, copy: i.json.extracted_copy})))) }] }) }}",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      },
+      "id": "fb8a75e0-24fe-41ab-b6a8-72bc8fed3872"
+    },
+    {
+      "name": "Store Category Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/category_drift_analysis?on_conflict=week_start_date",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "diff_tracker"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "week_start_date",
+              "value": "2026-01-26"
+            },
+            {
+              "name": "category",
+              "value": "RevOps / Sales Tech"
+            },
+            {
+              "name": "summary",
+              "value": "={{ $json.summary || \"\" }}"
+            },
+            {
+              "name": "raw_llm_response",
+              "value": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "id": "8e6ba59e-32a8-4fe2-a861-7d67e09d057a"
+    },
+    {
+      "name": "Generate Weekly Packet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/weekly_packets?on_conflict=week_start",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "control_plane"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "week_start",
+              "value": "2026-01-26"
+            },
+            {
+              "name": "summary",
+              "value": "={{ $json.summary || \"Weekly packet generated\" }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase – Messaging Tracker"
+        }
+      },
+      "id": "92a6ac3a-69fb-4c8f-97d1-b8c34130df35"
+    },
+    {
+      "id": "adcb0500-b58b-4d33-9e6a-966584b012aa",
+      "name": "Build Upsert Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1430,
+        400
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\nfor (const item of items) {\n  const d = item.json;\n  results.push({\n    json: {\n      tracked_page_id: d.tracked_page_id || d.page_id,\n      company_id: d.company_id,\n      company_name: d.company_name,\n      url_type: d.url_type,\n      week_start_date: d.week_start_date || '2026-01-26',\n      extracted_copy: d.extracted_copy || '',\n      copy_hash: d.copy_hash || ''\n    }\n  });\n}\nreturn results;"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Active Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Cron (Mon 9am UTC)": {
+      "main": [
+        [
+          {
+            "node": "Get Active Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Pages": {
+      "main": [
+        [
+          {
+            "node": "Get This Week Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get This Week Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Merge Pages + Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Pages + Snapshots": {
+      "main": [
+        [
+          {
+            "node": "LLM: Extract Copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM: Extract Copy": {
+      "main": [
+        [
+          {
+            "node": "Parse Extract + Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Extract + Hash": {
+      "main": [
+        [
+          {
+            "node": "Build Upsert Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Narrative Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Collect All Narratives",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect All Narratives": {
+      "main": [
+        [
+          {
+            "node": "Get Drift Pairs Direct",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LLM: Category Drift Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Drift Pairs Direct": {
+      "main": [
+        [
+          {
+            "node": "Build Drift Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Drift Prompts": {
+      "main": [
+        [
+          {
+            "node": "Filter: Has Drift?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Has Drift?": {
+      "main": [
+        [
+          {
+            "node": "LLM: Detect Drift",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "LLM: Detect Drift": {
+      "main": [
+        [
+          {
+            "node": "Parse Drift Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Drift Result": {
+      "main": [
+        [
+          {
+            "node": "Upsert Drift",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Drift": {
+      "main": [
+        [
+          {
+            "node": "Emit Control Plane Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM: Category Drift Analysis": {
+      "main": [
+        [
+          {
+            "node": "Store Category Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Category Analysis": {
+      "main": [
+        [
+          {
+            "node": "Generate Weekly Packet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Upsert Body": {
+      "main": [
+        [
+          {
+            "node": "Upsert Narrative Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v0"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {}
+}

@@ -1,0 +1,532 @@
+{
+  "name": "Horizon Lane v0 [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron Daily 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        208
+      ],
+      "id": "d775d019-5f77-4086-8233-eb2cecfa0524"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id as source_id, name, source_type, channel, feed_url, tags, domain_focus, cadence, trust_weight, noise_level, keywords FROM horizon.sources WHERE enabled = true AND channel = 'rss' AND feed_url != '' ;",
+        "options": {}
+      },
+      "name": "Load Enabled Horizon Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        464,
+        208
+      ],
+      "id": "34df86ba-a1c5-4c20-8b59-f377f34e8922",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "name": "Split Sources",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        688,
+        208
+      ],
+      "id": "84306be0-b0cc-4305-b89b-938529bbdacb"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Check if source should run based on cadence\nconst cadence = ($input.item.json.cadence || 'weekly').toLowerCase();\nconst day = new Date().getDay(); // 0=Sun, 1=Mon, ...\nlet shouldRun = false;\n\nif (cadence === 'daily') {\n  shouldRun = true;\n} else if (cadence === '2x_weekly') {\n  shouldRun = day === 1 || day === 4; // Mon, Thu\n} else if (cadence === 'weekly') {\n  shouldRun = day === 1; // Monday\n} else if (cadence === 'monthly') {\n  shouldRun = new Date().getDate() === 1; // 1st of month\n}\n\nreturn {json: {...$input.item.json, shouldRun}};"
+      },
+      "name": "Should Run Today?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        208
+      ],
+      "id": "23fde619-b10b-4167-a41a-13d138695c3c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.shouldRun}}",
+              "value2": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "IF shouldRun",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        208
+      ],
+      "id": "e145ef29-9e16-4498-b2fc-a86cbdb33bc1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Switch by Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        208
+      ],
+      "id": "0bf87150-b89d-4c49-834a-d890255786dd"
+    },
+    {
+      "parameters": {
+        "jsCode": "function simpleHash(str) {\n  let h = 0;\n  for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }\n  return Math.abs(h).toString(36);\n}\n\nfunction extractTag(xml, tagName) {\n  const openTag = \"<\" + tagName;\n  const closeTag = \"</\" + tagName + \">\";\n  const startIdx = xml.indexOf(openTag);\n  if (startIdx === -1) return \"\";\n  const contentStart = xml.indexOf(\">\", startIdx) + 1;\n  const endIdx = xml.indexOf(closeTag, contentStart);\n  if (endIdx === -1) return \"\";\n  let val = xml.substring(contentStart, endIdx);\n  val = val.replace(/<!\\\\[CDATA\\\\[/g, \"\").replace(/\\\\]\\\\]>/g, \"\").trim();\n  return val;\n}\n\nconst sources = $input.all();\nconst out = [];\n\nfor (const srcItem of sources) {\n  const src = srcItem.json;\n  if (!src.feed_url) continue;\n  try {\n    const xml = await this.helpers.httpRequest({ timeout: 15000,\n      method: \"GET\",\n      url: src.feed_url,\n      returnFullResponse: false,\n      encoding: \"utf-8\",\n    });\n    const xmlStr = typeof xml === \"string\" ? xml : JSON.stringify(xml);\n    const isAtom = xmlStr.includes(\"<entry\");\n    const tag = isAtom ? \"entry\" : \"item\";\n    const closeTag = \"</\" + tag + \">\";\n    const openTag = \"<\" + tag;\n    const parts = xmlStr.split(closeTag);\n    let count = 0;\n    for (const part of parts) {\n      if (count >= 15) break;\n      const idx = part.lastIndexOf(openTag);\n      if (idx === -1) continue;\n      const block = part.substring(idx);\n      const title = extractTag(block, \"title\");\n      let url = extractTag(block, \"link\");\n      if (!url) {\n        const hrefMatch = block.match(/href=\\\"([^\\\"]+)\\\"/);\n        if (hrefMatch) url = hrefMatch[1];\n      }\n      if (!url) url = extractTag(block, \"guid\");\n      const pubDate = extractTag(block, \"pubDate\") || extractTag(block, \"published\") || extractTag(block, \"updated\") || null;\n      const desc = extractTag(block, \"description\") || extractTag(block, \"content\") || extractTag(block, \"summary\") || \"\";\n      if (!title && !url) continue;\n      const hash = simpleHash(title + url + (pubDate || \"\"));\n      out.push({json: {\n        source_id: src.source_id, source_name: src.name, source_type: src.source_type,\n        channel: src.channel, tags: src.tags, domain_focus: src.domain_focus,\n        title, url, published_at: pubDate,\n        content_text: desc.substring(0, 20000),\n        raw: {feed_url: src.feed_url, fetched_at: new Date().toISOString()},\n        hash\n      }});\n      count++;\n    }\n  } catch(e) {\n    out.push({json: {source_id: src.source_id, source_name: src.name, source_type: src.source_type, channel: \"rss\", skip: true, error: e.message}});\n  }\n}\nreturn out.length > 0 ? out : [{json: {skip: true, error: \"no items\"}}];"
+      },
+      "name": "Normalize RSS Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        64
+      ],
+      "id": "aec4186b-112e-4708-8209-60ce0b245204",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; } return Math.abs(h).toString(36); }\nconst sources = $input.all();\nconst out = [];\nfor (const srcItem of sources) {\n  const src = srcItem.json;\n  if (!src.feed_url) { out.push({json: {source_id: src.source_id, skip: true}}); continue; }\n  try {\n    const html = await this.helpers.httpRequest({ timeout: 15000, method: \"GET\", url: src.feed_url, encoding: \"utf-8\" });\n    const htmlStr = typeof html === \"string\" ? html : JSON.stringify(html);\n    let text = htmlStr.replace(/<script[\\\\s\\\\S]*?<\\\\/script>/gi, \"\").replace(/<style[\\\\s\\\\S]*?<\\\\/style>/gi, \"\").replace(/<[^>]+>/g, \" \").replace(/&nbsp;/g, \" \").replace(/&amp;/g, \"&\").replace(/\\\\s+/g, \" \").trim().substring(0, 20000);\n    const hash = simpleHash(src.name + src.feed_url + new Date().toISOString().split(\"T\")[0]);\n    out.push({json: {source_id: src.source_id, source_name: src.name, source_type: src.source_type, channel: src.channel, tags: src.tags, domain_focus: src.domain_focus, title: src.name, url: src.feed_url, published_at: new Date().toISOString(), content_text: text, raw: {url: src.feed_url, fetched_at: new Date().toISOString()}, hash}});\n  } catch(e) { out.push({json: {source_id: src.source_id, skip: true, error: e.message}}); }\n}\nreturn out.length > 0 ? out : [{json: {skip: true}}];"
+      },
+      "name": "HTML → Text (simple)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        208
+      ],
+      "id": "ce236856-95ab-4573-9871-d65e8e37753a",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; } return Math.abs(h).toString(36); }\nconst sources = $input.all();\nconst out = [];\nfor (const srcItem of sources) {\n  const src = srcItem.json;\n  if (!src.feed_url) { out.push({json: {source_id: src.source_id, skip: true}}); continue; }\n  try {\n    const resp = await this.helpers.httpRequest({ timeout: 15000, method: \"GET\", url: src.feed_url, encoding: \"utf-8\", headers: {\"Accept\": \"application/json\"} });\n    const text = typeof resp === \"string\" ? resp.substring(0, 20000) : JSON.stringify(resp).substring(0, 20000);\n    const hash = simpleHash(src.name + src.feed_url + new Date().toISOString().split(\"T\")[0]);\n    out.push({json: {source_id: src.source_id, source_name: src.name, source_type: src.source_type, channel: src.channel, tags: src.tags, domain_focus: src.domain_focus, title: src.name, url: src.feed_url, published_at: new Date().toISOString(), content_text: text, raw: {url: src.feed_url, fetched_at: new Date().toISOString()}, hash}});\n  } catch(e) { out.push({json: {source_id: src.source_id, skip: true, error: e.message}}); }\n}\nreturn out.length > 0 ? out : [{json: {skip: true}}];"
+      },
+      "name": "API → Text Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        352
+      ],
+      "id": "92b57f88-a600-4a9e-b99b-af1b2327a317",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO horizon.items (source_id, company_id, published_at, title, url, content_text, raw, item_hash)\nVALUES (\n  '{{ $json.source_id }}',\n  '67dedae0-7746-4750-8469-abbbf7429439',\n  {{ $json.published_at ? \"'\" + $json.published_at + \"'\" : 'NOW()' }},\n  '{{ ($json.title || \"\").replace(/'/g, \"''\").substring(0, 500) }}',\n  '{{ ($json.url || \"\").replace(/'/g, \"''\") }}',\n  '{{ ($json.content_text || \"\").replace(/'/g, \"''\").substring(0, 20000) }}',\n  '{{ JSON.stringify($json.raw || {}).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ $json.hash || \"nohash\" }}'\n) ON CONFLICT (source_id, item_hash) DO UPDATE SET discovered_at = NOW()\nRETURNING id as item_id, source_id, '{{ ($json.source_type || \"secondary\").replace(/'/g, \"''\") }}' as source_type, '{{ ($json.title || \"\").replace(/'/g, \"''\").substring(0, 500) }}' as title, '{{ ($json.url || \"\").replace(/'/g, \"''\") }}' as url, '{{ ($json.content_text || \"\").replace(/'/g, \"''\").substring(0, 5000) }}' as content_text, '{{ ($json.source_name || \"\").replace(/'/g, \"''\") }}' as source_name;",
+        "options": {}
+      },
+      "name": "Upsert horizon.items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2448,
+        208
+      ],
+      "id": "df354a53-a071-4469-91ca-93e8ce112363",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.item_id}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "IF Inserted New Item",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        208
+      ],
+      "id": "0ae2b015-bd12-4fd9-8f0b-e352ba9c7e3b",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nif (item.skip) return {json: {...item, category: \"category_formation\", severity: 1, event_title: \"Skipped\", summary: \"Source skipped\", evidence_urls: \"[]\", is_candidate: true}};\n\nconst systemPrompt = \"You are a B2B SaaS market analyst. Classify this content into a horizon event. Return ONLY valid JSON with: category (platform_shift|distribution_shift|buyer_risk|category_formation), severity (1-5), event_title (short), summary (2-3 sentences), evidence_urls (array of URLs).\";\nconst userMsg = \"Source: \" + (item.source_name || \"\") + \"\\nTitle: \" + (item.title || \"\") + \"\\nURL: \" + (item.url || \"\") + \"\\nContent: \" + (item.content_text || \"\").substring(0, 6000);\n\ntry {\n  const data = await this.helpers.httpRequest({ timeout: 15000,\n    method: \"POST\",\n    url: \"https://api.anthropic.com/v1/messages\",\n    headers: { \"x-api-key\": \"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\",\n      \"anthropic-version\": \"2023-06-01\",\n      \"content-type\": \"application/json\"\n    },\n    body: {\n      model: \"claude-3-5-haiku-20241022\",\n      max_tokens: 512,\n      system: systemPrompt,\n      messages: [{role: \"user\", content: userMsg}]\n    },\n    json: true,\n  });\n\n  if (data.error) {\n    return {json: {source_id: item.source_id, item_id: item.item_id, source_type: item.source_type, category: \"category_formation\", severity: 1, event_title: item.title || \"API Error\", summary: \"Anthropic error: \" + (data.error.message || JSON.stringify(data.error)), evidence_urls: JSON.stringify([item.url || \"\"]), is_candidate: true}};\n  }\n\n  const text = data.content && data.content[0] ? data.content[0].text : \"{}\";\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};\n  return {json: {\n    source_id: item.source_id, item_id: item.item_id, source_type: item.source_type,\n    source_name: item.source_name, title: item.title, url: item.url,\n    category: parsed.category || \"category_formation\",\n    severity: parsed.severity || 1,\n    event_title: parsed.event_title || parsed.title || item.title || \"\",\n    summary: parsed.summary || \"\",\n    evidence_urls: JSON.stringify(parsed.evidence_urls || [item.url || \"\"]),\n    is_candidate: item.source_type !== \"primary\"\n  }};\n} catch(e) {\n  return {json: {source_id: item.source_id, item_id: item.item_id, source_type: item.source_type, category: \"category_formation\", severity: 1, event_title: item.title || \"Unknown\", summary: \"Classification failed: \" + e.message, evidence_urls: JSON.stringify([item.url || \"\"]), is_candidate: true}};\n}"
+      },
+      "name": "Parse Anthropic JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3104,
+        208
+      ],
+      "id": "22a5d070-6b4a-416c-86c0-7df514ea12d9",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO horizon.events (source_id, item_id, company_id, category, is_candidate, severity, title, summary, evidence_urls, promotion_rule)\nSELECT\n  '{{ $json.source_id }}'::uuid,\n  {{ $json.item_id ? \"'\" + $json.item_id + \"'::uuid\" : 'NULL' }},\n  '67dedae0-7746-4750-8469-abbbf7429439'::uuid,\n  '{{ $json.category || \"category_formation\" }}',\n  {{ $json.is_candidate === false ? false : true }},\n  {{ $json.severity || 1 }},\n  '{{ ($json.event_title || \"\").replace(/'/g, \"''\").substring(0, 500) }}',\n  '{{ ($json.summary || \"\").replace(/'/g, \"''\").substring(0, 2000) }}',\n  '{{ $json.evidence_urls || \"[]\" }}'::jsonb,\n  '{{ $json.is_candidate === false ? \"primary\" : \"candidate\" }}'\nWHERE '{{ $json.source_id }}' != 'undefined'\nRETURNING id as event_id;",
+        "options": {}
+      },
+      "name": "Insert horizon.events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3328,
+        208
+      ],
+      "id": "85447d14-602c-41a5-b600-e98aaa34f2ff",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT e.id as event_id, e.severity, e.title, e.summary, e.evidence_urls\nFROM horizon.events e\nWHERE e.is_candidate = false\n  AND e.severity >= 3\n  AND e.created_at >= now() - interval '7 days'\nORDER BY e.severity DESC, e.created_at DESC\nLIMIT 3;",
+        "options": {}
+      },
+      "name": "Select Top 3 Promoted Events (7d)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3552,
+        208
+      ],
+      "id": "8d48b56d-2bd3-42e1-b525-bb119d1674cd",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {},
+        "batchSize": 1
+      },
+      "name": "Split Promoted Events",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        208
+      ],
+      "id": "d65ae560-1cb4-430c-8ff2-fcc9d29ad8e5"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (\n  signal_type, severity, title, summary, evidence_urls,\n  source_schema, source_table, source_id\n)\nVALUES (\n  'horizon',\n  {{ $json.severity }},\n  '{{ $json.title.replace(/'/g, \"''\") }}',\n  '{{ ($json.summary || \"\").replace(/'/g, \"''\") }}',\n  '{}',\n  'horizon',\n  'events',\n  '{{ $json.event_id }}'\n)\nON CONFLICT DO NOTHING;",
+        "options": {}
+      },
+      "name": "Emit control_plane.signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3984,
+        208
+      ],
+      "id": "8a97decc-6faf-4938-9a51-cde844d51f7c",
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cron Daily 06:00": {
+      "main": [
+        [
+          {
+            "node": "Load Enabled Horizon Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Enabled Horizon Sources": {
+      "main": [
+        [
+          {
+            "node": "Split Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Sources": {
+      "main": [
+        [
+          {
+            "node": "Should Run Today?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Run Today?": {
+      "main": [
+        [
+          {
+            "node": "IF shouldRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF shouldRun": {
+      "main": [
+        [
+          {
+            "node": "Switch by Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Top 3 Promoted Events (7d)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Channel": {
+      "main": [
+        [
+          {
+            "node": "Normalize RSS Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTML → Text (simple)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "API → Text Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        []
+      ]
+    },
+    "Normalize RSS Items": {
+      "main": [
+        [
+          {
+            "node": "Upsert horizon.items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML → Text (simple)": {
+      "main": [
+        [
+          {
+            "node": "Upsert horizon.items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API → Text Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Upsert horizon.items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert horizon.items": {
+      "main": [
+        [
+          {
+            "node": "IF Inserted New Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Inserted New Item": {
+      "main": [
+        [
+          {
+            "node": "Parse Anthropic JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Parse Anthropic JSON": {
+      "main": [
+        [
+          {
+            "node": "Insert horizon.events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert horizon.events": {
+      "main": [
+        [
+          {
+            "node": "Select Top 3 Promoted Events (7d)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Top 3 Promoted Events (7d)": {
+      "main": [
+        [
+          {
+            "node": "Split Promoted Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Promoted Events": {
+      "main": [
+        [
+          {
+            "node": "Emit control_plane.signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit control_plane.signals": {
+      "main": [
+        [
+          {
+            "node": "Split Promoted Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 300,
+    "saveExecutionProgress": true,
+    "executionOrder": "v0"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {}
+}

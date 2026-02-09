@@ -1,0 +1,194 @@
+{
+  "name": "Health Check Cron (Every 3 Hours) [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "da5289ea-cde1-4034-b0e7-a9e6da3b756f",
+      "name": "Every 3 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8f5e1bf2-4d0c-4825-b94a-b26ebae795be",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/functions/v1/admin-system-monitor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZGY5MTZmZC1hOGJlLTQzMzUtOTMzNy0wMGNlNjBkYTk3MTIiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY5NzU2MTIyLCJleHAiOjE3NzQ5MTE2MDB9.r7byiUABZCmpg9XAss38PSqNgUuQp84cZFCWa6r1iXA"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"action\": \"run_health_checks\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "dba2d6f2-2060-4639-833a-cfeb7db6c07a",
+      "name": "Run Health Checks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-http-success",
+              "leftValue": "={{ $json.statusCode || 200 }}",
+              "rightValue": 299,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "644e2345-523c-4e1b-a820-db41c947aeae",
+      "name": "Response OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        608,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log successful health check\nconst data = $('Run Health Checks').first().json;\nconst results = data.data || [];\nconst summary = results.map(r => `${r.api_slug}: ${r.status} (${r.response_time_ms}ms)`).join(', ');\nconsole.log(`Health checks passed: ${summary}`);\nreturn [{ json: { success: true, timestamp: new Date().toISOString(), summary, results } }];"
+      },
+      "id": "9e531d20-bde1-46ce-8634-b765d5ebbafc",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log failed health check for investigation\nconst data = $('Run Health Checks').first().json;\nconsole.error('Health check failed:', JSON.stringify(data));\nreturn [{ json: { success: false, timestamp: new Date().toISOString(), error: data.error || 'Unknown error', raw: data } }];"
+      },
+      "id": "a2aa8799-49c5-48d7-bd64-3e356d08ecad",
+      "name": "Log Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        208
+      ]
+    }
+  ],
+  "connections": {
+    "Every 3 Hours": {
+      "main": [
+        [
+          {
+            "node": "Run Health Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run Health Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Health Checks": {
+      "main": [
+        [
+          {
+            "node": "Response OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response OK?": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v0",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {}
+}

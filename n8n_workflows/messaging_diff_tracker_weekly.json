@@ -16,7 +16,10 @@
       "name": "Weekly Cron (Mon 6am UTC)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 300]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {},
@@ -24,7 +27,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 100]
+      "position": [
+        0,
+        100
+      ]
     },
     {
       "parameters": {
@@ -36,11 +42,14 @@
       "name": "Postgres: Get Tracked Pages",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [250, 200],
+      "position": [
+        250,
+        200
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -53,7 +62,10 @@
       "name": "Loop Over Pages",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 2,
-      "position": [500, 200]
+      "position": [
+        500,
+        200
+      ]
     },
     {
       "parameters": {
@@ -79,7 +91,10 @@
       "name": "HTTP: Fetch Page",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [750, 200],
+      "position": [
+        750,
+        200
+      ],
       "continueOnFail": true
     },
     {
@@ -90,18 +105,29 @@
       "name": "Normalize HTML & Hash",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1000, 200]
+      "position": [
+        1000,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "err-check",
               "leftValue": "={{ $json.error }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals", "name": "filter.boolean.equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.boolean.equals"
+              }
             }
           ],
           "combinator": "and"
@@ -111,7 +137,10 @@
       "name": "If Fetch Failed",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1250, 200]
+      "position": [
+        1250,
+        200
+      ]
     },
     {
       "parameters": {
@@ -123,11 +152,14 @@
       "name": "Postgres: Upsert Snapshot",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1500, 100],
+      "position": [
+        1500,
+        100
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -141,11 +173,14 @@
       "name": "Postgres: Get Previous Snapshot",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1750, 100],
+      "position": [
+        1750,
+        100
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -157,18 +192,29 @@
       "name": "Check If Changed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 100]
+      "position": [
+        2000,
+        100
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "changed-check",
               "leftValue": "={{ $json.changed }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals", "name": "filter.boolean.equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.boolean.equals"
+              }
             }
           ],
           "combinator": "and"
@@ -178,7 +224,10 @@
       "name": "If Hash Changed",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2250, 100]
+      "position": [
+        2250,
+        100
+      ]
     },
     {
       "parameters": {
@@ -189,8 +238,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -204,11 +259,14 @@
       "name": "LLM: Classify Change",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2500, 0],
+      "position": [
+        2500,
+        0
+      ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "ANTHROPIC_HEADER_AUTH_ID",
-          "name": "Header Auth account 3"
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
         }
       },
       "continueOnFail": true
@@ -221,7 +279,10 @@
       "name": "Validate & Build Diff",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2750, 0]
+      "position": [
+        2750,
+        0
+      ]
     },
     {
       "parameters": {
@@ -233,11 +294,14 @@
       "name": "Postgres: Insert Diff",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [3000, 0],
+      "position": [
+        3000,
+        0
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -251,11 +315,14 @@
       "name": "Postgres: Insert Classification",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [3250, 0],
+      "position": [
+        3250,
+        0
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -267,7 +334,10 @@
       "name": "Collect Failure",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1500, 350]
+      "position": [
+        1500,
+        350
+      ]
     },
     {
       "parameters": {
@@ -279,11 +349,14 @@
       "name": "Postgres: Record Failed Fetch",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1750, 350],
+      "position": [
+        1750,
+        350
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -293,7 +366,10 @@
       "name": "No Change – Skip",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [2500, 200]
+      "position": [
+        2500,
+        200
+      ]
     },
     {
       "parameters": {
@@ -303,18 +379,29 @@
       "name": "Prepare Signal Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3500, 0]
+      "position": [
+        3500,
+        0
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "skip-check",
               "leftValue": "={{ $json.skip }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals", "name": "filter.boolean.equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.boolean.equals"
+              }
             }
           ],
           "combinator": "and"
@@ -324,7 +411,10 @@
       "name": "If Should Emit",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [3750, 0]
+      "position": [
+        3750,
+        0
+      ]
     },
     {
       "parameters": {
@@ -336,11 +426,14 @@
       "name": "Emit control_plane.signals",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [4000, -100],
+      "position": [
+        4000,
+        -100
+      ],
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres (Shared Pooler)"
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
         }
       }
     }
@@ -348,118 +441,269 @@
   "connections": {
     "Manual Trigger": {
       "main": [
-        [{ "node": "Postgres: Get Tracked Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Postgres: Get Tracked Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Weekly Cron (Mon 6am UTC)": {
       "main": [
-        [{ "node": "Postgres: Get Tracked Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Postgres: Get Tracked Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres: Get Tracked Pages": {
       "main": [
-        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Loop Over Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Loop Over Pages": {
       "main": [
-        [{ "node": "HTTP: Fetch Page", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "HTTP: Fetch Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
     "HTTP: Fetch Page": {
       "main": [
-        [{ "node": "Normalize HTML & Hash", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Normalize HTML & Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Normalize HTML & Hash": {
       "main": [
-        [{ "node": "If Fetch Failed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "If Fetch Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "If Fetch Failed": {
       "main": [
-        [{ "node": "Collect Failure", "type": "main", "index": 0 }],
-        [{ "node": "Postgres: Upsert Snapshot", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Collect Failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres: Upsert Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Collect Failure": {
       "main": [
-        [{ "node": "Postgres: Record Failed Fetch", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Postgres: Record Failed Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres: Record Failed Fetch": {
       "main": [
-        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Loop Over Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres: Upsert Snapshot": {
       "main": [
-        [{ "node": "Postgres: Get Previous Snapshot", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Postgres: Get Previous Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres: Get Previous Snapshot": {
       "main": [
-        [{ "node": "Check If Changed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check If Changed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check If Changed": {
       "main": [
-        [{ "node": "If Hash Changed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "If Hash Changed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "If Hash Changed": {
       "main": [
-        [{ "node": "LLM: Classify Change", "type": "main", "index": 0 }],
-        [{ "node": "No Change – Skip", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "LLM: Classify Change",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Change – Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "LLM: Classify Change": {
       "main": [
-        [{ "node": "Validate & Build Diff", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Validate & Build Diff",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Validate & Build Diff": {
       "main": [
-        [{ "node": "Postgres: Insert Diff", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Postgres: Insert Diff",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres: Insert Diff": {
       "main": [
-        [{ "node": "Postgres: Insert Classification", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Postgres: Insert Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres: Insert Classification": {
       "main": [
-        [{ "node": "Prepare Signal Data", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Signal Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Signal Data": {
       "main": [
-        [{ "node": "If Should Emit", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "If Should Emit",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "If Should Emit": {
       "main": [
-        [{ "node": "Emit control_plane.signals", "type": "main", "index": 0 }],
-        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Emit control_plane.signals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Emit control_plane.signals": {
       "main": [
-        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Loop Over Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "No Change – Skip": {
       "main": [
-        [{ "node": "Loop Over Pages", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Loop Over Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
   "settings": {
     "executionOrder": "v0"
   },
-  "meta": {
-    "templateCredsSetupCompleted": false
-  }
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {}
 }

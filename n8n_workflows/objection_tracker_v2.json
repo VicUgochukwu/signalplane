@@ -1,0 +1,949 @@
+{
+  "name": "Objection Tracker v2 [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT objection_tracker.create_weekly_snapshot('{{ $('Compute Week Range').first().json.week_start }}'::date, '{{ $('Compute Week Range').first().json.week_end }}'::date);",
+        "options": {}
+      },
+      "id": "6480edac-71c3-476c-9dc4-c171b86046db",
+      "name": "Create Weekly Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -1760,
+        704
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (signal_type, severity, confidence, title, summary, summary_short, evidence_urls, source_schema, source_table, source_id, decision_type, recommended_asset, owner_team, time_sensitivity, meta) VALUES ('{{ $json.signal_type }}', {{ $json.severity }}, {{ $json.confidence }}, '{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.summary.replace(/'/g, \"''\") }}', '{{ $json.summary_short.replace(/'/g, \"''\") }}', ARRAY[{{ $json.evidence_urls.map(u => \"'\" + u + \"'\").join(',') || '' }}]::text[], '{{ $json.source_schema }}', '{{ $json.source_table }}', '{{ $json.source_id }}', '{{ $json.decision_type }}', '{{ $json.recommended_asset }}', '{{ $json.owner_team }}', '{{ $json.time_sensitivity }}', '{{ $json.meta }}'::jsonb) ON CONFLICT (signal_type, source_schema, source_table, source_id) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "82927fc5-33ff-4442-9a5b-8b506772ac31",
+      "name": "Insert Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -1536,
+        512
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Emit signals\nconst input = $input.first().json;\nconst signals = [];\n\nfor (const pattern of input.patterns_to_signal || []) {\n  let severity = Math.round(pattern.avg_severity || 3);\n  if (pattern.trend === 'rising') severity = Math.min(5, severity + 1);\n\n  let title = '';\n  switch (pattern.signal_reason) {\n    case 'New objection': title = `New objection: ${pattern.category}`; break;\n    case 'Rising trend': title = `Rising objection: ${pattern.category}`; break;\n    case 'High severity spike': title = `High-severity: ${pattern.category}`; break;\n    default: title = `Objection: ${pattern.category}`;\n  }\n\n  signals.push({\n    signal_type: 'objection',\n    severity: severity,\n    confidence: 0.8,\n    title: title,\n    summary: `\"${pattern.canonical_text}\" - ${pattern.count_last_7_days} this week`,\n    summary_short: pattern.canonical_text.substring(0, 100),\n    evidence_urls: (pattern.evidence_urls || []).slice(0, 2),\n    source_schema: 'objection_tracker',\n    source_table: 'patterns',\n    source_id: pattern.pattern_id,\n    decision_type: 'enablement',\n    recommended_asset: 'talk_track',\n    owner_team: 'sales',\n    time_sensitivity: pattern.trend === 'rising' ? 'this_week' : 'monitor',\n    meta: JSON.stringify({ category: pattern.category, signal_reason: pattern.signal_reason })\n  });\n}\n\nreturn signals.map(s => ({ json: s }));"
+      },
+      "id": "634c5c53-5900-43f4-95db-56160c4e0027",
+      "name": "Emit Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-signals",
+              "leftValue": "={{ $json.total_signals }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "22f4051e-ae20-4cd9-b4f8-aaad89ae9b8a",
+      "name": "Has Signals?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Trend Analysis\nconst weekRange = $('Compute Week Range').first().json;\nconst patternsResult = $('Load & Update Patterns').all();\nconst prevSnapshotResult = []; // Previous snapshot not needed with Append merge mode\nconst patterns = patternsResult.map(r => r.json);\nconst previousSnapshot = prevSnapshotResult.length > 0 ? prevSnapshotResult[0].json : null;\n\nconst patternsToSignal = [];\nlet driftDetected = false;\nlet driftSummary = '';\n\nfor (const pattern of patterns) {\n  let signalReason = null;\n  const firstSeenDate = new Date(pattern.first_seen_at);\n  const weekStartDate = new Date(weekRange.week_start);\n\n  if (firstSeenDate >= weekStartDate) signalReason = 'New objection';\n  else if (pattern.trend === 'rising' && pattern.count_last_7_days >= 3) signalReason = 'Rising trend';\n  else if (pattern.avg_severity >= 4 && pattern.count_last_7_days >= 2) signalReason = 'High severity spike';\n\n  if (signalReason) {\n    patternsToSignal.push({\n      pattern_id: pattern.id,\n      canonical_text: pattern.canonical_text,\n      category: pattern.category,\n      trend: pattern.trend,\n      count_last_7_days: pattern.count_last_7_days,\n      avg_severity: pattern.avg_severity,\n      evidence_urls: pattern.evidence_urls || [],\n      signal_reason: signalReason\n    });\n  }\n}\n\npatternsToSignal.sort((a, b) => {\n  const priority = { 'New objection': 3, 'Rising trend': 2, 'High severity spike': 1 };\n  return (priority[b.signal_reason] || 0) - (priority[a.signal_reason] || 0);\n});\n\nreturn [{\n  json: {\n    week_start: weekRange.week_start,\n    week_end: weekRange.week_end,\n    patterns_to_signal: patternsToSignal.slice(0, 8),\n    total_signals: Math.min(patternsToSignal.length, 8),\n    drift_detected: driftDetected,\n    drift_summary: driftSummary\n  }\n}];"
+      },
+      "id": "61fb6a96-11a3-4cbf-a19c-e78eb2668825",
+      "name": "Trend Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2208,
+        608
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2c0175f9-5003-49e7-a1e1-5b74b764ce57",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -2416,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT objection_tracker.update_all_trend_counts();\n\nSELECT p.*, COALESCE((SELECT json_agg(e.source_url) FROM objection_tracker.events e WHERE e.id = ANY(p.recent_event_ids) AND e.source_url IS NOT NULL LIMIT 2), '[]') as recent_evidence_urls FROM objection_tracker.patterns p WHERE p.last_seen_at >= '{{ $json.week_start }}'::date - interval '30 days' ORDER BY p.count_last_7_days DESC, p.avg_severity DESC;",
+        "options": {}
+      },
+      "id": "916821c8-7b0b-4062-af7f-f59c091432a9",
+      "name": "Load & Update Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -2640,
+        608
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute week range\nconst now = new Date();\nconst dayOfWeek = now.getDay();\nconst diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;\n\nconst weekEnd = new Date(now);\nweekEnd.setDate(now.getDate() - diff - 1);\nweekEnd.setHours(23, 59, 59, 999);\n\nconst weekStart = new Date(weekEnd);\nweekStart.setDate(weekEnd.getDate() - 6);\nweekStart.setHours(0, 0, 0, 0);\n\nconst formatDate = (d) => d.toISOString().split('T')[0];\n\nreturn [{ json: { week_start: formatDate(weekStart), week_end: formatDate(weekEnd) } }];"
+      },
+      "id": "a8128061-00f5-4d9e-8d4d-2afa84cdd690",
+      "name": "Compute Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2864,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "8f3c26f3-6b7c-44f1-8011-33a1653611b5",
+      "name": "Weekly Analysis (Monday 7am)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3088,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE objection_tracker.sources SET last_fetched_at = NOW() WHERE id = '{{ $('Smart Fetcher Router').first().json.source_id }}';",
+        "options": {}
+      },
+      "id": "ad8034aa-7097-4cca-9c10-259454f84b5a",
+      "name": "Update Source Timestamp",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO objection_tracker.events (source_id, external_id, raw_text, objection_text, context_text, category, severity, confidence, source_url, source_author, source_date, meta) VALUES ('{{ $json.source_id }}', {{ $json.external_id ? \"'\" + $json.external_id + \"'\" : 'NULL' }}, '{{ $json.raw_text.replace(/'/g, \"''\") }}', '{{ $json.objection_text.replace(/'/g, \"''\") }}', {{ $json.context_text ? \"'\" + $json.context_text.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, '{{ $json.category }}', {{ $json.severity }}, {{ $json.confidence }}, {{ $json.source_url ? \"'\" + $json.source_url + \"'\" : 'NULL' }}, {{ $json.source_author ? \"'\" + $json.source_author.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, {{ $json.source_date ? \"'\" + $json.source_date + \"'\" : 'NULL' }}, '{{ JSON.stringify($json.meta || {}) }}'::jsonb) ON CONFLICT (source_id, external_id) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "70acd1c9-5c28-42dd-a7df-f9a2130f0340",
+      "name": "Insert Events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "not-skip",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6277b0e4-e03e-454b-831c-dbba812baa55",
+      "name": "Has Events?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse classification response\nconst anthropicResponse = $input.first().json;\nconst classifyData = $('Classify Objections').first().json;\nconst sourceId = classifyData.source_id;\nconst items = classifyData.items;\n\nconst content = anthropicResponse.content[0].text;\nlet classifications;\ntry {\n  const jsonMatch = content.match(/```json?\\s*([\\s\\S]*?)```/);\n  classifications = jsonMatch ? JSON.parse(jsonMatch[1]) : JSON.parse(content);\n} catch (e) {\n  throw new Error('Failed to parse: ' + e.message);\n}\n\nconst events = [];\nconst validCategories = ['price_value', 'timing', 'complexity', 'risk', 'fit', 'competition', 'inertia', 'authority', 'trust'];\n\nfor (const classification of classifications.classifications || []) {\n  const originalItem = items[classification.item_index];\n  if (!originalItem || !classification.objections) continue;\n\n  for (const objection of classification.objections) {\n    if (!objection.objection_text || !objection.category) continue;\n    \n    events.push({\n      source_id: sourceId,\n      external_id: originalItem.external_id || null,\n      raw_text: originalItem.raw_text,\n      objection_text: objection.objection_text,\n      context_text: objection.context || null,\n      category: validCategories.includes(objection.category) ? objection.category : 'fit',\n      severity: Math.max(1, Math.min(5, Math.round(objection.severity || 3))),\n      confidence: Math.max(0, Math.min(1, objection.confidence || 0.7)),\n      source_url: originalItem.source_url || null,\n      source_author: originalItem.source_author || null,\n      source_date: originalItem.source_date || null,\n      meta: originalItem.meta || {}\n    });\n  }\n}\n\nif (events.length === 0) {\n  return [{ json: { skip: true, reason: 'No objections found' } }];\n}\n\nreturn events.map(event => ({ json: event }));"
+      },
+      "id": "3092d45e-d827-4e9d-97c7-fe7f5464e812",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {}
+      },
+      "id": "584d3a4b-ba2e-40e6-aa76-dd3909ba5a03",
+      "name": "Call Anthropic (Classify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        112
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify objections using Claude\nconst input = $input.first().json;\nconst sourceId = input.source_id;\nconst sourceName = input.source_name;\nconst sourceType = input.source_type;\nconst items = input.items || [];\n\nif (!items.length) {\n  return [{ json: { skip: true, reason: 'No items' } }];\n}\n\nconst systemPrompt = `You are an expert at identifying and classifying buyer objections from customer feedback.\n\nCategories:\n- price_value: Cost concerns, ROI unclear\n- timing: Not the right time\n- complexity: Too hard to implement\n- risk: Security/compliance concerns\n- fit: Doesn't fit needs\n- competition: Competitor is better\n- inertia: Current solution works fine\n- authority: Need buy-in from others\n- trust: Don't trust vendor\n\nSeverity (1-5): 1=Minor, 5=Critical\n\nOutput STRICT JSON only:\n{\n  \"classifications\": [\n    {\n      \"item_index\": 0,\n      \"objections\": [\n        {\n          \"objection_text\": \"exact phrase\",\n          \"category\": \"category\",\n          \"severity\": 1-5,\n          \"confidence\": 0.0-1.0,\n          \"context\": \"brief context\"\n        }\n      ]\n    }\n  ]\n}`;\n\nconst itemsForClassification = items.map((item, idx) => ({\n  index: idx,\n  text: item.raw_text.substring(0, 2000),\n  source: sourceName\n}));\n\nconst userContent = `Analyze these ${items.length} items from \"${sourceName}\" and extract buyer objections:\\n${JSON.stringify(itemsForClassification, null, 2)}`;\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    anthropic_body: {\n      model: 'claude-sonnet-4-20250514',\n      max_tokens: 4000,\n      temperature: 0.1,\n      system: systemPrompt,\n      messages: [{ role: 'user', content: userContent }]\n    }\n  }\n}];"
+      },
+      "id": "a1d6e5b7-35d3-4af8-a510-9acb06b453f3",
+      "name": "Classify Objections",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $json.items.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4a16fd6-7cb2-43e0-8fe2-6ab6bce4c1dd",
+      "name": "Has Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        208
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "38af94ca-3a34-480c-96be-1db477b303e0",
+      "name": "Merge Fetch Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -1328,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Apify response\nconst fetchData = $('Prepare Apify Fetch').first().json;\nconst sourceId = fetchData.source_id;\nconst sourceName = fetchData.source_name;\nconst sourceType = fetchData.source_type;\nconst actorId = fetchData.apify_actor_id;\n\n// Get ALL items - Apify returns each result as separate item\nconst allInputItems = $input.all().map(i => i.json);\nlet rawItems = [];\n\n// Check if direct results (Reddit) or wrapped format\nconst first = allInputItems[0];\nif (first && (first.id || first.parsedId || first.body)) {\n  rawItems = allInputItems;\n} else if (first?.items) {\n  rawItems = first.items;\n} else if (first?.data) {\n  rawItems = first.data;\n} else if (first?.results) {\n  rawItems = first.results;\n} else {\n  rawItems = allInputItems;\n}\n\nconst items = [];\nfor (const raw of rawItems) {\n  const textParts = [];\n  if (raw.title || raw.reviewTitle) textParts.push(raw.title || raw.reviewTitle);\n  const text = raw.body || raw.text || raw.reviewText || raw.content || '';\n  if (text) textParts.push(text);\n  if (raw.pros) textParts.push('Pros: ' + raw.pros);\n  if (raw.cons) textParts.push('Cons: ' + raw.cons);\n  const fullText = textParts.join('\\n\\n').trim();\n  if (!fullText || fullText.length < 20) continue;\n\n  let rating = raw.rating || raw.score || raw.stars || null;\n  if (typeof rating === 'string') rating = parseFloat(rating.replace(/[^0-9.]/g, '')) || null;\n\n  let sourceDate = raw.createdAt || raw.date || raw.reviewDate || raw.publishedAt;\n  try { sourceDate = new Date(sourceDate).toISOString(); } catch { sourceDate = new Date().toISOString(); }\n\n  const externalId = raw.parsedId || raw.id || raw.reviewId || sourceName.replace(/[^a-z0-9]/gi, '-') + '-' + Date.now();\n\n  items.push({\n    external_id: externalId,\n    raw_text: fullText,\n    source_url: raw.url || raw.reviewUrl || null,\n    source_author: raw.username || raw.author || raw.reviewerName || 'anonymous',\n    source_date: sourceDate,\n    meta: {\n      platform: (sourceName + actorId).toLowerCase().includes('reddit') ? 'reddit' :\n               (sourceName + actorId).toLowerCase().includes('g2') ? 'g2' : 'review_site',\n      rating: rating,\n      subreddit: raw.communityName || null,\n      num_comments: raw.numberOfComments || null,\n      helpful_votes: raw.upvotes || raw.numberOfUpvotes || 0\n    }\n  });\n}\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    fetch_stats: { total_fetched: rawItems.length, valid_items: items.length, actor_id: actorId }\n  }\n}];\n"
+      },
+      "id": "00b8f4e1-f2e7-439f-8291-948c2a246f32",
+      "name": "Parse Apify Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1536,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "1af7830b-e1e8-4670-a11e-f07e04d0ed7a",
+      "name": "Get Apify Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1760,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{  $json.apify_actor_id.replace('/', '~') }}/runs?waitForFinish=120 }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.apify_input) }}",
+        "options": {}
+      },
+      "id": "fb9e96a2-66e9-4a29-9a26-2205cabe05c6",
+      "name": "Run Apify Actor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1984,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Apify actor run\nconst input = $input.first().json;\nconst sourceName = input.source_name;\nconst actorId = input.actor_id || 'apify/web-scraper';\nconst startUrls = input.start_urls || [];\nconst maxItems = input.max_items || 50;\n\nlet actorConfig = {};\n\nif (sourceName.toLowerCase().includes('g2')) {\n  actorConfig = {\n    actorId: actorId || 'epctex/g2-scraper',\n    input: {\n      startUrls: startUrls.map(url => ({ url })),\n      maxItems: maxItems,\n      proxy: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] }\n    }\n  };\n} else if (sourceName.toLowerCase().includes('capterra')) {\n  actorConfig = {\n    actorId: actorId || 'apify/web-scraper',\n    input: {\n      startUrls: startUrls.map(url => ({ url })),\n      maxRequestsPerCrawl: maxItems\n    }\n  };\n} else if (sourceName.toLowerCase().includes('reddit') || actorId.includes('reddit-scraper')) {\n  // Reddit Scraper Lite - extract subreddit name and use searches API\n  let subredditName = '';\n  if (startUrls.length > 0) {\n    const url = startUrls[0].url || startUrls[0];\n    const match = url.match(/reddit\\.com\\/r\\/([^\\/]+)/);\n    if (match) {\n      subredditName = match[1];\n    }\n  }\n  \n  actorConfig = {\n    actorId: actorId || 'trudax/reddit-scraper-lite',\n    input: {\n      searches: ['*'],\n      searchCommunityName: subredditName,\n      sort: 'new',\n      maxItems: maxItems,\n      maxPostCount: maxItems,\n      skipComments: true,\n      proxy: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] }\n    }\n  };\n} else {\n  actorConfig = {\n    actorId: actorId,\n    input: {\n      startUrls: startUrls.map(url => ({ url })),\n      maxRequestsPerCrawl: maxItems\n    }\n  };\n}\n\nreturn [{\n  json: {\n    source_id: input.source_id,\n    source_name: input.source_name,\n    source_type: input.source_type,\n    apify_actor_id: actorConfig.actorId,\n    apify_input: actorConfig.input\n  }\n}];\n"
+      },
+      "id": "10b260dd-d922-4131-ad0c-f57757349806",
+      "name": "Prepare Apify Fetch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2208,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Reddit response\nconst httpResponse = $input.first().json;\nconst fetchData = $('Prepare Reddit Fetch').first().json;\n\nconst sourceId = fetchData.source_id;\nconst sourceName = fetchData.source_name;\nconst sourceType = fetchData.source_type;\nconst subreddit = fetchData.subreddit;\n\nconst posts = httpResponse.body?.data?.children || [];\nconst items = [];\n\nfor (const post of posts) {\n  const data = post.data;\n  const title = data.title || '';\n  const selftext = data.selftext || '';\n  const fullText = `${title}\\n\\n${selftext}`.trim();\n\n  if (!fullText || fullText.length < 20) continue;\n  if (data.removed_by_category || data.selftext === '[removed]' || data.selftext === '[deleted]') continue;\n\n  items.push({\n    external_id: `reddit-${data.id}`,\n    raw_text: fullText,\n    source_url: `https://reddit.com${data.permalink}`,\n    source_author: data.author || 'anonymous',\n    source_date: new Date(data.created_utc * 1000).toISOString(),\n    meta: {\n      subreddit: data.subreddit,\n      score: data.score,\n      num_comments: data.num_comments,\n      upvote_ratio: data.upvote_ratio,\n      flair: data.link_flair_text,\n      platform: 'reddit'\n    }\n  });\n}\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    source_name: sourceName,\n    source_type: sourceType,\n    items: items,\n    fetch_stats: { total_fetched: posts.length, valid_items: items.length, subreddit: subreddit }\n  }\n}];"
+      },
+      "id": "e8f1c293-3d79-443f-badd-87218e251c2a",
+      "name": "Parse Reddit Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.reddit_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-objection-tracker/1.0 (PMM Signal Pipeline)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "3f1c275c-2c45-4189-b837-91144fa395d3",
+      "name": "Fetch Reddit API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1984,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Reddit API fetch\nconst input = $input.first().json;\nconst subreddit = input.subreddit || 'sales';\nconst searchTerms = input.search_terms || ['objection', 'concern', 'problem'];\nconst limit = input.limit || 25;\nconst timeFilter = input.time_filter || 'week';\n\nconst queryTerms = [\n  ...searchTerms,\n  'customer complaint',\n  'buyer hesitation',\n  'deal lost',\n  'pricing concern',\n  'too expensive',\n  'competitor better'\n];\n\nconst searchQuery = queryTerms.slice(0, 5).join(' OR ');\nconst redditUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(searchQuery)}&restrict_sr=on&sort=new&t=${timeFilter}&limit=${limit}`;\n\nreturn [{\n  json: {\n    source_id: input.source_id,\n    source_name: input.source_name,\n    source_type: input.source_type,\n    reddit_url: redditUrl,\n    subreddit: subreddit,\n    search_query: searchQuery\n  }\n}];"
+      },
+      "id": "99879724-89fd-4fde-bcf6-237b8e04014c",
+      "name": "Prepare Reddit Fetch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2208,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "reddit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a4a3257d-557f-49c7-aa38-88e26c04b54b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reddit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "apify",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "bb373100-de0c-4290-b4ed-47c302ba7b58"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Apify"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "skip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3078be2b-0598-48d1-b528-e9aa04566333"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Skip"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0584d0f1-35f5-48c3-8cf1-cab51d8fc894",
+      "name": "Route by Fetch Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -2416,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst results = items.map((item) => {\n  const {\n    id: source_id,\n    source_name,\n    source_type,\n    fetch_method,\n    fetch_config,\n  } = item.json;\n\n  if ([\"webhook\", \"manual\"].includes(fetch_method)) {\n    return { source_id, source_name, source_type, items: [], _route: \"skip\" };\n  }\n\n  if (fetch_method === \"apify\") {\n    const { actor_id, start_urls, max_items } = fetch_config;\n    return {\n      source_id,\n      source_name,\n      source_type,\n      fetch_method: \"apify\",\n      actor_id,\n      start_urls,\n      max_items,\n      _route: \"apify\",\n    };\n  }\n\n  if (fetch_method === \"reddit_api\") {\n    const { subreddit } = fetch_config;\n    return {\n      source_id,\n      source_name,\n      source_type,\n      fetch_method: \"reddit_api\",\n      subreddit,\n      _route: \"reddit_api\",\n    };\n  }\n\n  // Default: skip unrecognized fetch methods gracefully\n  return { source_id, source_name, source_type, items: [], _route: \"skip\" };\n});\n\nreturn results;"
+      },
+      "id": "4ba5b5fc-c385-496f-b62b-eefbfaf0a4ab",
+      "name": "Smart Fetcher Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2640,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, source_name, source_type, url_pattern, api_endpoint, fetch_method, fetch_config, source_quality FROM objection_tracker.sources WHERE enabled = true AND (last_fetched_at IS NULL OR last_fetched_at < NOW() - (fetch_frequency_hours || ' hours')::interval)",
+        "options": {}
+      },
+      "id": "7a43d113-fa96-43b8-81ef-3029b9317226",
+      "name": "Load Active Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -2864,
+        208
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "823e9b70-ba40-423b-878b-bd11853b21b9",
+      "name": "Run Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3088,
+        208
+      ]
+    }
+  ],
+  "connections": {
+    "Emit Signals": {
+      "main": [
+        [
+          {
+            "node": "Insert Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Signals?": {
+      "main": [
+        [
+          {
+            "node": "Emit Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trend Analysis": {
+      "main": [
+        [
+          {
+            "node": "Create Weekly Snapshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Signals?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Trend Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load & Update Patterns": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Week Range": {
+      "main": [
+        [
+          {
+            "node": "Load & Update Patterns",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Weekly Analysis (Monday 7am)": {
+      "main": [
+        [
+          {
+            "node": "Compute Week Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Events": {
+      "main": [
+        [
+          {
+            "node": "Update Source Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Events?": {
+      "main": [
+        [
+          {
+            "node": "Insert Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Has Events?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Anthropic (Classify)": {
+      "main": [
+        [
+          {
+            "node": "Parse Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Objections": {
+      "main": [
+        [
+          {
+            "node": "Call Anthropic (Classify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Items?": {
+      "main": [
+        [
+          {
+            "node": "Classify Objections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Fetch Results": {
+      "main": [
+        [
+          {
+            "node": "Has Items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Apify Results": {
+      "main": [
+        [
+          {
+            "node": "Parse Apify Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Apify Actor": {
+      "main": [
+        [
+          {
+            "node": "Get Apify Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Apify Fetch": {
+      "main": [
+        [
+          {
+            "node": "Run Apify Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reddit Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Fetch Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Reddit API": {
+      "main": [
+        [
+          {
+            "node": "Parse Reddit Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Reddit Fetch": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reddit API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Fetch Method": {
+      "main": [
+        [
+          {
+            "node": "Prepare Reddit Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Apify Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Fetch Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smart Fetcher Router": {
+      "main": [
+        [
+          {
+            "node": "Route by Fetch Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Active Sources": {
+      "main": [
+        [
+          {
+            "node": "Smart Fetcher Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Load Active Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v0",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PMM Signal"
+    },
+    {
+      "name": "Core [Control Plane]"
+    }
+  ],
+  "pinData": {
+    "Run Every 6 Hours": [
+      {
+        "json": {
+          "timestamp": "2026-02-06T12:00:50.008+01:00",
+          "Readable date": "February 6th 2026, 12:00:50 pm",
+          "Readable time": "12:00:50 pm",
+          "Day of week": "Friday",
+          "Year": "2026",
+          "Month": "February",
+          "Day of month": "06",
+          "Hour": "12",
+          "Minute": "00",
+          "Second": "50",
+          "Timezone": "Africa/Lagos (UTC+01:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  }
+}
