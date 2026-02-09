@@ -41,11 +41,11 @@ export function IntelligenceEngineSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-24">
+        <div className="flex flex-wrap justify-center gap-4 mb-24">
           {monitors.map((monitor) => (
             <div
               key={monitor.title}
-              className="group p-5 rounded-xl border border-border/60 bg-card/30 hover:border-primary/20 hover:bg-card/60 transition-all duration-200"
+              className="group p-5 rounded-xl border border-border/60 bg-card/30 hover:border-primary/20 hover:bg-card/60 transition-all duration-200 w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)]"
             >
               <monitor.icon className="w-5 h-5 text-primary/80 mb-3 group-hover:text-primary transition-colors" />
               <h4 className="font-semibold text-foreground text-sm mb-1.5">

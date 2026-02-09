@@ -332,9 +332,11 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
       items.push(`${packet.metrics.confidence_score}% confidence (${confLabel})`);
     }
     if (packet.metrics.impact_score != null) {
-      const impactLabel = packet.metrics.impact_score >= 9 ? 'Critical' : packet.metrics.impact_score >= 7 ? 'High' : packet.metrics.impact_score >= 4 ? 'Moderate' : 'Low';
-      const impactColor = packet.metrics.impact_score >= 9 ? '#ef4444' : packet.metrics.impact_score >= 7 ? '#f59e0b' : packet.metrics.impact_score >= 4 ? '#06b6d4' : '#22c55e';
-      items.push(`Impact: <span style="color:${impactColor};font-weight:600;">${packet.metrics.impact_score}/10 (${impactLabel})</span>`);
+      const raw = packet.metrics.impact_score;
+      const normalized = raw > 10 ? Math.round(raw / 10 * 10) / 10 : raw;
+      const impactLabel = normalized >= 9 ? 'Critical' : normalized >= 7 ? 'High' : normalized >= 4 ? 'Moderate' : 'Low';
+      const impactColor = normalized >= 9 ? '#ef4444' : normalized >= 7 ? '#f59e0b' : normalized >= 4 ? '#06b6d4' : '#22c55e';
+      items.push(`Impact: <span style="color:${impactColor};font-weight:600;">${normalized}/10 (${impactLabel})</span>`);
     }
 
     if (items.length) {

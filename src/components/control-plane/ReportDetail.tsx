@@ -70,10 +70,17 @@ const getConfidenceBg = (confidence: number) => {
   return 'bg-rose-500/5 border-rose-500/20';
 };
 
+/** Normalize raw impact score (could be 0-10 or 0-100) to a 0-10 scale */
+const normalizeImpact = (raw: number): number => {
+  if (raw > 10) return Math.round(raw / 10 * 10) / 10; // e.g. 84 → 8.4
+  return raw;
+};
+
 const getImpactSeverity = (score: number): { label: string; color: string; bgColor: string } => {
-  if (score >= 9) return { label: 'Critical', color: 'text-rose-400', bgColor: 'bg-rose-500/10' };
-  if (score >= 7) return { label: 'High', color: 'text-amber-400', bgColor: 'bg-amber-500/10' };
-  if (score >= 4) return { label: 'Moderate', color: 'text-sky-400', bgColor: 'bg-sky-500/10' };
+  const n = normalizeImpact(score);
+  if (n >= 9) return { label: 'Critical', color: 'text-rose-400', bgColor: 'bg-rose-500/10' };
+  if (n >= 7) return { label: 'High', color: 'text-amber-400', bgColor: 'bg-amber-500/10' };
+  if (n >= 4) return { label: 'Moderate', color: 'text-sky-400', bgColor: 'bg-sky-500/10' };
   return { label: 'Low', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' };
 };
 
@@ -111,7 +118,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Button>
 
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-primary/10 shrink-0 radar-pulse text-primary">
+          <div className="p-3 rounded-xl bg-primary/10 shrink-0 text-primary">
             <Radio className="h-8 w-8" />
           </div>
           <div className="flex-1">
@@ -159,7 +166,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-border/50 bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-sky-500/10 radar-pulse text-sky-400">
+              <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
                 <Radio className="h-5 w-5" />
               </div>
               <div>
@@ -202,8 +209,9 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           })()}
 
           {(() => {
-            const score = report.metrics.impact_score;
-            const severity = score !== undefined ? getImpactSeverity(score) : null;
+            const rawScore = report.metrics.impact_score;
+            const displayScore = rawScore !== undefined ? normalizeImpact(rawScore) : undefined;
+            const severity = rawScore !== undefined ? getImpactSeverity(rawScore) : null;
             return (
               <div className="rounded-xl border border-border/50 bg-card p-4">
                 <div className="flex items-center gap-3">
@@ -213,9 +221,9 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
                   <div className="flex-1">
                     <div className="flex items-baseline gap-1">
                       <span className={`text-2xl font-bold tabular-nums ${severity?.color || 'text-amber-400'}`}>
-                        {score ?? '—'}
+                        {displayScore ?? '—'}
                       </span>
-                      {score !== undefined && (
+                      {displayScore !== undefined && (
                         <span className="text-sm text-muted-foreground font-medium">/10</span>
                       )}
                     </div>
