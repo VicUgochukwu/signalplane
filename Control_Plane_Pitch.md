@@ -1,6 +1,8 @@
-# Signal Plane
+# Control Plane
 
 **Competitive intelligence that ships every Monday.**
+
+*A product by Signal Plane*
 
 ---
 
@@ -16,9 +18,9 @@ This isn't a people problem. It's an infrastructure problem. Competitive intelli
 
 ---
 
-## What Signal Plane Does
+## What Control Plane Does
 
-Signal Plane is competitive intelligence infrastructure for B2B SaaS go-to-market teams.
+Control Plane is competitive intelligence infrastructure for B2B SaaS go-to-market teams.
 
 Every week, automated monitors scan 10+ public signal types across your competitors — messaging changes, pricing edits, job postings, product launches, patent filings, executive moves, partnership announcements, review sentiment shifts, and more.
 
@@ -55,7 +57,7 @@ Each Monday, a structured decision packet ships to Slack, Notion, or email — e
 
 ## GTM Artifacts
 
-Beyond weekly packets, Signal Plane generates and maintains three living GTM documents that update automatically with every new packet:
+Beyond weekly packets, Control Plane generates and maintains three living GTM documents that update automatically with every new packet:
 
 - **Battlecards** — Side-by-side competitor comparisons pulled from real signals. Pricing changes, new features, positioning shifts — all current, all sourced.
 - **Objection Handling Library** — The most common objections buyers raise about competitors, paired with evidence-backed responses your reps can use today.
@@ -67,19 +69,19 @@ These stay current. Every time a new intel packet drops, your artifacts update w
 
 ## Who It's For
 
-**Marketing Leaders** — You're making positioning decisions based on stale quarterly decks and Slack hearsay. Signal Plane delivers weekly evidence-linked packets with severity-ranked signals and prediction accuracy you can show the board.
+**Marketing Leaders** — You're making positioning decisions based on stale quarterly decks and Slack hearsay. Control Plane delivers weekly evidence-linked packets with severity-ranked signals and prediction accuracy you can show the board.
 
-**Product Marketing** — You're manually checking competitor websites, G2, and changelogs between cycles. Signal Plane automates monitoring across 10+ signal types and delivers structured battlecards, objection libraries, and buyer language every Monday.
+**Product Marketing** — You're manually checking competitor websites, G2, and changelogs between cycles. Control Plane automates monitoring across 10+ signal types and delivers structured battlecards, objection libraries, and buyer language every Monday.
 
-**Revenue & Sales Leaders** — Your reps are using outdated battlecards while competitors ship changes weekly. Signal Plane delivers weekly battlecards with what changed this week, fresh talk tracks, and win/lose themes from live signal data.
+**Revenue & Sales Leaders** — Your reps are using outdated battlecards while competitors ship changes weekly. Control Plane delivers weekly battlecards with what changed this week, fresh talk tracks, and win/lose themes from live signal data.
 
 ---
 
 ## What We're Not
 
-- **Not a content aggregator.** Klue and Crayon collect content and require manual curation. Signal Plane scores automatically, enforces caps, maps to owners, tracks predictions against outcomes, and delivers structured packets.
-- **Not an enrichment tool.** Clay enriches accounts and contacts (who to call). Signal Plane monitors competitor actions (what to say). They're complementary.
-- **Not a news feed.** Signal Plane doesn't deliver a stream of links to scroll past. It delivers a structured decision artifact, once a week, with everything scored, ranked, and mapped to actions.
+- **Not a content aggregator.** Klue and Crayon collect content and require manual curation. Control Plane scores automatically, enforces caps, maps to owners, tracks predictions against outcomes, and delivers structured packets.
+- **Not an enrichment tool.** Clay enriches accounts and contacts (who to call). Control Plane monitors competitor actions (what to say). They're complementary.
+- **Not a news feed.** Control Plane doesn't deliver a stream of links to scroll past. It delivers a structured decision artifact, once a week, with everything scored, ranked, and mapped to actions.
 
 ---
 
@@ -101,7 +103,7 @@ No paywall scraping. No gray-area data collection. Every signal links back to it
 
 ## Industries
 
-Signal Plane supports 15 B2B SaaS sectors out of the box:
+Control Plane supports 15 B2B SaaS sectors out of the box:
 
 Developer Tools · Product Analytics · Sales Engagement · Customer Success · Marketing Automation · Data Infrastructure · Cybersecurity · Fintech · HR Tech · Collaboration · Cloud Infrastructure · AI/ML Platforms · DevOps & Observability · E-commerce Platforms · No-Code/Low-Code
 
@@ -112,7 +114,7 @@ Developer Tools · Product Analytics · Sales Engagement · Customer Success · 
 - **Slack** — Weekly intel digest posted to any channel. Your team sees competitor moves, market shifts, and action items without leaving Slack.
 - **Notion** — Every packet written as a structured page in your chosen database. Searchable, shareable, automatically organized.
 - **Email** — Decision packets delivered to your inbox every Monday morning.
-- **Control Plane** — Web dashboard with full packet history, artifacts, and competitive positioning trends.
+- **Web Dashboard** — Full packet history, artifacts, and competitive positioning trends at signalplane.dev.
 
 ---
 

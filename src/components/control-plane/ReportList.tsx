@@ -1,7 +1,7 @@
 import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
-import { BarChart3, Target, Zap, TrendingUp } from 'lucide-react';
+import { BarChart3, Target, Zap, TrendingUp, Radio } from 'lucide-react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDemo } from '@/contexts/DemoContext';
 import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
@@ -23,9 +23,14 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
     <div className="animate-fade-in space-y-8">
       {/* Page Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-foreground font-mono">
+        <h1 className="text-2xl font-bold text-foreground font-mono flex items-center gap-3">
+          {demo?.isDemo && (
+            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+              <Radio className="h-5 w-5 text-primary" />
+            </div>
+          )}
           {demo?.isDemo ? (
-            <span className="cursor-blink">{demo.sectorName} Control Plane</span>
+            <span className="cursor-blink">Control Plane</span>
           ) : profile?.company_name ? (
             <span className="cursor-blink">{profile.company_name} Control Plane</span>
           ) : (
@@ -33,7 +38,9 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
           )}
         </h1>
         <p className="text-muted-foreground text-sm flex items-center gap-2">
-          {profile?.company_name && competitors && competitors.length > 0 ? (
+          {demo?.isDemo ? (
+            <>Weekly GTM intelligence packets</>
+          ) : profile?.company_name && competitors && competitors.length > 0 ? (
             <>
               <Target className="h-4 w-4" />
               Tracking {competitors.length} competitor{competitors.length !== 1 ? 's' : ''}

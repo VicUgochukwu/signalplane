@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useDemo } from '@/contexts/DemoContext';
 
 export function DemoNavigation() {
@@ -27,11 +26,6 @@ export function DemoNavigation() {
             <img src={signalPlaneLogo} alt="Signal Plane" className="w-7 h-7" />
             <span className="hidden sm:inline text-sm">Signal Plane</span>
           </Link>
-
-          {/* Sector badge */}
-          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs whitespace-nowrap">
-            Demo: {sectorName}
-          </Badge>
 
           {/* Navigation tabs */}
           <ScrollArea className="flex-1">
