@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { detectPages, confidenceDot, confidenceLabel } from '@/lib/pageDetection';
+import type { DetectedPage } from '@/lib/pageDetection';
+import { getUrlTypeLabel } from '@/lib/urlGenerator';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,14 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Loader2, ArrowLeft, Building2, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { URL_TYPES, generatePageUrl, getUrlTypeLabel } from '@/lib/urlGenerator';
-import type { UrlType } from '@/lib/urlGenerator';
-
-interface PageSelection {
-  type: UrlType;
-  url: string;
-  selected: boolean;
-}
 
 interface AddCompanyWizardProps {
   onSuccess: () => void;
@@ -22,16 +18,21 @@ interface AddCompanyWizardProps {
 
 export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
   const { toast } = useToast();
+  const { profile } = useOnboarding();
   const [step, setStep] = useState<'company' | 'pages'>('company');
   const [companyName, setCompanyName] = useState('');
   const [companyDomain, setCompanyDomain] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
   const [nameError, setNameError] = useState('');
-  const [pages, setPages] = useState<PageSelection[]>([]);
+  const [pages, setPages] = useState<DetectedPage[]>([]);
 
-  // Auto-generate domain from company name (user can edit)
+  const [domainManuallyEdited, setDomainManuallyEdited] = useState(false);
+
+  // Auto-generate domain from company name (only if user hasn't manually edited domain)
   useEffect(() => {
+    if (domainManuallyEdited) return;
     const slug = companyName
       .toLowerCase()
       .trim()
@@ -43,17 +44,74 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
     } else {
       setCompanyDomain('');
     }
-  }, [companyName]);
+  }, [companyName, domainManuallyEdited]);
 
-  // Initialize page selections when entering step 2
-  const initializePages = (domain: string) => {
-    setPages(
-      URL_TYPES.map((type) => ({
-        type,
-        url: generatePageUrl(domain, type),
-        selected: false,
-      }))
-    );
+  // Extract domain from a URL string
+  const extractDomainFromUrl = (input: string): string | null => {
+    try {
+      let urlStr = input.trim();
+      if (!urlStr.includes('://')) urlStr = `https://${urlStr}`;
+      const parsed = new URL(urlStr);
+      return parsed.hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  };
+
+  // Capitalize first letter of each word for company name
+  const domainToCompanyName = (domain: string): string => {
+    const name = domain.split('.')[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+
+  // Intelligent domain input handler — detects pasted URLs and extracts domain
+  const handleDomainInput = (value: string) => {
+    setDomainManuallyEdited(true);
+    const trimmed = value.trim();
+
+    // Check if user pasted a full URL (contains :// or starts with www.)
+    if (trimmed.includes('://') || trimmed.startsWith('www.')) {
+      const domain = extractDomainFromUrl(trimmed);
+      if (domain) {
+        setCompanyDomain(domain);
+        if (!companyName.trim()) {
+          setCompanyName(domainToCompanyName(domain));
+        }
+        return;
+      }
+    }
+
+    // Check if it looks like a domain with a path (e.g., "intercom.com/pricing")
+    if (trimmed.includes('.') && trimmed.includes('/')) {
+      const domain = extractDomainFromUrl(trimmed);
+      if (domain) {
+        setCompanyDomain(domain);
+        if (!companyName.trim()) {
+          setCompanyName(domainToCompanyName(domain));
+        }
+        return;
+      }
+    }
+
+    setCompanyDomain(value);
+  };
+
+  // Smart page detection using edge function
+  const detectCompanyPages = async (domain: string) => {
+    setIsDetecting(true);
+    try {
+      const detectedPages = await detectPages(domain, profile?.industry || undefined);
+      setPages(detectedPages);
+    } catch (err) {
+      console.error('Page detection failed:', err);
+      // Fallback: set empty pages, user can still add company
+      setPages([]);
+      toast({
+        title: 'Page detection unavailable',
+        description: 'You can manually add pages after creating the company.',
+      });
+    }
+    setIsDetecting(false);
   };
 
   const handleAddCompany = async (e: React.FormEvent) => {
@@ -84,27 +142,36 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
 
     if (data && data.length > 0) {
       setCompanyId(data[0].company_id);
-      initializePages(companyDomain);
       setStep('pages');
+      // Start smart detection
+      detectCompanyPages(companyDomain);
     }
   };
 
   const selectedCount = pages.filter((p) => p.selected).length;
 
-  const handleTogglePage = (type: UrlType) => {
+  const handleTogglePage = (pageUrl: string) => {
     setPages((prev) =>
       prev.map((p) => {
-        if (p.type !== type) return p;
-        if (!p.selected && selectedCount >= 5) return p; // enforce max 5
+        if (p.url !== pageUrl) return p;
+        if (!p.selected && selectedCount >= 10) return p;
         return { ...p, selected: !p.selected };
       })
     );
   };
 
-  const handleUrlChange = (type: UrlType, url: string) => {
+  const handleUrlChange = (pageUrl: string, newUrl: string) => {
     setPages((prev) =>
-      prev.map((p) => (p.type === type ? { ...p, url } : p))
+      prev.map((p) => (p.url === pageUrl ? { ...p, url: newUrl } : p))
     );
+  };
+
+  const handleSelectAll = () => {
+    setPages((prev) => prev.map((p) => ({ ...p, selected: true })));
+  };
+
+  const handleDeselectAll = () => {
+    setPages((prev) => prev.map((p) => ({ ...p, selected: false })));
   };
 
   const handleSavePages = async () => {
@@ -147,6 +214,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
     setCompanyDomain('');
     setCompanyId(null);
     setPages([]);
+    setDomainManuallyEdited(false);
     onSuccess();
   };
 
@@ -174,8 +242,10 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
         </CardTitle>
         <CardDescription className="text-zinc-400">
           {step === 'company'
-            ? 'Track a new competitor (max 5 companies)'
-            : `Choose which pages to track (${selectedCount}/5 selected)`}
+            ? 'Track a new competitor (max 10 companies)'
+            : isDetecting
+            ? 'Detecting pages...'
+            : `${pages.length} pages detected — ${selectedCount} selected`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -204,12 +274,12 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                   id="companyDomain"
                   placeholder="apollo.io"
                   value={companyDomain}
-                  onChange={(e) => setCompanyDomain(e.target.value)}
+                  onChange={(e) => handleDomainInput(e.target.value)}
                   className="bg-zinc-900 border-zinc-600 text-zinc-100"
                   disabled={isLoading}
                 />
                 <p className="text-xs text-zinc-500">
-                  Used to generate URLs: www.{companyDomain || '...'}
+                  Paste a URL or type a domain — we'll detect pages automatically
                 </p>
               </div>
             </div>
@@ -226,52 +296,89 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Company
+                  Add Company & Detect Pages
                 </>
               )}
             </Button>
           </form>
         ) : (
           <div className="space-y-4">
-            {/* Page type checkboxes with editable URLs */}
-            <div className="space-y-3">
-              {pages.map((page) => (
-                <div
-                  key={page.type}
-                  className={`rounded-lg border p-3 transition-colors ${
-                    page.selected
-                      ? 'border-emerald-600/50 bg-emerald-900/10'
-                      : 'border-zinc-700 bg-zinc-900/50'
-                  } ${!page.selected && selectedCount >= 5 ? 'opacity-50' : ''}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id={`page-${page.type}`}
-                      checked={page.selected}
-                      onCheckedChange={() => handleTogglePage(page.type)}
-                      disabled={!page.selected && selectedCount >= 5}
-                      className="border-zinc-500 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                    />
-                    <label
-                      htmlFor={`page-${page.type}`}
-                      className="text-sm font-medium text-zinc-200 cursor-pointer w-28"
-                    >
-                      {getUrlTypeLabel(page.type)}
-                    </label>
-                    <Input
-                      value={page.url}
-                      onChange={(e) => handleUrlChange(page.type, e.target.value)}
-                      className="flex-1 h-8 text-sm bg-zinc-900 border-zinc-600 text-zinc-300"
-                      disabled={!page.selected}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Loading state */}
+            {isDetecting && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-emerald-400 mr-2" />
+                <span className="text-zinc-400 text-sm">Detecting pages for {companyDomain}...</span>
+              </div>
+            )}
 
-            {selectedCount >= 5 && (
+            {/* Detected pages with confidence indicators */}
+            {!isDetecting && pages.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  {pages.map((page) => (
+                    <div
+                      key={page.url}
+                      className={`rounded-lg border p-3 transition-colors ${
+                        page.selected
+                          ? 'border-emerald-600/50 bg-emerald-900/10'
+                          : 'border-zinc-700 bg-zinc-900/50'
+                      } ${!page.selected && selectedCount >= 10 ? 'opacity-50' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id={`page-${page.type}-${page.url}`}
+                          checked={page.selected}
+                          onCheckedChange={() => handleTogglePage(page.url)}
+                          disabled={!page.selected && selectedCount >= 10}
+                          className="border-zinc-500 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                        />
+                        <label
+                          htmlFor={`page-${page.type}-${page.url}`}
+                          className="text-sm font-medium text-zinc-200 cursor-pointer w-24 shrink-0"
+                        >
+                          {getUrlTypeLabel(page.type)}
+                        </label>
+                        <Input
+                          value={page.url}
+                          onChange={(e) => handleUrlChange(page.url, e.target.value)}
+                          className="flex-1 h-8 text-sm bg-zinc-900 border-zinc-600 text-zinc-300"
+                          disabled={!page.selected}
+                        />
+                        <div className="flex items-center gap-1.5 shrink-0" title={confidenceLabel(page.confidence)}>
+                          <div className={`w-2 h-2 rounded-full ${confidenceDot(page.confidence)}`} />
+                          <span className="text-[10px] text-zinc-500">{confidenceLabel(page.confidence)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Select / Deselect all */}
+                <div className="flex gap-2">
+                  <button onClick={handleSelectAll} className="text-xs text-emerald-400 hover:text-emerald-300">
+                    Select all
+                  </button>
+                  <span className="text-zinc-600">|</span>
+                  <button onClick={handleDeselectAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+                    Deselect all
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* No pages detected */}
+            {!isDetecting && pages.length === 0 && (
+              <div className="text-center py-6">
+                <p className="text-zinc-400 text-sm">No pages could be auto-detected.</p>
+                <p className="text-zinc-500 text-xs mt-1">
+                  The company has been added. You can manually add pages later.
+                </p>
+              </div>
+            )}
+
+            {selectedCount >= 10 && (
               <p className="text-xs text-amber-400">
-                Maximum 5 pages per company reached. Deselect one to choose a different page.
+                Maximum 10 pages per company reached. Deselect one to choose a different page.
               </p>
             )}
 
@@ -280,7 +387,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                 variant="outline"
                 onClick={handleBack}
                 className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                disabled={isLoading}
+                disabled={isLoading || isDetecting}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -288,7 +395,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
               <Button
                 onClick={handleSavePages}
                 className="flex-1 bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
-                disabled={isLoading || selectedCount === 0}
+                disabled={isLoading || isDetecting || selectedCount === 0}
               >
                 {isLoading ? (
                   <>

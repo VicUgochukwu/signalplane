@@ -72,8 +72,8 @@ export function CompanyProfileSettings() {
 
   const addCompetitor = () => {
     if (!newCompetitorName.trim()) return;
-    if (competitors.length >= 5) {
-      toast({ title: 'Maximum 5 competitors allowed', variant: 'destructive' });
+    if (competitors.length >= 10) {
+      toast({ title: 'Maximum 10 competitors allowed', variant: 'destructive' });
       return;
     }
 

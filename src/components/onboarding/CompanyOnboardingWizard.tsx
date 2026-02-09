@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
+import { detectPages, confidenceDot, confidenceLabel } from '@/lib/pageDetection';
+import type { DetectedPage, DetectionResult } from '@/lib/pageDetection';
+import { getUrlTypeLabel } from '@/lib/urlGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Building2,
-  Users,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -16,7 +20,11 @@ import {
   Search,
   Plus,
   X,
-  Target
+  Target,
+  Globe,
+  ChevronDown,
+  ChevronRight,
+  AlertCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -63,10 +71,13 @@ const DEPARTMENTS = [
   { value: 'other', label: 'Other' },
 ];
 
+type Step = 'company' | 'competitors' | 'review_pages' | 'confirm';
+const STEPS: Step[] = ['company', 'competitors', 'review_pages', 'confirm'];
+
 export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [step, setStep] = useState<'company' | 'competitors' | 'confirm'>('company');
+  const [step, setStep] = useState<Step>('company');
   const [isLoading, setIsLoading] = useState(false);
 
   // Step 1: Company info
@@ -85,6 +96,10 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
   const [showAddNew, setShowAddNew] = useState(false);
   const [newCompetitorName, setNewCompetitorName] = useState('');
   const [newCompetitorDomain, setNewCompetitorDomain] = useState('');
+
+  // Step 3: Page detection results per competitor
+  const [detectionResults, setDetectionResults] = useState<Map<string, DetectionResult>>(new Map());
+  const [expandedCompetitors, setExpandedCompetitors] = useState<Set<string>>(new Set());
 
   // Auto-generate domain from company name
   useEffect(() => {
@@ -134,20 +149,118 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
     return () => clearTimeout(debounce);
   }, [searchQuery, competitors]);
 
+  // ── Page detection ───────────────────────────────────────────────
+
+  const startDetection = (domain: string) => {
+    setDetectionResults((prev) => {
+      const next = new Map(prev);
+      next.set(domain, { domain, status: 'loading', pages: [] });
+      return next;
+    });
+
+    detectPages(domain, industry || undefined)
+      .then((pages) => {
+        setDetectionResults((prev) => {
+          const next = new Map(prev);
+          next.set(domain, { domain, status: 'success', pages });
+          return next;
+        });
+      })
+      .catch((err) => {
+        setDetectionResults((prev) => {
+          const next = new Map(prev);
+          next.set(domain, { domain, status: 'error', pages: [], error: err.message });
+          return next;
+        });
+      });
+  };
+
+  const togglePage = (domain: string, pageUrl: string) => {
+    setDetectionResults((prev) => {
+      const next = new Map(prev);
+      const result = next.get(domain);
+      if (!result) return next;
+      next.set(domain, {
+        ...result,
+        pages: result.pages.map((p) =>
+          p.url === pageUrl ? { ...p, selected: !p.selected } : p
+        ),
+      });
+      return next;
+    });
+  };
+
+  const selectAllPages = (domain: string) => {
+    setDetectionResults((prev) => {
+      const next = new Map(prev);
+      const result = next.get(domain);
+      if (!result) return next;
+      next.set(domain, {
+        ...result,
+        pages: result.pages.map((p) => ({ ...p, selected: true })),
+      });
+      return next;
+    });
+  };
+
+  const deselectAllPages = (domain: string) => {
+    setDetectionResults((prev) => {
+      const next = new Map(prev);
+      const result = next.get(domain);
+      if (!result) return next;
+      next.set(domain, {
+        ...result,
+        pages: result.pages.map((p) => ({ ...p, selected: false })),
+      });
+      return next;
+    });
+  };
+
+  const updatePageUrl = (domain: string, oldUrl: string, newUrl: string) => {
+    setDetectionResults((prev) => {
+      const next = new Map(prev);
+      const result = next.get(domain);
+      if (!result) return next;
+      next.set(domain, {
+        ...result,
+        pages: result.pages.map((p) =>
+          p.url === oldUrl ? { ...p, url: newUrl } : p
+        ),
+      });
+      return next;
+    });
+  };
+
+  const toggleExpanded = (domain: string) => {
+    setExpandedCompetitors((prev) => {
+      const next = new Set(prev);
+      if (next.has(domain)) {
+        next.delete(domain);
+      } else {
+        next.add(domain);
+      }
+      return next;
+    });
+  };
+
+  // ── Competitor management ────────────────────────────────────────
+
   const addCompetitor = (company: { id?: string; name: string; domain: string }) => {
-    if (competitors.length >= 5) {
+    if (competitors.length >= 10) {
       toast({
         title: 'Maximum reached',
-        description: 'You can track up to 5 competitors',
+        description: 'You can track up to 10 competitors',
         variant: 'destructive',
       });
       return;
     }
 
-    setCompetitors([
-      ...competitors,
-      { name: company.name, domain: company.domain, company_id: company.id },
-    ]);
+    const newCompetitor = { name: company.name, domain: company.domain, company_id: company.id };
+    setCompetitors([...competitors, newCompetitor]);
+
+    // Start page detection in background
+    startDetection(company.domain);
+
     setSearchQuery('');
     setSearchResults([]);
   };
@@ -170,7 +283,19 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
 
   const removeCompetitor = (domain: string) => {
     setCompetitors(competitors.filter((c) => c.domain !== domain));
+    setDetectionResults((prev) => {
+      const next = new Map(prev);
+      next.delete(domain);
+      return next;
+    });
+    setExpandedCompetitors((prev) => {
+      const next = new Set(prev);
+      next.delete(domain);
+      return next;
+    });
   };
+
+  // ── Step navigation ──────────────────────────────────────────────
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,21 +315,38 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
       });
       return;
     }
+    // Expand all competitors by default in review step
+    setExpandedCompetitors(new Set(competitors.map((c) => c.domain)));
+    setStep('review_pages');
+  };
+
+  const handleStep3Submit = () => {
     setStep('confirm');
   };
+
+  // ── Final submit ─────────────────────────────────────────────────
 
   const handleFinalSubmit = async () => {
     if (!user) return;
 
     setIsLoading(true);
 
-    const competitorsJson = competitors.map((c, idx) => ({
-      name: c.name,
-      domain: c.domain,
-      priority: competitors.length - idx, // First added = highest priority
-    }));
+    const competitorsJson = competitors.map((c, idx) => {
+      const detection = detectionResults.get(c.domain);
+      const selectedPages = detection?.pages.filter((p) => p.selected) || [];
 
-    const { error } = await supabase.rpc('complete_onboarding', {
+      return {
+        name: c.name,
+        domain: c.domain,
+        priority: competitors.length - idx,
+        pages: selectedPages.map((p) => ({
+          url: p.url,
+          url_type: p.type,
+        })),
+      };
+    });
+
+    const { error } = await supabase.rpc('complete_onboarding_with_pages', {
       p_user_id: user.id,
       p_company_name: companyName.trim(),
       p_company_domain: companyDomain.trim() || null,
@@ -227,9 +369,10 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
       return;
     }
 
+    const totalPages = competitorsJson.reduce((sum, c) => sum + c.pages.length, 0);
     toast({
       title: 'Welcome to Control Plane!',
-      description: `Your competitive intelligence feed is now configured for ${companyName}`,
+      description: `Tracking ${totalPages} pages across ${competitors.length} competitor${competitors.length !== 1 ? 's' : ''}`,
     });
 
     // Fire Loops event (fire-and-forget)
@@ -242,19 +385,33 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
     onComplete();
   };
 
+  // ── Computed values ──────────────────────────────────────────────
+
+  const allDetectionsComplete = competitors.every((c) => {
+    const result = detectionResults.get(c.domain);
+    return result && (result.status === 'success' || result.status === 'error');
+  });
+
+  const totalSelectedPages = competitors.reduce((sum, c) => {
+    const result = detectionResults.get(c.domain);
+    return sum + (result?.pages.filter((p) => p.selected).length || 0);
+  }, 0);
+
+  // ── Render ───────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center p-6">
       <Card className="w-full max-w-xl bg-zinc-900 border-zinc-800">
         <CardHeader className="text-center pb-4">
-          {/* Progress indicator */}
+          {/* Progress indicator — 4 dots */}
           <div className="flex justify-center gap-2 mb-6">
-            {['company', 'competitors', 'confirm'].map((s, i) => (
+            {STEPS.map((s, i) => (
               <div
                 key={s}
                 className={`w-3 h-3 rounded-full transition-colors ${
                   step === s
                     ? 'bg-[#6B9B9B]'
-                    : ['company', 'competitors', 'confirm'].indexOf(step) > i
+                    : STEPS.indexOf(step) > i
                     ? 'bg-[#6B9B9B]/60'
                     : 'bg-zinc-700'
                 }`}
@@ -275,6 +432,12 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 Who are your competitors?
               </>
             )}
+            {step === 'review_pages' && (
+              <>
+                <Globe className="h-6 w-6 text-[#6B9B9B]" />
+                Review tracked pages
+              </>
+            )}
             {step === 'confirm' && (
               <>
                 <CheckCircle2 className="h-6 w-6 text-[#6B9B9B]" />
@@ -284,13 +447,14 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
           </CardTitle>
           <CardDescription className="text-zinc-400">
             {step === 'company' && 'This helps us personalize your intelligence feed'}
-            {step === 'competitors' && `Add up to 5 competitors to track (${competitors.length}/5 selected)`}
+            {step === 'competitors' && `Add up to 10 competitors to track (${competitors.length}/10 selected)`}
+            {step === 'review_pages' && `We auto-detected pages for your competitors. Verify and adjust below.`}
             {step === 'confirm' && 'Review your setup before we start gathering intel'}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          {/* Step 1: Company Info */}
+          {/* ── Step 1: Company Info ─────────────────────────────── */}
           {step === 'company' && (
             <form onSubmit={handleStep1Submit} className="space-y-5">
               <div className="space-y-2">
@@ -394,7 +558,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
             </form>
           )}
 
-          {/* Step 2: Competitors */}
+          {/* ── Step 2: Competitors ──────────────────────────────── */}
           {step === 'competitors' && (
             <div className="space-y-5">
               {/* Search input */}
@@ -477,25 +641,37 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 </div>
               )}
 
-              {/* Selected competitors */}
+              {/* Selected competitors with detection status */}
               {competitors.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-zinc-400 text-sm">Selected competitors:</Label>
                   <div className="flex flex-wrap gap-2">
-                    {competitors.map((comp) => (
-                      <div
-                        key={comp.domain}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-[#6B9B9B]/20 border border-[#6B9B9B]/30 rounded-full"
-                      >
-                        <span className="text-zinc-100 text-sm">{comp.name}</span>
-                        <button
-                          onClick={() => removeCompetitor(comp.domain)}
-                          className="text-zinc-400 hover:text-zinc-100"
+                    {competitors.map((comp) => {
+                      const detection = detectionResults.get(comp.domain);
+                      return (
+                        <div
+                          key={comp.domain}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-[#6B9B9B]/20 border border-[#6B9B9B]/30 rounded-full"
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                          {detection?.status === 'loading' && (
+                            <Loader2 className="h-3 w-3 animate-spin text-[#6B9B9B]" />
+                          )}
+                          {detection?.status === 'success' && (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                          )}
+                          {detection?.status === 'error' && (
+                            <AlertCircle className="h-3 w-3 text-amber-400" />
+                          )}
+                          <span className="text-zinc-100 text-sm">{comp.name}</span>
+                          <button
+                            onClick={() => removeCompetitor(comp.domain)}
+                            className="text-zinc-400 hover:text-zinc-100"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -522,7 +698,181 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
             </div>
           )}
 
-          {/* Step 3: Confirmation */}
+          {/* ── Step 3: Review Pages ─────────────────────────────── */}
+          {step === 'review_pages' && (
+            <div className="space-y-4">
+              {/* Competitor accordion */}
+              <div className="space-y-3">
+                {competitors.map((comp) => {
+                  const detection = detectionResults.get(comp.domain);
+                  const isExpanded = expandedCompetitors.has(comp.domain);
+                  const selectedCount = detection?.pages.filter((p) => p.selected).length || 0;
+
+                  return (
+                    <Collapsible
+                      key={comp.domain}
+                      open={isExpanded}
+                      onOpenChange={() => toggleExpanded(comp.domain)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <button className="w-full flex items-center justify-between p-3 rounded-lg border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-zinc-400" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-zinc-400" />
+                            )}
+                            <div className="text-left">
+                              <p className="text-zinc-100 font-medium text-sm">{comp.name}</p>
+                              <p className="text-zinc-500 text-xs">{comp.domain}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {detection?.status === 'loading' && (
+                              <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Detecting...
+                              </span>
+                            )}
+                            {detection?.status === 'success' && (
+                              <span className="text-xs text-zinc-400 bg-zinc-700/50 px-2 py-0.5 rounded-full">
+                                {selectedCount} page{selectedCount !== 1 ? 's' : ''} selected
+                              </span>
+                            )}
+                            {detection?.status === 'error' && (
+                              <span className="flex items-center gap-1 text-xs text-amber-400">
+                                <AlertCircle className="h-3 w-3" />
+                                Detection failed
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <div className="mt-1 p-3 rounded-lg border border-zinc-700/50 bg-zinc-900/50 space-y-2">
+                          {detection?.status === 'loading' && (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 className="h-5 w-5 animate-spin text-[#6B9B9B] mr-2" />
+                              <span className="text-zinc-400 text-sm">Detecting pages for {comp.domain}...</span>
+                            </div>
+                          )}
+
+                          {detection?.status === 'error' && (
+                            <div className="py-4 text-center">
+                              <AlertCircle className="h-5 w-5 text-amber-400 mx-auto mb-2" />
+                              <p className="text-zinc-400 text-sm">
+                                Couldn't auto-detect pages for {comp.name}.
+                              </p>
+                              <p className="text-zinc-500 text-xs mt-1">
+                                You can add pages manually later from My Pages.
+                              </p>
+                            </div>
+                          )}
+
+                          {detection?.status === 'success' && detection.pages.length > 0 && (
+                            <>
+                              {detection.pages.map((page) => (
+                                <div
+                                  key={page.url}
+                                  className={`flex items-center gap-3 p-2 rounded-md transition-colors ${
+                                    page.selected
+                                      ? 'bg-[#6B9B9B]/10 border border-[#6B9B9B]/20'
+                                      : 'border border-transparent'
+                                  }`}
+                                >
+                                  <Checkbox
+                                    checked={page.selected}
+                                    onCheckedChange={() => togglePage(comp.domain, page.url)}
+                                    className="border-zinc-500 data-[state=checked]:bg-[#6B9B9B] data-[state=checked]:border-[#6B9B9B]"
+                                  />
+                                  <span className="text-xs font-medium text-zinc-300 w-20 shrink-0">
+                                    {getUrlTypeLabel(page.type)}
+                                  </span>
+                                  <Input
+                                    value={page.url}
+                                    onChange={(e) => updatePageUrl(comp.domain, page.url, e.target.value)}
+                                    className="flex-1 h-7 text-xs bg-zinc-800 border-zinc-700 text-zinc-300"
+                                  />
+                                  <div className="flex items-center gap-1.5 shrink-0" title={confidenceLabel(page.confidence)}>
+                                    <div className={`w-2 h-2 rounded-full ${confidenceDot(page.confidence)}`} />
+                                    <span className="text-[10px] text-zinc-500">{confidenceLabel(page.confidence)}</span>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {/* Select / Deselect all */}
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  onClick={() => selectAllPages(comp.domain)}
+                                  className="text-xs text-[#6B9B9B] hover:text-[#5A8A8A]"
+                                >
+                                  Select all
+                                </button>
+                                <span className="text-zinc-600">|</span>
+                                <button
+                                  onClick={() => deselectAllPages(comp.domain)}
+                                  className="text-xs text-zinc-500 hover:text-zinc-300"
+                                >
+                                  Deselect all
+                                </button>
+                              </div>
+                            </>
+                          )}
+
+                          {detection?.status === 'success' && detection.pages.length === 0 && (
+                            <div className="py-4 text-center">
+                              <p className="text-zinc-400 text-sm">No pages detected for this domain.</p>
+                              <p className="text-zinc-500 text-xs mt-1">
+                                You can add pages manually later from My Pages.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })}
+              </div>
+
+              {/* Summary */}
+              <div className="text-center text-sm text-zinc-400 pt-1">
+                {totalSelectedPages} page{totalSelectedPages !== 1 ? 's' : ''} across{' '}
+                {competitors.length} competitor{competitors.length !== 1 ? 's' : ''}
+              </div>
+
+              {/* Navigation */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={() => setStep('competitors')}
+                  variant="outline"
+                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleStep3Submit}
+                  className="flex-1 bg-[#6B9B9B] text-white hover:bg-[#5A8A8A]"
+                  disabled={!allDetectionsComplete}
+                >
+                  {!allDetectionsComplete ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Detecting pages...
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 4: Confirmation ─────────────────────────────── */}
           {step === 'confirm' && (
             <div className="space-y-6">
               <div className="space-y-4">
@@ -532,24 +882,26 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                   {companyDomain && <p className="text-zinc-500 text-sm">{companyDomain}</p>}
                   {(industry || companySize) && (
                     <p className="text-zinc-500 text-sm mt-1">
-                      {[industry, companySize].filter(Boolean).join(' • ')}
+                      {[industry, companySize].filter(Boolean).join(' · ')}
                     </p>
                   )}
                 </div>
 
                 <div className="p-4 bg-zinc-800/50 rounded-lg">
                   <h4 className="text-sm font-medium text-zinc-400 mb-2">
-                    Tracking {competitors.length} competitor{competitors.length !== 1 ? 's' : ''}
+                    Tracking {competitors.length} competitor{competitors.length !== 1 ? 's' : ''} ({totalSelectedPages} pages)
                   </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {competitors.map((comp) => (
-                      <span
-                        key={comp.domain}
-                        className="px-2 py-1 bg-zinc-700 rounded text-sm text-zinc-200"
-                      >
-                        {comp.name}
-                      </span>
-                    ))}
+                  <div className="space-y-2">
+                    {competitors.map((comp) => {
+                      const detection = detectionResults.get(comp.domain);
+                      const pageCount = detection?.pages.filter((p) => p.selected).length || 0;
+                      return (
+                        <div key={comp.domain} className="flex items-center justify-between">
+                          <span className="text-zinc-200 text-sm">{comp.name}</span>
+                          <span className="text-zinc-500 text-xs">{pageCount} page{pageCount !== 1 ? 's' : ''}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -565,7 +917,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
               {/* Navigation */}
               <div className="flex gap-3">
                 <Button
-                  onClick={() => setStep('competitors')}
+                  onClick={() => setStep('review_pages')}
                   variant="outline"
                   className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
                   disabled={isLoading}

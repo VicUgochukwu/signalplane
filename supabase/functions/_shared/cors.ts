@@ -3,6 +3,7 @@ const ALLOWED_ORIGINS = [
   'https://www.signalplane.dev',
   'http://localhost:5173',
   'http://localhost:8080',
+  'http://localhost:8081',
 ];
 
 export function getCorsHeaders(req?: Request): Record<string, string> {
