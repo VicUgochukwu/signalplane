@@ -123,9 +123,9 @@ export const useReports = () => {
         return mockReports;
       }
 
-      // Fetch packets: prefer personalized for this user, fall back to generic
-      // First try to get personalized packets for this user
+      // Fetch packets from control_plane schema
       let query = supabase
+        .schema('control_plane' as any)
         .from('packets')
         .select('*')
         .order('created_at', { ascending: false });

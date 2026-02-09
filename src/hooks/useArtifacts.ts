@@ -16,6 +16,7 @@ export const useObjectionLibrary = () => {
       }
 
       const { data, error } = await supabase
+        .schema('gtm_artifacts' as any)
         .from('objection_library_versions')
         .select('*')
         .order('created_at', { ascending: false });
@@ -50,6 +51,7 @@ export const useSwipeFile = () => {
       }
 
       const { data, error } = await supabase
+        .schema('gtm_artifacts' as any)
         .from('swipe_file_versions')
         .select('*')
         .order('created_at', { ascending: false });
@@ -84,6 +86,7 @@ export const useBattlecards = () => {
       }
 
       const { data, error } = await supabase
+        .schema('gtm_artifacts' as any)
         .from('battlecard_versions')
         .select('*')
         .order('created_at', { ascending: false });
