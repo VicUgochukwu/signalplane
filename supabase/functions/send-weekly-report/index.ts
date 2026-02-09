@@ -195,6 +195,19 @@ async function sendSlackReport(
     { type: 'divider' },
   ];
 
+  // Major-change alert banner
+  const majorCount = changes.filter((c) => c.change_magnitude === 'major').length;
+  if (majorCount > 0) {
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `:rotating_light: *${majorCount} major change${majorCount === 1 ? '' : 's'} detected this week*`,
+      },
+    });
+    blocks.push({ type: 'divider' });
+  }
+
   for (const [company, companyChanges] of Object.entries(byCompany)) {
     blocks.push({
       type: 'section',
