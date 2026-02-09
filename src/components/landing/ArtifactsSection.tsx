@@ -30,7 +30,8 @@ export function ArtifactsSection() {
             Ready-to-use artifacts every Monday
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Three self-updating deliverables generated from each week's signals. All versioned.
+            Three self-updating deliverables generated from each week's signals.
+            Delivered alongside your weekly packet. Exportable as email or Markdown.
           </p>
         </div>
 

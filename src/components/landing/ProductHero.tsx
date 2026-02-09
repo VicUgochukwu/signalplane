@@ -22,9 +22,9 @@ export function ProductHero() {
 
         {/* Subheadline */}
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-          Automated monitors track competitor signals weekly. One structured
-          decision packet lands in your inbox every Monday — evidence-linked,
-          severity-ranked, ready to act on.
+          Automated monitors track competitor signals weekly. A structured
+          decision packet ships to Slack, Notion, or email every Monday —
+          evidence-linked, severity-ranked, ready to act on.
         </p>
 
         {/* CTAs */}

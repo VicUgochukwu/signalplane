@@ -2,7 +2,7 @@ export function MetricsBanner() {
   const metrics = [
     { value: "10+", label: "Automated Monitors" },
     { value: "25", label: "Signals Per Packet" },
-    { value: "Weekly", label: "Delivery Cadence" },
+    { value: "3", label: "Delivery Channels" },
     { value: "100%", label: "Evidence-Linked" },
   ];
 

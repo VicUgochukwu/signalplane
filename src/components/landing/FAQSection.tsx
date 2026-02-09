@@ -9,7 +9,7 @@ const faqs = [
   {
     question: "How is this different from Klue or Crayon?",
     answer:
-      "Klue and Crayon are content aggregation platforms — they collect competitive content and let your team curate it manually. Control Plane is decision infrastructure. It scores every signal automatically, enforces per-category caps, maps each signal to a decision type and owner, and tracks its own predictions against outcomes. The output is a structured weekly decision packet, not a dashboard to interpret.",
+      "Klue and Crayon are content aggregation platforms — they collect competitive content and let your team curate it manually. Control Plane is decision infrastructure. It scores every signal automatically, enforces per-category caps, maps each signal to a decision type and owner, and tracks its own predictions against outcomes. The output is a structured weekly decision packet delivered to Slack, Notion, or email — not a dashboard to interpret.",
   },
   {
     question: "Where does the data come from?",
@@ -19,7 +19,7 @@ const faqs = [
   {
     question: "How often are signals updated?",
     answer:
-      "Weekly. Every Monday, Control Plane delivers a new decision packet covering the previous week's signals. Monitoring runs continuously, but intelligence is packaged weekly — frequent enough to catch shifts early, structured enough to be actionable.",
+      "Weekly. Every Monday, Control Plane delivers a new decision packet to your connected channels — Slack, Notion, or email. Monitoring runs continuously, but intelligence is packaged weekly — frequent enough to catch shifts early, structured enough to be actionable.",
   },
   {
     question: "What does 'evidence-grade' mean?",
@@ -34,17 +34,17 @@ const faqs = [
   {
     question: "How do I bring Control Plane to my team?",
     answer:
-      "Signal Plane can stand up Control Plane for your GTM team in 60 days. Week 1, your first competitive messaging snapshot. By week 8, a self-running intelligence product producing weekly packets and auto-updating battlecards.",
+      "Sign up and add your competitors — your first packet ships next Monday. Connect Slack or Notion so the whole team gets it automatically. No setup calls, no integration work. The system runs itself from day one.",
   },
   {
     question: "Can I see a sample decision packet?",
     answer:
-      "Yes — click 'View Live Demo' in the nav to browse real packets with full structure: executive summary, key shifts, open questions, 90-day hypotheses, and signal detail.",
+      "Yes — click 'View Live Demo' in the nav to browse real packets with full structure: executive summary, key shifts, open questions, 90-day hypotheses, and signal detail. You can also email any packet to yourself or download it as Markdown.",
   },
   {
     question: "How does internal company data plug in?",
     answer:
-      "Control Plane can connect to your CRM and knowledge base. Your internal data becomes an input packet that feeds the system, making output entirely customized to your competitive landscape.",
+      "Today, Control Plane monitors public competitor signals and accepts internal data through manual submission and CSV upload — paste a Gong snippet, support ticket, or win/loss note directly into the platform. The system processes internal signals through the same scoring engine as external ones, making your weekly packets increasingly customized to your competitive landscape.",
   },
 ];
 

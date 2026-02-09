@@ -103,7 +103,7 @@ export const mockReports: IntelPacket[] = [
     predictions: [
       {
         prediction: 'Competitor X will announce enterprise tier with AI features by Q1 end',
-        timeframe: '60 days',
+        timeframe: '90 days',
         confidence: 75,
         signals: ['sig-002', 'sig-008', 'sig-010']
       },

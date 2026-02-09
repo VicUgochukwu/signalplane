@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ContactSection() {
@@ -7,12 +7,11 @@ export function ContactSection() {
     <section id="contact" className="py-20 md:py-28 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
-          Start getting weekly intel packets
+          Start getting weekly intel — where your team works
         </h2>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
-          Stand up Control Plane for your GTM team in 60 days. Week 1, your
-          first competitive snapshot. By week 8, a self-running intelligence
-          product.
+          Sign up, add your competitors, and connect Slack or Notion. Your first
+          decision packet ships next Monday.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
@@ -25,23 +24,18 @@ export function ContactSection() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
-          <a
-            href="https://calendly.com/victorugochukwu"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link to="/control-plane">
             <Button
               variant="outline"
               size="lg"
               className="rounded-full px-6 h-11 text-sm font-medium border-border hover:bg-muted/50"
             >
-              <Calendar className="w-4 h-4 mr-2" />
-              Book a Call
+              View Live Demo
             </Button>
-          </a>
+          </Link>
         </div>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mb-6">
           Or reach out at{" "}
           <a
             href="mailto:hello@signalplane.dev"
@@ -50,6 +44,19 @@ export function ContactSection() {
             hello@signalplane.dev
           </a>
         </p>
+
+        <div className="pt-6 border-t border-border/30">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Enterprise teams:</span>{" "}
+            Need custom signal sources, dedicated integrations, or a white-label instance?{" "}
+            <a
+              href="mailto:hello@signalplane.dev?subject=Enterprise%20inquiry"
+              className="text-primary hover:text-primary/80 transition-colors"
+            >
+              Let's talk
+            </a>
+          </p>
+        </div>
       </div>
     </section>
   );

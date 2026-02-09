@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, FileText, ArrowRightLeft, Shield } from 'lucide-react';
+import { BarChart3, FileText, ArrowRightLeft, PlusCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -11,12 +11,14 @@ const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: BarChart3 },
   { to: '/control-plane/artifacts', label: 'Artifacts', icon: FileText },
   { to: '/messaging-diff', label: 'Signal Feed', icon: ArrowRightLeft },
+  { to: '/control-plane/submit', label: 'Submit Signal', icon: PlusCircle },
 ];
 
 const navItemFlags: Record<string, string> = {
   '/control-plane': 'control_plane',
   '/control-plane/artifacts': 'artifacts',
   '/messaging-diff': 'messaging_diff',
+  '/control-plane/submit': 'submit_signal',
 };
 
 export function AppNavigation() {

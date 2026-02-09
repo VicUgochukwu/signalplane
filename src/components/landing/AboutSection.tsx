@@ -40,8 +40,8 @@ export function AboutSection() {
           <p className="text-muted-foreground leading-relaxed mb-4 max-w-2xl mx-auto">
             Signal Plane brings a decade of B2B SaaS go-to-market experience
             across product marketing, competitive intelligence, and revenue
-            enablement. Control Plane is the product I wished existed when I was
-            running competitive programs manually.
+            enablement. Control Plane is the system I wished existed when I was
+            running competitive programs manually — now anyone can use it.
           </p>
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Victor Ugochukwu</span>{" "}

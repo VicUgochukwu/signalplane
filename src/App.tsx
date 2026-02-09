@@ -13,6 +13,8 @@ import MyPages from "./pages/MyPages";
 import Settings from "./pages/Settings";
 import ControlPlane from "./pages/ControlPlane";
 import Artifacts from "./pages/Artifacts";
+import SubmitSignal from "./pages/SubmitSignal";
+import BulkUpload from "./pages/BulkUpload";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
@@ -55,6 +57,22 @@ const App = () => (
               element={
                 <ProtectedRoute skipOnboarding>
                   <Artifacts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/control-plane/submit"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <SubmitSignal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/control-plane/upload"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <BulkUpload />
                 </ProtectedRoute>
               }
             />

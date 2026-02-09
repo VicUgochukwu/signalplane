@@ -20,7 +20,7 @@ const steps = [
     icon: Package,
     title: "Deliver",
     description:
-      "Each Monday, a structured decision packet lands with executive summary, key shifts, open questions, and 90-day hypotheses — mapped to owners and actions.",
+      "Each Monday, a structured decision packet ships to Slack, Notion, or email — executive summary, key shifts, open questions, and 90-day hypotheses, all mapped to owners and actions.",
   },
 ];
 

@@ -12,9 +12,9 @@ export function WeeklyPacketSection() {
               The Weekly Decision Packet
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              Every Monday, your team gets a structured decision packet — not a
-              dashboard to interpret, but a clear brief on what changed, what it
-              means, and what to do about it.
+              Every Monday, your team gets a structured decision packet delivered
+              to Slack, Notion, or email — not a dashboard to interpret, but a
+              clear brief on what changed, what it means, and what to do about it.
             </p>
             <ul className="space-y-3 mb-8">
               {[
@@ -22,6 +22,7 @@ export function WeeklyPacketSection() {
                 "Signals ranked by severity and recency",
                 "Action items mapped to owners and timelines",
                 "90-day hypotheses tracked against outcomes",
+                "Delivered to Slack, Notion, or email — your team's choice",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
