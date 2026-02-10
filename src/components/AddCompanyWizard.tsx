@@ -225,9 +225,9 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
   };
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card className="bg-muted border-border">
       <CardHeader>
-        <CardTitle className="text-zinc-100 flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           {step === 'company' ? (
             <>
               <Building2 className="h-5 w-5" />
@@ -240,7 +240,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
             </>
           )}
         </CardTitle>
-        <CardDescription className="text-zinc-400">
+        <CardDescription className="text-muted-foreground">
           {step === 'company'
             ? 'Track a new competitor (max 10 companies)'
             : isDetecting
@@ -253,7 +253,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
           <form onSubmit={handleAddCompany} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="companyName" className="text-zinc-200">
+                <Label htmlFor="companyName" className="text-foreground/80">
                   Company Name
                 </Label>
                 <Input
@@ -261,13 +261,13 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                   placeholder="Intercom"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="bg-zinc-900 border-zinc-600 text-zinc-100"
+                  className="bg-background border-border text-foreground"
                   disabled={isLoading}
                 />
                 {nameError && <p className="text-sm text-rose-400">{nameError}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="companyDomain" className="text-zinc-200">
+                <Label htmlFor="companyDomain" className="text-foreground/80">
                   Website Domain
                 </Label>
                 <Input
@@ -275,10 +275,10 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                   placeholder="apollo.io"
                   value={companyDomain}
                   onChange={(e) => handleDomainInput(e.target.value)}
-                  className="bg-zinc-900 border-zinc-600 text-zinc-100"
+                  className="bg-background border-border text-foreground"
                   disabled={isLoading}
                 />
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Paste a URL or type a domain — we'll detect pages automatically
                 </p>
               </div>
@@ -307,7 +307,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
             {isDetecting && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-emerald-400 mr-2" />
-                <span className="text-zinc-400 text-sm">Detecting pages for {companyDomain}...</span>
+                <span className="text-muted-foreground text-sm">Detecting pages for {companyDomain}...</span>
               </div>
             )}
 
@@ -321,7 +321,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                       className={`rounded-lg border p-3 transition-colors ${
                         page.selected
                           ? 'border-emerald-600/50 bg-emerald-900/10'
-                          : 'border-zinc-700 bg-zinc-900/50'
+                          : 'border-border bg-card/50'
                       } ${!page.selected && selectedCount >= 10 ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-3">
@@ -330,23 +330,23 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                           checked={page.selected}
                           onCheckedChange={() => handleTogglePage(page.url)}
                           disabled={!page.selected && selectedCount >= 10}
-                          className="border-zinc-500 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                          className="border-muted-foreground data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
                         />
                         <label
                           htmlFor={`page-${page.type}-${page.url}`}
-                          className="text-sm font-medium text-zinc-200 cursor-pointer w-24 shrink-0"
+                          className="text-sm font-medium text-foreground/80 cursor-pointer w-24 shrink-0"
                         >
                           {getUrlTypeLabel(page.type)}
                         </label>
                         <Input
                           value={page.url}
                           onChange={(e) => handleUrlChange(page.url, e.target.value)}
-                          className="flex-1 h-8 text-sm bg-zinc-900 border-zinc-600 text-zinc-300"
+                          className="flex-1 h-8 text-sm bg-background border-border text-muted-foreground"
                           disabled={!page.selected}
                         />
                         <div className="flex items-center gap-1.5 shrink-0" title={confidenceLabel(page.confidence)}>
                           <div className={`w-2 h-2 rounded-full ${confidenceDot(page.confidence)}`} />
-                          <span className="text-[10px] text-zinc-500">{confidenceLabel(page.confidence)}</span>
+                          <span className="text-[10px] text-muted-foreground">{confidenceLabel(page.confidence)}</span>
                         </div>
                       </div>
                     </div>
@@ -358,8 +358,8 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
                   <button onClick={handleSelectAll} className="text-xs text-emerald-400 hover:text-emerald-300">
                     Select all
                   </button>
-                  <span className="text-zinc-600">|</span>
-                  <button onClick={handleDeselectAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+                  <span className="text-muted-foreground">|</span>
+                  <button onClick={handleDeselectAll} className="text-xs text-muted-foreground hover:text-muted-foreground">
                     Deselect all
                   </button>
                 </div>
@@ -369,8 +369,8 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
             {/* No pages detected */}
             {!isDetecting && pages.length === 0 && (
               <div className="text-center py-6">
-                <p className="text-zinc-400 text-sm">No pages could be auto-detected.</p>
-                <p className="text-zinc-500 text-xs mt-1">
+                <p className="text-muted-foreground text-sm">No pages could be auto-detected.</p>
+                <p className="text-muted-foreground text-xs mt-1">
                   The company has been added. You can manually add pages later.
                 </p>
               </div>
@@ -386,7 +386,7 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
               <Button
                 variant="outline"
                 onClick={handleBack}
-                className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                className="border-border text-muted-foreground hover:bg-muted"
                 disabled={isLoading || isDetecting}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />

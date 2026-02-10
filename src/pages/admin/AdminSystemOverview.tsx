@@ -73,7 +73,7 @@ function getCategoryBadgeClass(category: string): string {
     case 'external':
       return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
     default:
-      return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+      return 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30';
   }
 }
 
@@ -88,7 +88,7 @@ function getStatusDisplay(status: string): { dot: string; label: string } {
     case 'error':
       return { dot: 'bg-red-500', label: 'Down' };
     default:
-      return { dot: 'bg-zinc-500', label: 'No data' };
+      return { dot: 'bg-muted-foreground', label: 'No data' };
   }
 }
 
@@ -103,7 +103,7 @@ function getExecutionStatusIcon(status: string) {
     case 'waiting':
       return <Clock className="h-3 w-3 text-amber-400" />;
     default:
-      return <Clock className="h-3 w-3 text-zinc-400" />;
+      return <Clock className="h-3 w-3 text-muted-foreground" />;
   }
 }
 
@@ -170,7 +170,7 @@ export default function AdminSystemOverview() {
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((stat) => (
-            <Card key={stat.label} className="bg-zinc-800/50 border-zinc-700">
+            <Card key={stat.label} className="bg-muted/50 border-border">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
@@ -179,7 +179,7 @@ export default function AdminSystemOverview() {
               </CardHeader>
               <CardContent>
                 {summaryLoading ? (
-                  <Skeleton className="h-8 w-16 bg-zinc-700" />
+                  <Skeleton className="h-8 w-16 bg-muted" />
                 ) : (
                   <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                 )}
@@ -198,7 +198,7 @@ export default function AdminSystemOverview() {
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: API Health Grid */}
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-foreground">API Status</CardTitle>
               <Link 
@@ -212,7 +212,7 @@ export default function AdminSystemOverview() {
               {healthLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-20 bg-zinc-700" />
+                    <Skeleton key={i} className="h-20 bg-muted" />
                   ))}
                 </div>
               ) : (
@@ -222,7 +222,7 @@ export default function AdminSystemOverview() {
                     return (
                       <div 
                         key={api.api_slug} 
-                        className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-700"
+                        className="p-3 rounded-lg bg-card/50 border border-border"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <span className="font-medium text-sm text-foreground">{api.api_name}</span>
@@ -247,7 +247,7 @@ export default function AdminSystemOverview() {
           </Card>
 
           {/* Right: n8n Workflows */}
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-foreground">Workflows</CardTitle>
               <Link 
@@ -261,7 +261,7 @@ export default function AdminSystemOverview() {
               {workflowsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-10 bg-zinc-700" />
+                    <Skeleton key={i} className="h-10 bg-muted" />
                   ))}
                 </div>
               ) : workflows && workflows.length > 0 ? (
@@ -269,13 +269,13 @@ export default function AdminSystemOverview() {
                   {workflows.slice(0, 5).map((workflow) => (
                     <div 
                       key={workflow.id} 
-                      className="flex items-center justify-between p-2 rounded-lg bg-zinc-900/50"
+                      className="flex items-center justify-between p-2 rounded-lg bg-card/50"
                     >
                       <span className="font-medium text-sm text-foreground">{workflow.name}</span>
                       <Badge 
                         className={workflow.active 
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
-                          : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+                          : 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30'
                         }
                       >
                         {workflow.active ? 'Active' : 'Inactive'}
@@ -290,12 +290,12 @@ export default function AdminSystemOverview() {
               )}
 
               {/* Recent Executions */}
-              <div className="pt-4 border-t border-zinc-700">
+              <div className="pt-4 border-t border-border">
                 <h4 className="text-sm font-medium text-muted-foreground mb-3">Recent Executions</h4>
                 {executionsLoading ? (
                   <div className="space-y-2">
                     {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-6 bg-zinc-700" />
+                      <Skeleton key={i} className="h-6 bg-muted" />
                     ))}
                   </div>
                 ) : executions && executions.length > 0 ? (
@@ -324,13 +324,13 @@ export default function AdminSystemOverview() {
         </div>
 
         {/* Recent Issues */}
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Recent Issues (24h)</CardTitle>
           </CardHeader>
           <CardContent>
             {healthLoading ? (
-              <Skeleton className="h-20 bg-zinc-700" />
+              <Skeleton className="h-20 bg-muted" />
             ) : recentIssues.length > 0 ? (
               <div className="space-y-2">
                 {recentIssues.map((issue) => {
@@ -338,7 +338,7 @@ export default function AdminSystemOverview() {
                   return (
                     <div 
                       key={issue.api_slug} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/50"
+                      className="flex items-center justify-between p-3 rounded-lg bg-card/50"
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full ${statusDisplay.dot}`} />

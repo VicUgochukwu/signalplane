@@ -129,20 +129,20 @@ export function CompanyProfileSettings() {
   // Not configured state
   if (needsOnboarding && !isEditing) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-zinc-100 flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Building2 className="h-5 w-5 text-[#6B9B9B]" />
             Company Profile
           </CardTitle>
-          <CardDescription className="text-zinc-400">
+          <CardDescription className="text-muted-foreground">
             Set up your company to get personalized competitive intelligence
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="p-6 border border-dashed border-zinc-600 rounded-lg text-center">
-            <Building2 className="h-10 w-10 mx-auto mb-3 text-zinc-500" />
-            <p className="text-zinc-400 mb-4">
+          <div className="p-6 border border-dashed border-border rounded-lg text-center">
+            <Building2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-muted-foreground mb-4">
               Configure your company and competitors to receive tailored intel packets and battlecards.
             </p>
             <Button
@@ -161,21 +161,21 @@ export function CompanyProfileSettings() {
   // View mode
   if (!isEditing) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-zinc-100 flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Building2 className="h-5 w-5 text-[#6B9B9B]" />
               Company Profile
             </CardTitle>
-            <CardDescription className="text-zinc-400">
+            <CardDescription className="text-muted-foreground">
               Your company context for personalized intelligence
             </CardDescription>
           </div>
           <Button
             variant="outline"
             onClick={startEditing}
-            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+            className="border-border text-muted-foreground hover:bg-muted"
           >
             Edit
           </Button>
@@ -183,26 +183,26 @@ export function CompanyProfileSettings() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-zinc-500 text-xs">Company</Label>
-              <p className="text-zinc-100">{profile?.company_name}</p>
+              <Label className="text-muted-foreground text-xs">Company</Label>
+              <p className="text-foreground">{profile?.company_name}</p>
             </div>
             <div>
-              <Label className="text-zinc-500 text-xs">Domain</Label>
-              <p className="text-zinc-100">{profile?.company_domain || '—'}</p>
+              <Label className="text-muted-foreground text-xs">Domain</Label>
+              <p className="text-foreground">{profile?.company_domain || '—'}</p>
             </div>
             <div>
-              <Label className="text-zinc-500 text-xs">Industry</Label>
-              <p className="text-zinc-100">{profile?.industry || '—'}</p>
+              <Label className="text-muted-foreground text-xs">Industry</Label>
+              <p className="text-foreground">{profile?.industry || '—'}</p>
             </div>
             <div>
-              <Label className="text-zinc-500 text-xs">Company Size</Label>
-              <p className="text-zinc-100">{profile?.company_size || '—'}</p>
+              <Label className="text-muted-foreground text-xs">Company Size</Label>
+              <p className="text-foreground">{profile?.company_size || '—'}</p>
             </div>
           </div>
 
           {existingCompetitors && existingCompetitors.length > 0 && (
-            <div className="pt-4 border-t border-zinc-700">
-              <Label className="text-zinc-500 text-xs flex items-center gap-1 mb-2">
+            <div className="pt-4 border-t border-border">
+              <Label className="text-muted-foreground text-xs flex items-center gap-1 mb-2">
                 <Target className="h-3 w-3" />
                 Tracked Competitors ({existingCompetitors.length}/5)
               </Label>
@@ -210,7 +210,7 @@ export function CompanyProfileSettings() {
                 {existingCompetitors.map((comp) => (
                   <span
                     key={comp.id}
-                    className="px-3 py-1 bg-[#6B9B9B]/20 border border-[#6B9B9B]/30 rounded-full text-sm text-zinc-200"
+                    className="px-3 py-1 bg-[#6B9B9B]/20 border border-[#6B9B9B]/30 rounded-full text-sm text-foreground/80"
                   >
                     {comp.competitor_name}
                   </span>
@@ -225,31 +225,31 @@ export function CompanyProfileSettings() {
 
   // Edit mode
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-zinc-100 flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Building2 className="h-5 w-5 text-[#6B9B9B]" />
           Edit Company Profile
         </CardTitle>
-        <CardDescription className="text-zinc-400">
+        <CardDescription className="text-muted-foreground">
           Update your company context and tracked competitors
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="companyName" className="text-zinc-200">
+            <Label htmlFor="companyName" className="text-foreground/80">
               Company Name <span className="text-rose-400">*</span>
             </Label>
             <Input
               id="companyName"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="bg-zinc-900 border-zinc-600 text-zinc-100"
+              className="bg-background border-border text-foreground"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="companyDomain" className="text-zinc-200">
+            <Label htmlFor="companyDomain" className="text-foreground/80">
               Domain
             </Label>
             <Input
@@ -257,18 +257,18 @@ export function CompanyProfileSettings() {
               value={companyDomain}
               onChange={(e) => setCompanyDomain(e.target.value)}
               placeholder="yourcompany.com"
-              className="bg-zinc-900 border-zinc-600 text-zinc-100"
+              className="bg-background border-border text-foreground"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-zinc-200">Industry</Label>
+            <Label className="text-foreground/80">Industry</Label>
             <Select value={industry} onValueChange={setIndustry}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-600 text-zinc-100">
+              <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-card border-border">
                 {INDUSTRIES.map((ind) => (
-                  <SelectItem key={ind} value={ind} className="text-zinc-100">
+                  <SelectItem key={ind} value={ind} className="text-foreground">
                     {ind}
                   </SelectItem>
                 ))}
@@ -276,14 +276,14 @@ export function CompanyProfileSettings() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-zinc-200">Company Size</Label>
+            <Label className="text-foreground/80">Company Size</Label>
             <Select value={companySize} onValueChange={setCompanySize}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-600 text-zinc-100">
+              <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-card border-border">
                 {COMPANY_SIZES.map((size) => (
-                  <SelectItem key={size.value} value={size.value} className="text-zinc-100">
+                  <SelectItem key={size.value} value={size.value} className="text-foreground">
                     {size.label}
                   </SelectItem>
                 ))}
@@ -293,8 +293,8 @@ export function CompanyProfileSettings() {
         </div>
 
         {/* Competitors section */}
-        <div className="pt-4 border-t border-zinc-700 space-y-3">
-          <Label className="text-zinc-200 flex items-center gap-1">
+        <div className="pt-4 border-t border-border space-y-3">
+          <Label className="text-foreground/80 flex items-center gap-1">
             <Target className="h-4 w-4" />
             Tracked Competitors ({competitors.length}/5)
           </Label>
@@ -304,15 +304,15 @@ export function CompanyProfileSettings() {
               {competitors.map((comp, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-background rounded-lg"
                 >
                   <div>
-                    <p className="text-zinc-100 font-medium">{comp.name}</p>
-                    {comp.domain && <p className="text-zinc-500 text-sm">{comp.domain}</p>}
+                    <p className="text-foreground font-medium">{comp.name}</p>
+                    {comp.domain && <p className="text-muted-foreground text-sm">{comp.domain}</p>}
                   </div>
                   <button
                     onClick={() => removeCompetitor(idx)}
-                    className="text-zinc-500 hover:text-zinc-300"
+                    className="text-muted-foreground hover:text-muted-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -327,18 +327,18 @@ export function CompanyProfileSettings() {
                 placeholder="Competitor name"
                 value={newCompetitorName}
                 onChange={(e) => setNewCompetitorName(e.target.value)}
-                className="bg-zinc-900 border-zinc-600 text-zinc-100"
+                className="bg-background border-border text-foreground"
               />
               <Input
                 placeholder="domain.com"
                 value={newCompetitorDomain}
                 onChange={(e) => setNewCompetitorDomain(e.target.value)}
-                className="bg-zinc-900 border-zinc-600 text-zinc-100 w-40"
+                className="bg-background border-border text-foreground w-40"
               />
               <Button
                 onClick={addCompetitor}
                 variant="outline"
-                className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                className="border-border text-muted-foreground hover:bg-muted"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -351,7 +351,7 @@ export function CompanyProfileSettings() {
           <Button
             variant="outline"
             onClick={() => setIsEditing(false)}
-            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+            className="border-border text-muted-foreground hover:bg-muted"
             disabled={isSaving}
           >
             Cancel

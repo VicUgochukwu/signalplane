@@ -32,19 +32,19 @@ export function WeeklyPacket({ packet }: WeeklyPacketProps) {
       case 'minor':
         return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       default:
-        return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+        return 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30';
     }
   };
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card className="bg-muted border-border">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-xl font-semibold text-zinc-100">
+            <h2 className="text-xl font-semibold text-foreground">
               Week of {formattedDate}
             </h2>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               {packet.totalChanges} changes across {packet.companies.length} companies
             </p>
           </div>
@@ -65,30 +65,30 @@ export function WeeklyPacket({ packet }: WeeklyPacketProps) {
       <CardContent className="space-y-4">
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50">
-            <Building2 className="h-5 w-5 text-zinc-500" />
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50">
+            <Building2 className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wide">Companies</p>
-              <p className="text-sm text-zinc-200">{packet.companies.slice(0, 3).join(', ')}{packet.companies.length > 3 && ` +${packet.companies.length - 3}`}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Companies</p>
+              <p className="text-sm text-foreground/80">{packet.companies.slice(0, 3).join(', ')}{packet.companies.length > 3 && ` +${packet.companies.length - 3}`}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50">
-            <Tag className="h-5 w-5 text-zinc-500" />
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50">
+            <Tag className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wide">Top Categories</p>
-              <p className="text-sm text-zinc-200">{packet.topTags.join(', ')}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Top Categories</p>
+              <p className="text-sm text-foreground/80">{packet.topTags.join(', ')}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50">
-            <TrendingUp className="h-5 w-5 text-zinc-500" />
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50">
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wide">Signal Strength</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Signal Strength</p>
               <div className="flex gap-1 mt-1">
                 {[...Array(Math.min(5, Math.ceil(packet.magnitudeCounts.major * 2 + packet.magnitudeCounts.moderate)))].map((_, i) => (
                   <div key={i} className="w-2 h-2 rounded-full bg-emerald-500" />
                 ))}
                 {[...Array(Math.max(0, 5 - Math.ceil(packet.magnitudeCounts.major * 2 + packet.magnitudeCounts.moderate)))].map((_, i) => (
-                  <div key={i} className="w-2 h-2 rounded-full bg-zinc-600" />
+                  <div key={i} className="w-2 h-2 rounded-full bg-muted" />
                 ))}
               </div>
             </div>
@@ -98,7 +98,7 @@ export function WeeklyPacket({ packet }: WeeklyPacketProps) {
         {/* Expandable Details */}
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between text-zinc-400 hover:text-zinc-200">
+            <Button variant="ghost" className="w-full justify-between text-muted-foreground hover:text-foreground">
               {isOpen ? 'Hide details' : 'View all changes'}
               {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>

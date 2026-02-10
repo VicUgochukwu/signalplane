@@ -33,13 +33,16 @@ const sectors: SectorTile[] = [
 
 export function SectorPickerSection() {
   return (
-    <section id="demo-sectors" className="py-16 md:py-24 px-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
+    <section id="demo-sectors" className="py-16 md:py-24 px-6 bg-[hsl(var(--section-alt))] dark:bg-transparent">
+      <div className="max-w-6xl mx-auto">
+        <div className="max-w-xl mb-12">
+          <div className="text-xs font-medium text-primary mb-3 tracking-wider uppercase">
+            Live Demos
+          </div>
           <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-3">
             See Control Plane in action for your industry
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
+          <p className="text-muted-foreground">
             Pick your sector. Explore real competitive intelligence — no signup required.
           </p>
         </div>
@@ -51,7 +54,7 @@ export function SectorPickerSection() {
               <Link
                 key={sector.slug}
                 to={`/demo/${sector.slug}`}
-                className="group rounded-xl border border-border/50 bg-card hover:bg-primary/5 hover:border-primary/30 transition-all p-4 text-center space-y-2"
+                className="group rounded-xl border border-border bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] hover:bg-primary/5 hover:border-primary/30 dark:border-border/50 dark:bg-card dark:shadow-none dark:hover:shadow-none dark:hover:border-primary/30 transition-all p-4 text-center space-y-2"
               >
                 <div className="mx-auto w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                   <Icon className="h-5 w-5 text-primary" />

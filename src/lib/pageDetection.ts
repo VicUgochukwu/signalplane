@@ -61,7 +61,7 @@ export function confidenceColor(confidence: 'high' | 'medium' | 'low'): string {
     case 'medium':
       return 'text-amber-400';
     case 'low':
-      return 'text-zinc-500';
+      return 'text-muted-foreground';
   }
 }
 
@@ -72,7 +72,7 @@ export function confidenceDot(confidence: 'high' | 'medium' | 'low'): string {
     case 'medium':
       return 'bg-amber-400';
     case 'low':
-      return 'bg-zinc-500';
+      return 'bg-muted-foreground';
   }
 }
 

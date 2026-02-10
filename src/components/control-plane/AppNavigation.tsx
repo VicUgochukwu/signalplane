@@ -6,6 +6,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { UserMenu } from './UserMenu';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Kanban } from 'lucide-react';
 
 const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: IconControlPlane },
@@ -14,10 +16,12 @@ const navItems = [
   { to: '/control-plane/submit', label: 'Submit Signal', icon: IconSubmitSignal },
   { to: '/control-plane/team', label: 'Team', icon: IconTeam },
   { to: '/control-plane/deals', label: 'Deals', icon: IconDeals },
+  { to: '/control-plane/board', label: 'Action Board', icon: Kanban },
 ];
 
 const navItemFlags: Record<string, string> = {
   '/control-plane': 'control_plane',
+  '/control-plane/board': 'action_board',
   '/control-plane/artifacts': 'artifacts',
   '/messaging-diff': 'messaging_diff',
   '/control-plane/submit': 'submit_signal',
@@ -88,8 +92,9 @@ export function AppNavigation() {
             <ScrollBar orientation="horizontal" className="invisible" />
           </ScrollArea>
 
-          {/* User menu */}
-          <div className="flex-shrink-0">
+          {/* Theme toggle + User menu */}
+          <div className="flex-shrink-0 flex items-center gap-1">
+            <ThemeToggle />
             <UserMenu />
           </div>
         </div>

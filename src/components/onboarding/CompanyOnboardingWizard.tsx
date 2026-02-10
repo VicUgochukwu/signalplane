@@ -400,7 +400,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center p-6">
-      <Card className="w-full max-w-xl bg-zinc-900 border-zinc-800">
+      <Card className="w-full max-w-xl bg-background border-border">
         <CardHeader className="text-center pb-4">
           {/* Progress indicator — 4 dots */}
           <div className="flex justify-center gap-2 mb-6">
@@ -412,13 +412,13 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                     ? 'bg-[#6B9B9B]'
                     : STEPS.indexOf(step) > i
                     ? 'bg-[#6B9B9B]/60'
-                    : 'bg-zinc-700'
+                    : 'bg-muted'
                 }`}
               />
             ))}
           </div>
 
-          <CardTitle className="text-zinc-100 text-2xl flex items-center justify-center gap-3">
+          <CardTitle className="text-foreground text-2xl flex items-center justify-center gap-3">
             {step === 'company' && (
               <>
                 <IconCompany className="h-6 w-6 text-[#6B9B9B]" />
@@ -444,7 +444,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
               </>
             )}
           </CardTitle>
-          <CardDescription className="text-zinc-400">
+          <CardDescription className="text-muted-foreground">
             {step === 'company' && 'This helps us personalize your intelligence feed'}
             {step === 'competitors' && `Add up to 10 competitors to track (${competitors.length}/10 selected)`}
             {step === 'review_pages' && `We auto-detected pages for your competitors. Verify and adjust below.`}
@@ -457,7 +457,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
           {step === 'company' && (
             <form onSubmit={handleStep1Submit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="companyName" className="text-zinc-200">
+                <Label htmlFor="companyName" className="text-foreground/80">
                   Company Name <span className="text-rose-400">*</span>
                 </Label>
                 <Input
@@ -465,12 +465,12 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                   placeholder="Acme Inc"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                  className="bg-muted border-border text-foreground"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="companyDomain" className="text-zinc-200">
+                <Label htmlFor="companyDomain" className="text-foreground/80">
                   Website Domain
                 </Label>
                 <Input
@@ -478,20 +478,20 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                   placeholder="acme.com"
                   value={companyDomain}
                   onChange={(e) => setCompanyDomain(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                  className="bg-muted border-border text-foreground"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-zinc-200">Industry</Label>
+                  <Label className="text-foreground/80">Industry</Label>
                   <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-100">
+                    <SelectTrigger className="bg-muted border-border text-foreground">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectContent className="bg-muted border-border">
                       {INDUSTRIES.map((ind) => (
-                        <SelectItem key={ind} value={ind} className="text-zinc-100">
+                        <SelectItem key={ind} value={ind} className="text-foreground">
                           {ind}
                         </SelectItem>
                       ))}
@@ -500,14 +500,14 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-200">Company Size</Label>
+                  <Label className="text-foreground/80">Company Size</Label>
                   <Select value={companySize} onValueChange={setCompanySize}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-100">
+                    <SelectTrigger className="bg-muted border-border text-foreground">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectContent className="bg-muted border-border">
                       {COMPANY_SIZES.map((size) => (
-                        <SelectItem key={size.value} value={size.value} className="text-zinc-100">
+                        <SelectItem key={size.value} value={size.value} className="text-foreground">
                           {size.label}
                         </SelectItem>
                       ))}
@@ -518,7 +518,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle" className="text-zinc-200">
+                  <Label htmlFor="jobTitle" className="text-foreground/80">
                     Your Role
                   </Label>
                   <Input
@@ -526,19 +526,19 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                     placeholder="Head of Marketing"
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
-                    className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                    className="bg-muted border-border text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-200">Department</Label>
+                  <Label className="text-foreground/80">Department</Label>
                   <Select value={department} onValueChange={setDepartment}>
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-zinc-100">
+                    <SelectTrigger className="bg-muted border-border text-foreground">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectContent className="bg-muted border-border">
                       {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept.value} value={dept.value} className="text-zinc-100">
+                        <SelectItem key={dept.value} value={dept.value} className="text-foreground">
                           {dept.label}
                         </SelectItem>
                       ))}
@@ -562,30 +562,30 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
             <div className="space-y-5">
               {/* Search input */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search for competitors..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-zinc-800 border-zinc-700 text-zinc-100"
+                  className="pl-10 bg-muted border-border text-foreground"
                 />
                 {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-zinc-500" />
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                 )}
               </div>
 
               {/* Search results */}
               {searchResults.length > 0 && (
-                <div className="border border-zinc-700 rounded-lg overflow-hidden">
+                <div className="border border-border rounded-lg overflow-hidden">
                   {searchResults.map((company) => (
                     <button
                       key={company.id}
                       onClick={() => addCompetitor(company)}
-                      className="w-full px-4 py-3 text-left hover:bg-zinc-800 border-b border-zinc-700 last:border-0 flex items-center justify-between"
+                      className="w-full px-4 py-3 text-left hover:bg-muted border-b border-border last:border-0 flex items-center justify-between"
                     >
                       <div>
-                        <p className="text-zinc-100 font-medium">{company.name}</p>
-                        <p className="text-zinc-500 text-sm">{company.domain}</p>
+                        <p className="text-foreground font-medium">{company.name}</p>
+                        <p className="text-muted-foreground text-sm">{company.domain}</p>
                       </div>
                       <Plus className="h-4 w-4 text-[#6B9B9B]" />
                     </button>
@@ -603,18 +603,18 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                   Add competitor not in list
                 </button>
               ) : (
-                <div className="p-4 border border-zinc-700 rounded-lg space-y-3">
+                <div className="p-4 border border-border rounded-lg space-y-3">
                   <Input
                     placeholder="Company name"
                     value={newCompetitorName}
                     onChange={(e) => setNewCompetitorName(e.target.value)}
-                    className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                    className="bg-muted border-border text-foreground"
                   />
                   <Input
                     placeholder="domain.com"
                     value={newCompetitorDomain}
                     onChange={(e) => setNewCompetitorDomain(e.target.value)}
-                    className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                    className="bg-muted border-border text-foreground"
                   />
                   <div className="flex gap-2">
                     <Button
@@ -631,7 +631,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                         setNewCompetitorDomain('');
                       }}
                       variant="outline"
-                      className="border-zinc-700 text-zinc-300"
+                      className="border-border text-muted-foreground"
                       size="sm"
                     >
                       Cancel
@@ -643,7 +643,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
               {/* Selected competitors with detection status */}
               {competitors.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-zinc-400 text-sm">Selected competitors:</Label>
+                  <Label className="text-muted-foreground text-sm">Selected competitors:</Label>
                   <div className="flex flex-wrap gap-2">
                     {competitors.map((comp) => {
                       const detection = detectionResults.get(comp.domain);
@@ -661,10 +661,10 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                           {detection?.status === 'error' && (
                             <AlertCircle className="h-3 w-3 text-amber-400" />
                           )}
-                          <span className="text-zinc-100 text-sm">{comp.name}</span>
+                          <span className="text-foreground text-sm">{comp.name}</span>
                           <button
                             onClick={() => removeCompetitor(comp.domain)}
-                            className="text-zinc-400 hover:text-zinc-100"
+                            className="text-muted-foreground hover:text-foreground"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -680,7 +680,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 <Button
                   onClick={() => setStep('company')}
                   variant="outline"
-                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                  className="border-border text-muted-foreground hover:bg-muted"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
@@ -714,27 +714,27 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                       onOpenChange={() => toggleExpanded(comp.domain)}
                     >
                       <CollapsibleTrigger asChild>
-                        <button className="w-full flex items-center justify-between p-3 rounded-lg border border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
+                        <button className="w-full flex items-center justify-between p-3 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors">
                           <div className="flex items-center gap-3">
                             {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-zinc-400" />
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-zinc-400" />
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             )}
                             <div className="text-left">
-                              <p className="text-zinc-100 font-medium text-sm">{comp.name}</p>
-                              <p className="text-zinc-500 text-xs">{comp.domain}</p>
+                              <p className="text-foreground font-medium text-sm">{comp.name}</p>
+                              <p className="text-muted-foreground text-xs">{comp.domain}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {detection?.status === 'loading' && (
-                              <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 Detecting...
                               </span>
                             )}
                             {detection?.status === 'success' && (
-                              <span className="text-xs text-zinc-400 bg-zinc-700/50 px-2 py-0.5 rounded-full">
+                              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
                                 {selectedCount} page{selectedCount !== 1 ? 's' : ''} selected
                               </span>
                             )}
@@ -749,21 +749,21 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                       </CollapsibleTrigger>
 
                       <CollapsibleContent>
-                        <div className="mt-1 p-3 rounded-lg border border-zinc-700/50 bg-zinc-900/50 space-y-2">
+                        <div className="mt-1 p-3 rounded-lg border border-border/50 bg-card/50 space-y-2">
                           {detection?.status === 'loading' && (
                             <div className="flex items-center justify-center py-6">
                               <Loader2 className="h-5 w-5 animate-spin text-[#6B9B9B] mr-2" />
-                              <span className="text-zinc-400 text-sm">Detecting pages for {comp.domain}...</span>
+                              <span className="text-muted-foreground text-sm">Detecting pages for {comp.domain}...</span>
                             </div>
                           )}
 
                           {detection?.status === 'error' && (
                             <div className="py-4 text-center">
                               <AlertCircle className="h-5 w-5 text-amber-400 mx-auto mb-2" />
-                              <p className="text-zinc-400 text-sm">
+                              <p className="text-muted-foreground text-sm">
                                 Couldn't auto-detect pages for {comp.name}.
                               </p>
-                              <p className="text-zinc-500 text-xs mt-1">
+                              <p className="text-muted-foreground text-xs mt-1">
                                 You can add pages manually later from My Pages.
                               </p>
                             </div>
@@ -783,19 +783,19 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                                   <Checkbox
                                     checked={page.selected}
                                     onCheckedChange={() => togglePage(comp.domain, page.url)}
-                                    className="border-zinc-500 data-[state=checked]:bg-[#6B9B9B] data-[state=checked]:border-[#6B9B9B]"
+                                    className="border-muted-foreground data-[state=checked]:bg-[#6B9B9B] data-[state=checked]:border-[#6B9B9B]"
                                   />
-                                  <span className="text-xs font-medium text-zinc-300 w-20 shrink-0">
+                                  <span className="text-xs font-medium text-muted-foreground w-20 shrink-0">
                                     {getUrlTypeLabel(page.type)}
                                   </span>
                                   <Input
                                     value={page.url}
                                     onChange={(e) => updatePageUrl(comp.domain, page.url, e.target.value)}
-                                    className="flex-1 h-7 text-xs bg-zinc-800 border-zinc-700 text-zinc-300"
+                                    className="flex-1 h-7 text-xs bg-muted border-border text-muted-foreground"
                                   />
                                   <div className="flex items-center gap-1.5 shrink-0" title={confidenceLabel(page.confidence)}>
                                     <div className={`w-2 h-2 rounded-full ${confidenceDot(page.confidence)}`} />
-                                    <span className="text-[10px] text-zinc-500">{confidenceLabel(page.confidence)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{confidenceLabel(page.confidence)}</span>
                                   </div>
                                 </div>
                               ))}
@@ -808,10 +808,10 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                                 >
                                   Select all
                                 </button>
-                                <span className="text-zinc-600">|</span>
+                                <span className="text-muted-foreground">|</span>
                                 <button
                                   onClick={() => deselectAllPages(comp.domain)}
-                                  className="text-xs text-zinc-500 hover:text-zinc-300"
+                                  className="text-xs text-muted-foreground hover:text-muted-foreground"
                                 >
                                   Deselect all
                                 </button>
@@ -821,8 +821,8 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
 
                           {detection?.status === 'success' && detection.pages.length === 0 && (
                             <div className="py-4 text-center">
-                              <p className="text-zinc-400 text-sm">No pages detected for this domain.</p>
-                              <p className="text-zinc-500 text-xs mt-1">
+                              <p className="text-muted-foreground text-sm">No pages detected for this domain.</p>
+                              <p className="text-muted-foreground text-xs mt-1">
                                 You can add pages manually later from My Pages.
                               </p>
                             </div>
@@ -835,7 +835,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
               </div>
 
               {/* Summary */}
-              <div className="text-center text-sm text-zinc-400 pt-1">
+              <div className="text-center text-sm text-muted-foreground pt-1">
                 {totalSelectedPages} page{totalSelectedPages !== 1 ? 's' : ''} across{' '}
                 {competitors.length} competitor{competitors.length !== 1 ? 's' : ''}
               </div>
@@ -845,7 +845,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 <Button
                   onClick={() => setStep('competitors')}
                   variant="outline"
-                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                  className="border-border text-muted-foreground hover:bg-muted"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
@@ -875,19 +875,19 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
           {step === 'confirm' && (
             <div className="space-y-6">
               <div className="space-y-4">
-                <div className="p-4 bg-zinc-800/50 rounded-lg">
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Your Company</h4>
-                  <p className="text-zinc-100 font-medium">{companyName}</p>
-                  {companyDomain && <p className="text-zinc-500 text-sm">{companyDomain}</p>}
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Your Company</h4>
+                  <p className="text-foreground font-medium">{companyName}</p>
+                  {companyDomain && <p className="text-muted-foreground text-sm">{companyDomain}</p>}
                   {(industry || companySize) && (
-                    <p className="text-zinc-500 text-sm mt-1">
+                    <p className="text-muted-foreground text-sm mt-1">
                       {[industry, companySize].filter(Boolean).join(' · ')}
                     </p>
                   )}
                 </div>
 
-                <div className="p-4 bg-zinc-800/50 rounded-lg">
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
                     Tracking {competitors.length} competitor{competitors.length !== 1 ? 's' : ''} ({totalSelectedPages} pages)
                   </h4>
                   <div className="space-y-2">
@@ -896,8 +896,8 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                       const pageCount = detection?.pages.filter((p) => p.selected).length || 0;
                       return (
                         <div key={comp.domain} className="flex items-center justify-between">
-                          <span className="text-zinc-200 text-sm">{comp.name}</span>
-                          <span className="text-zinc-500 text-xs">{pageCount} page{pageCount !== 1 ? 's' : ''}</span>
+                          <span className="text-foreground/80 text-sm">{comp.name}</span>
+                          <span className="text-muted-foreground text-xs">{pageCount} page{pageCount !== 1 ? 's' : ''}</span>
                         </div>
                       );
                     })}
@@ -906,7 +906,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
 
                 <div className="p-4 bg-[#6B9B9B]/10 border border-[#6B9B9B]/20 rounded-lg">
                   <h4 className="text-sm font-medium text-[#6B9B9B] mb-1">What happens next</h4>
-                  <p className="text-zinc-400 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Your first intelligence packet will arrive Monday with competitive signals,
                     battlecards, and action items personalized for {companyName}.
                   </p>
@@ -918,7 +918,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 <Button
                   onClick={() => setStep('review_pages')}
                   variant="outline"
-                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                  className="border-border text-muted-foreground hover:bg-muted"
                   disabled={isLoading}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />

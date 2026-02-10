@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Plug, UserCircle } from 'lucide-react';
+import { Plug, UserCircle, Palette } from 'lucide-react';
 import { IconCompany } from '@/components/icons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
@@ -11,8 +11,10 @@ import { AccountSettings } from '@/components/settings/AccountSettings';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const VALID_TABS = ['profile', 'integrations', 'account'] as const;
+const VALID_TABS = ['profile', 'integrations', 'account', 'appearance'] as const;
 type SettingsTab = (typeof VALID_TABS)[number];
 
 const Settings = () => {
@@ -115,7 +117,7 @@ const Settings = () => {
           onValueChange={handleTabChange}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
             <TabsTrigger value="profile" className="gap-2">
               <IconCompany className="h-4 w-4" />
               <span className="hidden sm:inline">Company Profile</span>
@@ -129,6 +131,10 @@ const Settings = () => {
               <UserCircle className="h-4 w-4" />
               <span>Account</span>
             </TabsTrigger>
+            <TabsTrigger value="appearance" className="gap-2">
+              <Palette className="h-4 w-4" />
+              <span>Appearance</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -141,6 +147,20 @@ const Settings = () => {
 
           <TabsContent value="account">
             <AccountSettings />
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme</CardTitle>
+                <CardDescription>
+                  Choose how Signal Plane looks to you. Select a single theme or sync with your system settings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ThemeToggle variant="full" />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

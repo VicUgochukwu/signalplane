@@ -68,14 +68,14 @@ export function TrackedPagesList() {
 
   if (isLoading) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-muted border-border">
         <CardHeader>
-          <Skeleton className="h-6 w-40 bg-zinc-700" />
-          <Skeleton className="h-4 w-60 bg-zinc-700" />
+          <Skeleton className="h-6 w-40 bg-muted" />
+          <Skeleton className="h-4 w-60 bg-muted" />
         </CardHeader>
         <CardContent className="space-y-3">
           {[1, 2].map((i) => (
-            <Skeleton key={i} className="h-20 w-full bg-zinc-700" />
+            <Skeleton key={i} className="h-20 w-full bg-muted" />
           ))}
         </CardContent>
       </Card>
@@ -84,7 +84,7 @@ export function TrackedPagesList() {
 
   if (error) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card className="bg-muted border-border">
         <CardContent className="py-6">
           <div className="text-center text-rose-400">
             Error loading tracked pages: {(error as Error).message}
@@ -97,17 +97,17 @@ export function TrackedPagesList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <List className="h-5 w-5 text-zinc-400" />
-        <h2 className="text-lg font-semibold text-zinc-100">Your Tracked Companies</h2>
-        <span className="text-sm text-zinc-500">
+        <List className="h-5 w-5 text-muted-foreground" />
+        <h2 className="text-lg font-semibold text-foreground">Your Tracked Companies</h2>
+        <span className="text-sm text-muted-foreground">
           {companies.length} compan{companies.length !== 1 ? 'ies' : 'y'}, {totalPages} page{totalPages !== 1 ? 's' : ''}
         </span>
       </div>
 
       {companies.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card className="bg-muted border-border">
           <CardContent className="py-8">
-            <div className="text-center text-zinc-500">
+            <div className="text-center text-muted-foreground">
               No companies tracked yet. Add your first company above.
             </div>
           </CardContent>

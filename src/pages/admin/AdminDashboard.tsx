@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((stat) => (
-            <Card key={stat.label} className="bg-zinc-800/50 border-zinc-700">
+            <Card key={stat.label} className="bg-muted/50 border-border">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 {statsLoading ? (
-                  <Skeleton className="h-8 w-16 bg-zinc-700" />
+                  <Skeleton className="h-8 w-16 bg-muted" />
                 ) : (
                   <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                 )}
@@ -108,13 +108,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* Daily Signups Chart */}
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Daily Signups (Last 30 Days)</CardTitle>
           </CardHeader>
           <CardContent>
             {signupsLoading ? (
-              <Skeleton className="h-64 w-full bg-zinc-700" />
+              <Skeleton className="h-64 w-full bg-muted" />
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={dailySignups}>
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {quickLinks.map((link) => (
             <Link key={link.to} to={link.to}>
-              <Card className="bg-zinc-800/50 border-zinc-700 hover:border-emerald-500/50 transition-colors cursor-pointer">
+              <Card className="bg-muted/50 border-border hover:border-primary/50 transition-colors cursor-pointer">
                 <CardContent className="flex items-center justify-between p-4">
                   <span className="font-medium text-foreground">{link.label}</span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* System Health Summary */}
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-foreground flex items-center gap-2">
               <Activity className="h-5 w-5 text-emerald-400" />
@@ -183,9 +183,9 @@ export default function AdminDashboard() {
           <CardContent>
             {systemLoading ? (
               <div className="space-y-3">
-                <Skeleton className="h-4 w-32 bg-zinc-700" />
-                <Skeleton className="h-2 w-full bg-zinc-700" />
-                <Skeleton className="h-4 w-24 bg-zinc-700" />
+                <Skeleton className="h-4 w-32 bg-muted" />
+                <Skeleton className="h-2 w-full bg-muted" />
+                <Skeleton className="h-4 w-24 bg-muted" />
               </div>
             ) : systemSummary ? (
               (systemSummary.total_apis ?? 0) > 0 ? (
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
                     </span>
                     <span className="text-muted-foreground">{healthPercentage}%</span>
                   </div>
-                  <div className="relative h-2 bg-zinc-700 rounded-full overflow-hidden">
+                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="absolute left-0 top-0 h-full bg-emerald-500 rounded-full transition-all"
                       style={{ width: `${((systemSummary.healthy_apis ?? 0) / Math.max(systemSummary.total_apis ?? 1, 1)) * 100}%` }}

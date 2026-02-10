@@ -210,7 +210,7 @@ export default function AdminCsvUpload() {
 
         {/* Upload Form */}
         {!uploadResult && (
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardHeader>
               <CardTitle className="text-foreground">Upload CSV Data</CardTitle>
               <CardDescription>
@@ -227,7 +227,7 @@ export default function AdminCsvUpload() {
                   relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
                   ${isDragging 
                     ? 'border-emerald-500 bg-emerald-500/5' 
-                    : 'border-zinc-600 hover:border-emerald-500/50'
+                    : 'border-border hover:border-emerald-500/50'
                   }
                 `}
                 onClick={() => document.getElementById('csv-file-input')?.click()}
@@ -260,7 +260,7 @@ export default function AdminCsvUpload() {
                   </div>
                 ) : (
                   <>
-                    <Upload className="h-12 w-12 mx-auto text-zinc-500 mb-4" />
+                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-foreground font-medium">
                       Drop your CSV file here or click to browse
                     </p>
@@ -280,13 +280,13 @@ export default function AdminCsvUpload() {
                     placeholder="e.g., LinkedIn Export, Gong Calls"
                     value={sourceName}
                     onChange={(e) => setSourceName(e.target.value)}
-                    className="bg-zinc-900 border-zinc-700"
+                    className="bg-background border-border"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="source-type">Source Type</Label>
                   <Select value={sourceType} onValueChange={setSourceType}>
-                    <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                    <SelectTrigger className="bg-background border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -324,7 +324,7 @@ export default function AdminCsvUpload() {
 
         {/* Preview Results */}
         {previewData && !uploadResult && (
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardHeader>
               <CardTitle className="text-foreground">Preview Results</CardTitle>
             </CardHeader>
@@ -356,7 +356,7 @@ export default function AdminCsvUpload() {
                   {Object.entries(previewData.columnMapping).map(([col, type]) => (
                     <span
                       key={col}
-                      className="text-xs px-2 py-1 rounded bg-zinc-700 text-zinc-300"
+                      className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground"
                     >
                       {col} → {type}
                     </span>
@@ -371,7 +371,7 @@ export default function AdminCsvUpload() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-zinc-700">
+                        <TableRow className="border-border">
                           <TableHead>Text</TableHead>
                           <TableHead>Author</TableHead>
                           <TableHead>Date</TableHead>
@@ -380,7 +380,7 @@ export default function AdminCsvUpload() {
                       </TableHeader>
                       <TableBody>
                         {previewData.sampleRows.map((row, idx) => (
-                          <TableRow key={idx} className="border-zinc-700">
+                          <TableRow key={idx} className="border-border">
                             <TableCell className="max-w-xs truncate text-sm">
                               {row.text?.slice(0, 200)}
                             </TableCell>
@@ -467,7 +467,7 @@ export default function AdminCsvUpload() {
         )}
 
         {/* Upload History */}
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Recent Uploads</CardTitle>
           </CardHeader>
@@ -475,13 +475,13 @@ export default function AdminCsvUpload() {
             {isLoadingHistory ? (
               <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 bg-zinc-700" />
+                  <Skeleton key={i} className="h-10 bg-muted" />
                 ))}
               </div>
             ) : recentUploads && recentUploads.length > 0 ? (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-zinc-700">
+                  <TableRow className="border-border">
                     <TableHead>User</TableHead>
                     <TableHead>Uploads</TableHead>
                     <TableHead>Rows Processed</TableHead>
@@ -490,7 +490,7 @@ export default function AdminCsvUpload() {
                 </TableHeader>
                 <TableBody>
                   {recentUploads.map((upload: any) => (
-                    <TableRow key={upload.user_id} className="border-zinc-700">
+                    <TableRow key={upload.user_id} className="border-border">
                       <TableCell className="text-sm">{upload.user_email || 'Unknown'}</TableCell>
                       <TableCell className="text-sm">{upload.upload_count}</TableCell>
                       <TableCell className="text-sm">

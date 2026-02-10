@@ -33,7 +33,7 @@ const getActionColor = (action: string): string => {
   if (action.includes('suspend')) return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
   if (action.includes('role')) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
   if (action.includes('feature')) return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-  return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+  return 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30';
 };
 
 export default function AdminAuditLog() {
@@ -57,16 +57,16 @@ export default function AdminAuditLog() {
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Card key={i} className="bg-zinc-800/50 border-zinc-700">
+              <Card key={i} className="bg-muted/50 border-border">
                 <CardContent className="p-4">
-                  <Skeleton className="h-4 w-3/4 bg-zinc-700 mb-2" />
-                  <Skeleton className="h-3 w-1/2 bg-zinc-700" />
+                  <Skeleton className="h-4 w-3/4 bg-muted mb-2" />
+                  <Skeleton className="h-3 w-1/2 bg-muted" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : logs?.length === 0 ? (
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="p-8 text-center text-muted-foreground">
               No audit log entries yet
             </CardContent>
@@ -74,7 +74,7 @@ export default function AdminAuditLog() {
         ) : (
           <div className="space-y-4">
             {logs?.map((log) => (
-              <Card key={log.id} className="bg-zinc-800/50 border-zinc-700">
+              <Card key={log.id} className="bg-muted/50 border-border">
                 <CardContent className="p-4">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                     <div className="space-y-1">
@@ -93,10 +93,10 @@ export default function AdminAuditLog() {
                         )}
                       </div>
                       {log.details && Object.keys(log.details).length > 0 && (
-                        <div className="mt-2 p-2 bg-zinc-900 rounded text-xs font-mono">
+                        <div className="mt-2 p-2 bg-background rounded text-xs font-mono">
                           {Object.entries(log.details).map(([key, value]) => (
                             <div key={key} className="text-muted-foreground">
-                              <span className="text-zinc-500">{key}:</span>{' '}
+                              <span className="text-muted-foreground">{key}:</span>{' '}
                               <span className="text-foreground">{String(value)}</span>
                             </div>
                           ))}

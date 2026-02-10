@@ -29,8 +29,8 @@ const statusConfig: Record<PacketStatus, { label: string; dotClass: string; badg
   },
   archived: {
     label: 'Archived',
-    dotClass: 'bg-zinc-500',
-    badgeClass: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+    dotClass: 'bg-muted-foreground',
+    badgeClass: 'bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20',
   },
 };
 

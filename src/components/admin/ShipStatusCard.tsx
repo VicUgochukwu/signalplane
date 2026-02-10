@@ -38,7 +38,7 @@ const statusConfig = {
 };
 
 const getTimeProgressColor = (hours: number | null): string => {
-  if (hours === null) return 'bg-zinc-600';
+  if (hours === null) return 'bg-muted';
   if (hours < 24) return 'bg-emerald-500';
   if (hours < 48) return 'bg-amber-500';
   return 'bg-red-500';
@@ -63,15 +63,15 @@ export const ShipStatusCard = ({ ship }: ShipStatusCardProps) => {
       className={cn(
         'border transition-all duration-200 hover:shadow-lg hover:shadow-current/5',
         config.color,
-        'bg-zinc-900/50'
+        'bg-card/50'
       )}
     >
       <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Radio className="h-4 w-4 text-zinc-500" />
-            <span className="font-mono font-semibold text-zinc-100 capitalize">
+            <Radio className="h-4 w-4 text-muted-foreground" />
+            <span className="font-mono font-semibold text-foreground capitalize">
               {ship.ship_name}
             </span>
           </div>
@@ -84,22 +84,22 @@ export const ShipStatusCard = ({ ship }: ShipStatusCardProps) => {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="space-y-1">
-            <p className="text-zinc-500 font-mono">Last Signal</p>
-            <p className="text-zinc-300 font-medium">{lastSignalText}</p>
+            <p className="text-muted-foreground font-mono">Last Signal</p>
+            <p className="text-muted-foreground font-medium">{lastSignalText}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-zinc-500 font-mono">7d Count</p>
-            <p className="text-zinc-300 font-medium">{ship.signal_count_7d ?? 0}</p>
+            <p className="text-muted-foreground font-mono">7d Count</p>
+            <p className="text-muted-foreground font-medium">{ship.signal_count_7d ?? 0}</p>
           </div>
         </div>
 
         {/* Time Progress Bar */}
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-zinc-500 font-mono">
+          <div className="flex justify-between text-xs text-muted-foreground font-mono">
             <span>Hours since signal</span>
             <span>{ship.hours_since_last_signal?.toFixed(1) ?? '—'}</span>
           </div>
-          <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full transition-all duration-300',
@@ -108,7 +108,7 @@ export const ShipStatusCard = ({ ship }: ShipStatusCardProps) => {
               style={{ width: `${getTimeProgressValue(ship.hours_since_last_signal)}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
+          <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
             <span>0h</span>
             <span>24h</span>
             <span>48h</span>

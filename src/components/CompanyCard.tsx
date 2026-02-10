@@ -93,21 +93,21 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="rounded-lg border border-zinc-700 bg-zinc-800 overflow-hidden">
+      <div className="rounded-lg border border-border bg-muted overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-zinc-800">
+        <div className="flex items-center justify-between px-4 py-3 bg-muted">
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 text-left hover:text-zinc-100 transition-colors">
+            <button className="flex items-center gap-2 text-left hover:text-foreground transition-colors">
               {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-zinc-400" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-zinc-400" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className="font-semibold text-zinc-100">{companyName}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-700 text-zinc-300">
+              <span className="font-semibold text-foreground">{companyName}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                 {pages.length} page{pages.length !== 1 ? 's' : ''}
               </span>
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-muted-foreground">
                 {activeCount} active
               </span>
             </button>
@@ -118,7 +118,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-zinc-400 hover:text-rose-400 hover:bg-rose-400/10"
+                className="text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-400/10"
                 disabled={deletingCompany}
               >
                 {deletingCompany ? (
@@ -128,17 +128,17 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                 )}
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-zinc-800 border-zinc-700">
+            <AlertDialogContent className="bg-muted border-border">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-zinc-100">
+                <AlertDialogTitle className="text-foreground">
                   Delete {companyName}?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-zinc-400">
+                <AlertDialogDescription className="text-muted-foreground">
                   This will permanently remove {companyName} and all {pages.length} tracked page{pages.length !== 1 ? 's' : ''}. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="bg-zinc-700 text-zinc-100 border-zinc-600 hover:bg-zinc-600">
+                <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted">
                   Cancel
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -154,15 +154,15 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
 
         {/* Pages */}
         <CollapsibleContent>
-          <div className="border-t border-zinc-700 divide-y divide-zinc-700/50">
+          <div className="border-t border-border divide-y divide-border/50">
             {pages.map((page) => (
               <div
                 key={page.id}
-                className="flex items-center justify-between px-4 py-3 bg-zinc-900/50"
+                className="flex items-center justify-between px-4 py-3 bg-card/50"
               >
                 <div className="flex-1 min-w-0 mr-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded bg-zinc-700 text-zinc-300">
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
                       {getUrlTypeLabel(page.url_type)}
                     </span>
                   </div>
@@ -170,7 +170,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                     href={page.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-zinc-400 hover:text-zinc-300 flex items-center gap-1 truncate mt-1"
+                    className="text-sm text-muted-foreground hover:text-muted-foreground flex items-center gap-1 truncate mt-1"
                   >
                     {page.url}
                     <ExternalLink className="h-3 w-3 flex-shrink-0" />
@@ -180,7 +180,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     {togglingIds.has(page.id) ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : (
                       <Switch
                         checked={page.enabled}
@@ -188,7 +188,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                         className="data-[state=checked]:bg-emerald-600"
                       />
                     )}
-                    <span className="text-xs text-zinc-500 w-12">
+                    <span className="text-xs text-muted-foreground w-12">
                       {page.enabled ? 'Active' : 'Paused'}
                     </span>
                   </div>
@@ -198,7 +198,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-zinc-400 hover:text-rose-400 hover:bg-rose-400/10 h-8 w-8"
+                        className="text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-400/10 h-8 w-8"
                         disabled={deletingIds.has(page.id)}
                       >
                         {deletingIds.has(page.id) ? (
@@ -208,17 +208,17 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                         )}
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-zinc-800 border-zinc-700">
+                    <AlertDialogContent className="bg-muted border-border">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="text-zinc-100">
+                        <AlertDialogTitle className="text-foreground">
                           Delete page?
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-zinc-400">
+                        <AlertDialogDescription className="text-muted-foreground">
                           Remove the {getUrlTypeLabel(page.url_type)} page for {companyName}?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-700 text-zinc-100 border-zinc-600 hover:bg-zinc-600">
+                        <AlertDialogCancel className="bg-muted text-foreground border-border hover:bg-muted">
                           Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction

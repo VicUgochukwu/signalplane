@@ -27,11 +27,11 @@ export function AdminRoute({ children }: AdminRouteProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="space-y-4 w-64">
-          <Skeleton className="h-8 w-full bg-zinc-800" />
-          <Skeleton className="h-4 w-3/4 bg-zinc-800" />
-          <Skeleton className="h-4 w-1/2 bg-zinc-800" />
+          <Skeleton className="h-8 w-full bg-muted" />
+          <Skeleton className="h-4 w-3/4 bg-muted" />
+          <Skeleton className="h-4 w-1/2 bg-muted" />
         </div>
       </div>
     );

@@ -214,7 +214,7 @@ export default function AdminFeatureFlags() {
           value={formData.flag_key}
           onChange={(e) => setFormData({ ...formData, flag_key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
           disabled={isEdit}
-          className="bg-zinc-900 border-zinc-700"
+          className="bg-background border-border"
         />
         <p className="text-xs text-muted-foreground">Lowercase with underscores only</p>
       </div>
@@ -225,7 +225,7 @@ export default function AdminFeatureFlags() {
           placeholder="Feature Display Name"
           value={formData.label}
           onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-          className="bg-zinc-900 border-zinc-700"
+          className="bg-background border-border"
         />
       </div>
       <div className="space-y-2">
@@ -235,7 +235,7 @@ export default function AdminFeatureFlags() {
           placeholder="Optional description..."
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="bg-zinc-900 border-zinc-700"
+          className="bg-background border-border"
         />
       </div>
       <div className="space-y-2">
@@ -244,7 +244,7 @@ export default function AdminFeatureFlags() {
           value={formData.applies_to}
           onValueChange={(value) => setFormData({ ...formData, applies_to: value })}
         >
-          <SelectTrigger className="bg-zinc-900 border-zinc-700">
+          <SelectTrigger className="bg-background border-border">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -278,7 +278,7 @@ export default function AdminFeatureFlags() {
                 Create Flag
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-900 border-zinc-700">
+            <DialogContent className="bg-background border-border">
               <DialogHeader>
                 <DialogTitle>Create Feature Flag</DialogTitle>
                 <DialogDescription>
@@ -311,16 +311,16 @@ export default function AdminFeatureFlags() {
         {isLoading ? (
           <div className="grid gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="bg-zinc-800/50 border-zinc-700">
+              <Card key={i} className="bg-muted/50 border-border">
                 <CardHeader>
-                  <Skeleton className="h-5 w-48 bg-zinc-700" />
-                  <Skeleton className="h-4 w-72 bg-zinc-700" />
+                  <Skeleton className="h-5 w-48 bg-muted" />
+                  <Skeleton className="h-4 w-72 bg-muted" />
                 </CardHeader>
               </Card>
             ))}
           </div>
         ) : flags?.length === 0 ? (
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="p-8 text-center text-muted-foreground">
               No feature flags configured yet
             </CardContent>
@@ -328,7 +328,7 @@ export default function AdminFeatureFlags() {
         ) : (
           <div className="grid gap-4">
             {flags?.map((flag) => (
-              <Card key={flag.flag_key} className="bg-zinc-800/50 border-zinc-700">
+              <Card key={flag.flag_key} className="bg-muted/50 border-border">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
@@ -338,7 +338,7 @@ export default function AdminFeatureFlags() {
                       </div>
                       <CardDescription>{flag.description}</CardDescription>
                       <div className="flex items-center gap-2 pt-1">
-                        <code className="text-xs text-muted-foreground bg-zinc-900 px-2 py-0.5 rounded">
+                        <code className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded">
                           {flag.flag_key}
                         </code>
                         <span className="text-xs text-muted-foreground">
@@ -360,7 +360,7 @@ export default function AdminFeatureFlags() {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-700">
+                        <DropdownMenuContent align="end" className="bg-background border-border">
                           <DropdownMenuItem onClick={() => openEditDialog(flag)}>
                             Edit
                           </DropdownMenuItem>
@@ -382,7 +382,7 @@ export default function AdminFeatureFlags() {
 
         {/* Edit Dialog */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-700">
+          <DialogContent className="bg-background border-border">
             <DialogHeader>
               <DialogTitle>Edit Feature Flag</DialogTitle>
               <DialogDescription>Update the feature flag settings</DialogDescription>
@@ -411,7 +411,7 @@ export default function AdminFeatureFlags() {
 
         {/* Delete Confirmation */}
         <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+          <AlertDialogContent className="bg-background border-border">
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Feature Flag</AlertDialogTitle>
               <AlertDialogDescription>

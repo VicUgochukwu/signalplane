@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Menu, ArrowRight, X } from "lucide-react";
 import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -21,7 +22,7 @@ export function LandingNavbar() {
       aria-label="Main navigation"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-background/80 backdrop-blur-md border-b border-border/50"
+          ? "bg-background/95 backdrop-blur-md border-b border-border shadow-[var(--shadow-card)] dark:bg-background/80 dark:border-border/50 dark:shadow-none"
           : "bg-transparent"
       }`}
     >
@@ -37,6 +38,12 @@ export function LandingNavbar() {
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-1">
           <a
+            href="#who-its-for"
+            className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
+          >
+            Use Cases
+          </a>
+          <a
             href="#how-it-works"
             className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
           >
@@ -46,7 +53,7 @@ export function LandingNavbar() {
             href="#intelligence"
             className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
           >
-            Intelligence
+            Platform
           </a>
           <a
             href="#faq"
@@ -64,6 +71,7 @@ export function LandingNavbar() {
 
         {/* Desktop Auth */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
           <Link to="/login">
             <Button
               variant="ghost"
@@ -78,7 +86,7 @@ export function LandingNavbar() {
               size="sm"
               className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm h-9 px-4 rounded-full"
             >
-              Get Started
+              Start Free
               <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           </Link>
@@ -87,7 +95,7 @@ export function LandingNavbar() {
         {/* Mobile Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-foreground hover:bg-muted/50 rounded-md transition-colors"
+          className="md:hidden p-2 text-foreground hover:bg-muted rounded-md transition-colors"
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -96,27 +104,30 @@ export function LandingNavbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-background/95 backdrop-blur-md border-b border-border animate-slide-up">
+        <div className="md:hidden bg-background backdrop-blur-md border-b border-border animate-slide-up">
           <div className="px-6 py-4 space-y-1">
-            <a href="#how-it-works" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
+            <a href="#who-its-for" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted rounded-md transition-colors">
+              Use Cases
+            </a>
+            <a href="#how-it-works" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted rounded-md transition-colors">
               How It Works
             </a>
-            <a href="#intelligence" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
-              Intelligence
+            <a href="#intelligence" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted rounded-md transition-colors">
+              Platform
             </a>
-            <a href="#faq" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
+            <a href="#faq" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted rounded-md transition-colors">
               FAQ
             </a>
-            <a href="#demo-sectors" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted/50 rounded-md transition-colors">
+            <a href="#demo-sectors" onClick={closeMobileMenu} className="block px-3 py-2.5 text-foreground hover:bg-muted rounded-md transition-colors">
               Live Demo
             </a>
-            <div className="pt-3 mt-3 border-t border-border/50 flex flex-col gap-2">
+            <div className="pt-3 mt-3 border-t border-border flex flex-col gap-2">
               <Link to="/login" onClick={closeMobileMenu}>
                 <Button variant="ghost" className="w-full justify-center text-muted-foreground">Log in</Button>
               </Link>
               <Link to="/login" onClick={closeMobileMenu}>
                 <Button className="w-full justify-center bg-primary text-primary-foreground rounded-full">
-                  Get Started <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  Start Free <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                 </Button>
               </Link>
             </div>

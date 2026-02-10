@@ -38,8 +38,9 @@ export function ProtectedRoute({ children, skipOnboarding = false }: ProtectedRo
   const { user, loading: authLoading } = useAuth();
   const { needsOnboarding, isLoading: onboardingLoading, refetch } = useOnboarding();
 
-  // Track if user chose to skip onboarding (persisted in session)
+  // Track if user chose to skip onboarding (persisted in database via skip_onboarding RPC)
   const [userSkippedOnboarding, setUserSkippedOnboarding] = useState(() => {
+    // Session flag is a fast cache — DB is source of truth (checked via useOnboarding)
     return sessionStorage.getItem('skippedOnboarding') === 'true';
   });
 
@@ -50,10 +51,10 @@ export function ProtectedRoute({ children, skipOnboarding = false }: ProtectedRo
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="space-y-4 w-64">
-          <Skeleton className="h-8 w-full bg-zinc-800" />
-          <Skeleton className="h-4 w-3/4 bg-zinc-800" />
+          <Skeleton className="h-8 w-full bg-muted" />
+          <Skeleton className="h-4 w-3/4 bg-muted" />
         </div>
       </div>
     );
@@ -83,10 +84,18 @@ export function ProtectedRoute({ children, skipOnboarding = false }: ProtectedRo
     return (
       <OnboardingChoiceModal
         onSetupCompany={() => setShowFullOnboarding(true)}
-        onSkip={() => {
+        onSkip={async () => {
+          // 1. Persist to DB (source of truth)
+          const { error } = await supabase.rpc('skip_onboarding');
+          if (error) {
+            console.error('Failed to persist onboarding skip:', error);
+          }
+          // 2. Also set session cache for instant UI response
           sessionStorage.setItem('skippedOnboarding', 'true');
           setUserSkippedOnboarding(true);
-          // Fire Loops event (fire-and-forget)
+          // 3. Refetch profile so useOnboarding sees the new column
+          refetch();
+          // 4. Fire Loops event (fire-and-forget)
           invokeEdgeFunctionSilent('loops-sync', {
             action: 'track_event',
             event_name: 'onboarding_skipped',

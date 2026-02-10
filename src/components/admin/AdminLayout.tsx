@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi, Upload, BarChart3, DollarSign, HeartPulse, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -34,12 +35,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex">
+    <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col">
+      <aside className="w-64 bg-card border-r border-border flex flex-col">
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-zinc-800">
-          <div className="flex items-center gap-2 text-emerald-400">
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <Shield className="h-5 w-5" />
             <span className="font-semibold">Admin Panel</span>
           </div>
@@ -54,8 +55,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                 isActive(item.to, item.exact)
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               <item.icon className="h-4 w-4" />
@@ -65,10 +66,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         {/* Divider and Back Link */}
-        <div className="p-4 border-t border-zinc-800">
+        <div className="p-4 border-t border-border">
           <Link
             to="/messaging-diff"
-            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to App
@@ -79,10 +80,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
-        <header className="h-14 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-zinc-100">Admin Panel</h1>
-          <div className="text-sm text-zinc-400">
-            {user?.email}
+        <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6">
+          <h1 className="text-lg font-semibold text-foreground">Admin Panel</h1>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <span className="text-sm text-muted-foreground">{user?.email}</span>
           </div>
         </header>
 

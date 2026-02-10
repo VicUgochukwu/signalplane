@@ -5,58 +5,72 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+/**
+ * FAQ — objection handling + "What Control Plane Is Not" framing
+ * from ControlPlane_Messaging_Guide Sections 2.3 and 9.
+ *
+ * Updated with Action Board, Execution Kits, and the full
+ * opinion-grade vs evidence-grade contrast frame.
+ */
+
 const faqs = [
   {
-    question: "How is this different from Klue or Crayon?",
+    question: "How is this different from Klue, Crayon, or Kompyte?",
     answer:
-      "Klue and Crayon are content aggregation platforms — they collect competitive content and let your team curate it manually. Control Plane is decision infrastructure. It scores every signal automatically, enforces per-category caps, maps each signal to a decision type and owner, and tracks its own predictions against outcomes. The output is a structured weekly decision packet delivered to Slack, Notion, or email — not a dashboard to interpret.",
+      "Klue, Crayon, and Kompyte are competitive intelligence tools — they aggregate content and require manual curation. Control Plane is decision infrastructure. It scores every signal automatically, enforces per-category caps, maps each signal to a decision type and owner, and tracks its own predictions against outcomes. The output is a structured weekly decision packet — not a dashboard to interpret. The Action Board then turns insights into assigned, time-bound decisions with AI-generated execution kits. No other CI product closes the loop from signal to team action.",
+  },
+  {
+    question: "Is this a dashboard? A reporting tool? An alert system?",
+    answer:
+      "None of the above. Dashboards display data and require a human to synthesize — Control Plane delivers the synthesis with evidence attached. Reports summarize the past — Control Plane predicts the future and tracks whether those predictions were right. Alerts fire on raw signals — Control Plane scores, caps, and contextualizes signals before they reach anyone. It applies editorial judgment, not just detection.",
   },
   {
     question: "Where does the data come from?",
     answer:
-      "Public sources only. Competitor websites, pricing pages, changelogs, review platforms, job boards, partnership announcements, marketplace listings, and published case studies. No scraping behind paywalls. Every signal links to its source.",
+      "Public sources only. Competitor websites, pricing pages, changelogs, review platforms, job boards, partnership announcements, marketplace listings, and published case studies. No scraping behind paywalls. Every signal links to its source — so your team can verify any claim before acting on it.",
   },
   {
-    question: "How often are signals updated?",
+    question: "How quickly can we get started?",
     answer:
-      "Weekly. Every Monday, Control Plane delivers a new decision packet to your connected channels — Slack, Notion, or email. Monitoring runs continuously, but intelligence is packaged weekly — frequent enough to catch shifts early, structured enough to be actionable.",
+      "Minutes. Sign up, add your competitors, connect Slack or Notion. Your first decision packet ships next Monday. No setup calls, no integration work, no onboarding required. The system runs itself from day one.",
   },
   {
     question: "What does 'evidence-grade' mean?",
     answer:
-      "Every claim links to a source. Every prediction includes a confidence level and gets scored against actual outcomes. Evidence-grade means verifiable and accountable — not analyst opinion.",
+      "Most competitive intelligence is opinion-grade: analyst summaries, quarterly decks, hallway conversations. Evidence-grade means every claim links to a source, every prediction includes a confidence level and gets scored against actual outcomes, and every recommendation maps to a decision type and owner. It is verifiable and accountable — something you can present to the board, not analyst opinion.",
+  },
+  {
+    question: "What is the Action Board?",
+    answer:
+      "The Action Board is a Kanban-style decision pipeline that turns weekly intelligence into team actions. Cards are auto-populated from each packet. Your team triages decisions from Inbox → Triaged → This Week → Done. Each card can generate an execution kit — a step-by-step playbook tailored to the specific decision type (reposition, defend, equip, respond, etc.). Intelligence without execution is just trivia. The Action Board closes the gap.",
   },
   {
     question: "Is AI involved?",
     answer:
-      "Yes. LLM agents handle signal analysis and narrative synthesis. Scoring, category caps, and decision routing are deterministic — fixed rules, not AI guesswork. The system is automated infrastructure with human-designed editorial judgment built in.",
+      "Yes. LLM agents handle signal analysis, narrative synthesis, and execution kit generation. Scoring, category caps, and decision routing are deterministic — fixed rules, not AI guesswork. The system is automated infrastructure with human-designed editorial judgment built in. Every claim is a hypothesis. If it cannot be traced to a source, it does not go in the packet.",
   },
   {
-    question: "How do I bring Control Plane to my team?",
+    question: "Can I see it working before signing up?",
     answer:
-      "Sign up and add your competitors — your first packet ships next Monday. Connect Slack or Notion so the whole team gets it automatically. No setup calls, no integration work. The system runs itself from day one.",
-  },
-  {
-    question: "Can I see a sample decision packet?",
-    answer:
-      "Yes — click 'Live Demo' in the nav to browse real packets with full structure: executive summary, key shifts, open questions, 90-day hypotheses, and signal detail. You can also email any packet to yourself or download it as Markdown.",
+      "Yes — click 'Live Demo' to browse real intelligence packets across 15 industry sectors with full structure: executive summary, key shifts, artifacts, and the Action Board. No signup required.",
   },
   {
     question: "How does internal company data plug in?",
     answer:
-      "Today, Control Plane monitors public competitor signals and accepts internal data through manual submission and CSV upload — paste a Gong snippet, support ticket, or win/loss note directly into the platform. The system processes internal signals through the same scoring engine as external ones, making your weekly packets increasingly customized to your competitive landscape.",
+      "Control Plane monitors public competitor signals and accepts internal data through manual submission and CSV upload — Gong snippets, support tickets, win/loss notes. Internal signals are processed through the same scoring engine, making your weekly packets increasingly customized to your competitive reality.",
   },
   {
-    question: "I already use Clay. Do I need this?",
+    question: "We already use Clay / HubSpot / Salesforce. Do we need this?",
     answer:
-      "Yes — they solve different problems. Clay enriches accounts and contacts: who to sell to, what tech they use, whether they just raised funding. Control Plane monitors what competitors are doing: messaging changes, pricing edits, positioning shifts, narrative pivots. Clay tells your reps who to call. Control Plane tells them what to say when the prospect asks 'why not Competitor X?' Teams that use both have enrichment and intelligence covered.",
+      "Yes — they solve different problems. Clay enriches accounts (who to sell to). HubSpot and Salesforce manage pipeline (where to sell). Control Plane monitors what competitors are doing (what to say when a prospect asks 'why not Competitor X?'). Teams that use Control Plane alongside their existing stack close the last gap: real-time competitive intelligence turned into weekly team decisions.",
   },
 ];
 
 export function FAQSection() {
   return (
-    <section id="faq" aria-label="Frequently asked questions about Control Plane" className="py-20 md:py-28 px-6 border-t border-border/50">
-      <div className="max-w-5xl mx-auto">
+    <section id="faq" aria-label="Frequently asked questions" className="py-20 md:py-28 px-6 bg-[hsl(var(--section-alt))] dark:bg-transparent">
+      <div className="max-w-6xl mx-auto">
+        {/* Centered header — visual rhythm break from left-aligned sections */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
             Frequently asked questions
@@ -66,10 +80,10 @@ export function FAQSection() {
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <Accordion type="single" collapsible>
             {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-border/50">
+              <AccordionItem key={index} value={`item-${index}`} className="border-border dark:border-border/50">
                 <AccordionTrigger className="text-left text-[15px] font-medium text-foreground hover:no-underline py-5">
                   {faq.question}
                 </AccordionTrigger>

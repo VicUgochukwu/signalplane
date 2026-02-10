@@ -202,7 +202,7 @@ export default function AdminUsers() {
     const colors: Record<string, string> = {
       super_admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       admin: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      user: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+      user: 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30',
     };
     return <Badge className={colors[role] || colors.user}>{role}</Badge>;
   };
@@ -220,11 +220,11 @@ export default function AdminUsers() {
               placeholder="Search by email or name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-zinc-800 border-zinc-700"
+              className="pl-9 bg-muted border-border"
             />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px] bg-zinc-800 border-zinc-700">
+            <SelectTrigger className="w-[150px] bg-muted border-border">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
             <SelectContent>
@@ -235,7 +235,7 @@ export default function AdminUsers() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px] bg-zinc-800 border-zinc-700">
+            <SelectTrigger className="w-[150px] bg-muted border-border">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -248,10 +248,10 @@ export default function AdminUsers() {
         </div>
 
         {/* Users Table */}
-        <div className="rounded-md border border-zinc-700 bg-zinc-800/50">
+        <div className="rounded-md border border-border bg-muted/50">
           <Table>
             <TableHeader>
-              <TableRow className="border-zinc-700 hover:bg-transparent">
+              <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground">Email</TableHead>
                 <TableHead className="text-muted-foreground">Role</TableHead>
                 <TableHead className="text-muted-foreground">Status</TableHead>
@@ -263,24 +263,24 @@ export default function AdminUsers() {
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-zinc-700">
-                    <TableCell><Skeleton className="h-4 w-48 bg-zinc-700" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16 bg-zinc-700" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20 bg-zinc-700" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-8 bg-zinc-700" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24 bg-zinc-700" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-8 bg-zinc-700" /></TableCell>
+                  <TableRow key={i} className="border-border">
+                    <TableCell><Skeleton className="h-4 w-48 bg-muted" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16 bg-muted" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20 bg-muted" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8 bg-muted" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24 bg-muted" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8 bg-muted" /></TableCell>
                   </TableRow>
                 ))
               ) : users?.length === 0 ? (
-                <TableRow className="border-zinc-700">
+                <TableRow className="border-border">
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
                 users?.map((user) => (
-                  <TableRow key={user.id} className="border-zinc-700">
+                  <TableRow key={user.id} className="border-border">
                     <TableCell>
                       <div>
                         <div className="font-medium text-foreground">{user.email}</div>
@@ -346,7 +346,7 @@ export default function AdminUsers() {
 
       {/* Action Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-zinc-900 border-zinc-700">
+        <DialogContent className="bg-background border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {actionType === 'suspend' && 'Suspend User'}
@@ -365,7 +365,7 @@ export default function AdminUsers() {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Enter reason for this action..."
-                className="bg-zinc-800 border-zinc-700"
+                className="bg-muted border-border"
               />
             </div>
           )}
@@ -374,7 +374,7 @@ export default function AdminUsers() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">New Role</label>
               <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                <SelectTrigger className="bg-muted border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

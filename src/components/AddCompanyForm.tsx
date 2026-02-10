@@ -100,13 +100,13 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
   };
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card className="bg-muted border-border">
       <CardHeader>
-        <CardTitle className="text-zinc-100 flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Plus className="h-5 w-5" />
           Add Company Page
         </CardTitle>
-        <CardDescription className="text-zinc-400">
+        <CardDescription className="text-muted-foreground">
           Track a new company page for messaging changes
         </CardDescription>
       </CardHeader>
@@ -114,7 +114,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="companyName" className="text-zinc-200">
+              <Label htmlFor="companyName" className="text-foreground/80">
                 Company Name
               </Label>
               <Input
@@ -122,7 +122,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
                 placeholder="Acme Corp"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="bg-zinc-900 border-zinc-600 text-zinc-100"
+                className="bg-background border-border text-foreground"
                 disabled={isLoading}
               />
               {errors.companyName && (
@@ -131,7 +131,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="companySlug" className="text-zinc-200">
+              <Label htmlFor="companySlug" className="text-foreground/80">
                 Company Slug
               </Label>
               <Input
@@ -139,7 +139,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
                 placeholder="acme-corp"
                 value={companySlug}
                 onChange={(e) => setCompanySlug(e.target.value)}
-                className="bg-zinc-900 border-zinc-600 text-zinc-100"
+                className="bg-background border-border text-foreground"
                 disabled={isLoading}
               />
               {errors.companySlug && (
@@ -150,7 +150,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-zinc-200">
+              <Label htmlFor="url" className="text-foreground/80">
                 URL
               </Label>
               <Input
@@ -159,7 +159,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
                 placeholder="https://acme.com/pricing"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                className="bg-zinc-900 border-zinc-600 text-zinc-100"
+                className="bg-background border-border text-foreground"
                 disabled={isLoading}
               />
               {errors.url && (
@@ -168,19 +168,19 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="urlType" className="text-zinc-200">
+              <Label htmlFor="urlType" className="text-foreground/80">
                 URL Type
               </Label>
               <Select value={urlType} onValueChange={setUrlType} disabled={isLoading}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-600 text-zinc-100">
+                <SelectTrigger className="bg-background border-border text-foreground">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent className="bg-muted border-border">
                   {URL_TYPES.map((type) => (
                     <SelectItem
                       key={type}
                       value={type}
-                      className="text-zinc-100 focus:bg-zinc-700"
+                      className="text-foreground focus:bg-muted"
                     >
                       {type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')}
                     </SelectItem>

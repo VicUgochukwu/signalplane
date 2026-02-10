@@ -187,7 +187,7 @@ export default function AdminTrackedPages() {
   };
 
   const statusIcon = (status: string | null) => {
-    if (!status) return <span className="text-zinc-500 text-xs">—</span>;
+    if (!status) return <span className="text-muted-foreground text-xs">—</span>;
     if (status === 'success') return <CheckCircle2 className="h-4 w-4 text-emerald-400" />;
     if (status === 'failed') return <XCircle className="h-4 w-4 text-red-400" />;
     return <AlertTriangle className="h-4 w-4 text-amber-400" />;
@@ -230,30 +230,30 @@ export default function AdminTrackedPages() {
         {isLoadingStats ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 bg-zinc-700" />
+              <Skeleton key={i} className="h-20 bg-muted" />
             ))}
           </div>
         ) : stats ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Card className="bg-zinc-800/50 border-zinc-700">
+            <Card className="bg-muted/50 border-border">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Total Pages</p>
                 <p className="text-2xl font-bold text-foreground">{stats.total_pages}</p>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-800/50 border-zinc-700">
+            <Card className="bg-muted/50 border-border">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Companies</p>
                 <p className="text-2xl font-bold text-foreground">{stats.unique_companies}</p>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-800/50 border-zinc-700">
+            <Card className="bg-muted/50 border-border">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Snapshots</p>
                 <p className="text-2xl font-bold text-foreground">{stats.total_snapshots}</p>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-800/50 border-zinc-700">
+            <Card className="bg-muted/50 border-border">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Failed</p>
                 <p className="text-2xl font-bold text-red-400">{stats.failed_snapshots}</p>
@@ -263,7 +263,7 @@ export default function AdminTrackedPages() {
         ) : null}
 
         {/* Filters */}
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[200px]">
@@ -274,14 +274,14 @@ export default function AdminTrackedPages() {
                     placeholder="Company name or URL..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 bg-zinc-900 border-zinc-700"
+                    className="pl-9 bg-background border-border"
                   />
                 </div>
               </div>
               <div className="w-40">
                 <Label className="text-xs text-muted-foreground">Page Type</Label>
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectTrigger className="bg-background border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -295,7 +295,7 @@ export default function AdminTrackedPages() {
               <div className="w-36">
                 <Label className="text-xs text-muted-foreground">Status</Label>
                 <Select value={filterEnabled} onValueChange={setFilterEnabled}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectTrigger className="bg-background border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -310,7 +310,7 @@ export default function AdminTrackedPages() {
         </Card>
 
         {/* Pages Table */}
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-foreground text-base">
               {pages ? `${pages.length} pages` : 'Loading...'}
@@ -325,14 +325,14 @@ export default function AdminTrackedPages() {
             {isLoadingPages ? (
               <div className="p-4 space-y-2">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 bg-zinc-700" />
+                  <Skeleton key={i} className="h-10 bg-muted" />
                 ))}
               </div>
             ) : pages && pages.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-zinc-700">
+                    <TableRow className="border-border">
                       <TableHead className="w-10">On</TableHead>
                       <TableHead>Company</TableHead>
                       <TableHead>URL</TableHead>
@@ -345,7 +345,7 @@ export default function AdminTrackedPages() {
                   </TableHeader>
                   <TableBody>
                     {pages.map((page) => (
-                      <TableRow key={page.id} className="border-zinc-700 hover:bg-zinc-800/80">
+                      <TableRow key={page.id} className="border-border hover:bg-muted/80">
                         <TableCell>
                           <Switch
                             checked={page.enabled}
@@ -368,7 +368,7 @@ export default function AdminTrackedPages() {
                           </a>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs border-zinc-600">
+                          <Badge variant="outline" className="text-xs border-border">
                             {page.page_type || page.url_type || '—'}
                           </Badge>
                         </TableCell>
@@ -385,7 +385,7 @@ export default function AdminTrackedPages() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-zinc-500 hover:text-red-400"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-400"
                             onClick={() => setDeleteConfirm(page)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -407,7 +407,7 @@ export default function AdminTrackedPages() {
 
         {/* Add Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="bg-zinc-900 border-zinc-700">
+          <DialogContent className="bg-background border-border">
             <DialogHeader>
               <DialogTitle>Add Tracked Page</DialogTitle>
             </DialogHeader>
@@ -428,7 +428,7 @@ export default function AdminTrackedPages() {
                     setNewCompanySlug('');
                   }
                 }}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                  <SelectTrigger className="bg-muted border-border">
                     <SelectValue placeholder="Select company..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -451,7 +451,7 @@ export default function AdminTrackedPages() {
                       value={newCompanyName}
                       onChange={(e) => handleCompanyNameChange(e.target.value)}
                       placeholder="e.g., Stripe"
-                      className="bg-zinc-800 border-zinc-700"
+                      className="bg-muted border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -460,7 +460,7 @@ export default function AdminTrackedPages() {
                       value={newCompanySlug}
                       onChange={(e) => setNewCompanySlug(e.target.value)}
                       placeholder="e.g., stripe"
-                      className="bg-zinc-800 border-zinc-700"
+                      className="bg-muted border-border"
                     />
                   </div>
                 </>
@@ -472,14 +472,14 @@ export default function AdminTrackedPages() {
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
                   placeholder="https://stripe.com/pricing"
-                  className="bg-zinc-800 border-zinc-700"
+                  className="bg-muted border-border"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Page Type</Label>
                 <Select value={newPageType} onValueChange={setNewPageType}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                  <SelectTrigger className="bg-muted border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -515,7 +515,7 @@ export default function AdminTrackedPages() {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-          <DialogContent className="bg-zinc-900 border-zinc-700">
+          <DialogContent className="bg-background border-border">
             <DialogHeader>
               <DialogTitle className="text-red-400">Delete Tracked Page</DialogTitle>
             </DialogHeader>
@@ -524,7 +524,7 @@ export default function AdminTrackedPages() {
                 This will permanently delete this tracked page and all its snapshots/diffs.
               </p>
               {deleteConfirm && (
-                <div className="mt-3 p-3 bg-zinc-800 rounded border border-zinc-700">
+                <div className="mt-3 p-3 bg-muted rounded border border-border">
                   <p className="font-medium text-sm">{deleteConfirm.company_name}</p>
                   <p className="text-xs text-muted-foreground truncate">{deleteConfirm.url}</p>
                   <p className="text-xs text-muted-foreground mt-1">

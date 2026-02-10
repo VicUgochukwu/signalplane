@@ -47,17 +47,17 @@ const AdminSystemHealth = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold font-mono text-zinc-100">
+            <h1 className="text-2xl font-bold font-mono text-foreground">
               // System Health
             </h1>
-            <p className="text-sm text-zinc-500 font-mono mt-1">
+            <p className="text-sm text-muted-foreground font-mono mt-1">
               Monitor ship status, workflow failures, and budget alerts
             </p>
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="font-mono text-zinc-400 border-zinc-700 hover:bg-zinc-800"
+            className="font-mono text-muted-foreground border-border hover:bg-muted"
             onClick={handleRefresh}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -74,7 +74,7 @@ const AdminSystemHealth = () => {
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 bg-zinc-800" />
+              <Skeleton key={i} className="h-24 bg-muted" />
             ))}
           </div>
         ) : (
@@ -113,13 +113,13 @@ const AdminSystemHealth = () => {
 
         {/* Ship Status Grid */}
         <section>
-          <h2 className="text-lg font-semibold mb-4 font-mono text-zinc-100">
+          <h2 className="text-lg font-semibold mb-4 font-mono text-foreground">
             // Ship Status
           </h2>
           {shipsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-40 bg-zinc-800" />
+                <Skeleton key={i} className="h-40 bg-muted" />
               ))}
             </div>
           ) : ships && ships.length > 0 ? (
@@ -129,7 +129,7 @@ const AdminSystemHealth = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-zinc-500 font-mono">
+            <div className="text-center py-12 text-muted-foreground font-mono">
               No ship data available. Ships emit signals to ops.ship_status view.
             </div>
           )}
@@ -137,13 +137,13 @@ const AdminSystemHealth = () => {
 
         {/* Recent Failures */}
         <section>
-          <h2 className="text-lg font-semibold mb-4 font-mono text-zinc-100">
+          <h2 className="text-lg font-semibold mb-4 font-mono text-foreground">
             // Recent Failures
           </h2>
           {failuresLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 bg-zinc-800" />
+                <Skeleton key={i} className="h-12 bg-muted" />
               ))}
             </div>
           ) : (

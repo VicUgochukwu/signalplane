@@ -111,7 +111,7 @@ function getExecutionStatusBadge(status: string) {
       );
     default:
       return (
-        <Badge className="bg-zinc-500/20 text-zinc-400 border-zinc-500/30">
+        <Badge className="bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30">
           Unknown
         </Badge>
       );
@@ -174,7 +174,7 @@ export default function AdminWorkflows() {
       <AdminLayout>
         <div className="space-y-6">
           <h2 className="text-2xl font-bold text-foreground">Workflows</h2>
-          <Card className="bg-zinc-800/50 border-zinc-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <AlertCircle className="h-12 w-12 text-amber-400 mb-4" />
               <p className="text-foreground font-medium mb-2">
@@ -198,7 +198,7 @@ export default function AdminWorkflows() {
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-foreground">Workflows</h2>
 
-        <Card className="bg-zinc-800/50 border-zinc-700">
+        <Card className="bg-muted/50 border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Workflow Registry</CardTitle>
           </CardHeader>
@@ -206,13 +206,13 @@ export default function AdminWorkflows() {
             {workflowsLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-12 bg-zinc-700" />
+                  <Skeleton key={i} className="h-12 bg-muted" />
                 ))}
               </div>
             ) : workflows && workflows.length > 0 ? (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-zinc-700 hover:bg-transparent">
+                  <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-muted-foreground">Name</TableHead>
                     <TableHead className="text-muted-foreground">Status</TableHead>
                     <TableHead className="text-muted-foreground">Created</TableHead>
@@ -224,7 +224,7 @@ export default function AdminWorkflows() {
                   {workflows.map((workflow) => (
                     <TableRow 
                       key={workflow.id} 
-                      className="border-zinc-700 hover:bg-zinc-800/50 cursor-pointer"
+                      className="border-border hover:bg-muted/50 cursor-pointer"
                       onClick={() => setSelectedWorkflow(workflow)}
                     >
                       <TableCell className="font-medium text-foreground">
@@ -234,7 +234,7 @@ export default function AdminWorkflows() {
                         <Badge 
                           className={workflow.active 
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
-                            : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+                            : 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30'
                           }
                         >
                           {workflow.active ? 'Active' : 'Inactive'}
@@ -263,7 +263,7 @@ export default function AdminWorkflows() {
 
         {/* Execution History Sheet */}
         <Sheet open={!!selectedWorkflow} onOpenChange={() => setSelectedWorkflow(null)}>
-          <SheetContent className="bg-zinc-900 border-zinc-700 w-full sm:max-w-xl overflow-y-auto">
+          <SheetContent className="bg-background border-border w-full sm:max-w-xl overflow-y-auto">
             <SheetHeader>
               <SheetTitle className="text-foreground">
                 Executions — {selectedWorkflow?.name}
@@ -273,13 +273,13 @@ export default function AdminWorkflows() {
               {executionsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-12 bg-zinc-800" />
+                    <Skeleton key={i} className="h-12 bg-muted" />
                   ))}
                 </div>
               ) : executions && executions.length > 0 ? (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-zinc-700 hover:bg-transparent">
+                    <TableRow className="border-border hover:bg-transparent">
                       <TableHead className="text-muted-foreground">ID</TableHead>
                       <TableHead className="text-muted-foreground">Status</TableHead>
                       <TableHead className="text-muted-foreground">Started</TableHead>
@@ -290,7 +290,7 @@ export default function AdminWorkflows() {
                     {executions.map((execution) => (
                       <TableRow 
                         key={execution.id} 
-                        className="border-zinc-700 hover:bg-zinc-800/50 cursor-pointer"
+                        className="border-border hover:bg-muted/50 cursor-pointer"
                         onClick={() => setSelectedExecution(execution)}
                       >
                         <TableCell className="font-mono text-xs text-muted-foreground">
@@ -320,7 +320,7 @@ export default function AdminWorkflows() {
 
         {/* Execution Detail Dialog */}
         <Dialog open={!!selectedExecution} onOpenChange={() => setSelectedExecution(null)}>
-          <DialogContent className="bg-zinc-900 border-zinc-700 max-w-lg">
+          <DialogContent className="bg-background border-border max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-foreground">Execution Details</DialogTitle>
             </DialogHeader>
@@ -356,7 +356,7 @@ export default function AdminWorkflows() {
                       {Object.entries(executionDetail.data.resultData.runData).map(([nodeName, runs]) => (
                         <div 
                           key={nodeName} 
-                          className="flex items-center justify-between p-2 rounded bg-zinc-800"
+                          className="flex items-center justify-between p-2 rounded bg-muted"
                         >
                           <span className="text-sm text-foreground">{nodeName}</span>
                           <div className="flex items-center gap-2">

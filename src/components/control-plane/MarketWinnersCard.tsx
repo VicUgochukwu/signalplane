@@ -16,7 +16,7 @@ interface MarketWinnersCardProps {
   emerging: MarketWinner[];
 }
 
-const FALLBACK_CATEGORY_CONFIG = { label: 'Other', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+const FALLBACK_CATEGORY_CONFIG = { label: 'Other', color: 'text-muted-foreground', bgColor: 'bg-muted-foreground/20' };
 
 const WinnerItem = ({ winner, index }: { winner: MarketWinner; index: number }) => {
   const categoryConfig = WINNER_CATEGORY_CONFIG[winner.category] || FALLBACK_CATEGORY_CONFIG;

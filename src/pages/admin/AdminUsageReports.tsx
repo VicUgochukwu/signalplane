@@ -107,12 +107,12 @@ export default function AdminUsageReports() {
       rapid_requests: 'bg-red-500/20 text-red-400 border-red-500/30',
       suspicious_pattern: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     };
-    return <Badge className={colors[type] || 'bg-zinc-500/20 text-zinc-400'}>{type.replace('_', ' ')}</Badge>;
+    return <Badge className={colors[type] || 'bg-muted-foreground/20 text-muted-foreground'}>{type.replace('_', ' ')}</Badge>;
   };
 
   const getSeverityBadge = (severity: string) => {
     const colors: Record<string, string> = {
-      low: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+      low: 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30',
       medium: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
       high: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
@@ -133,7 +133,7 @@ export default function AdminUsageReports() {
         <h2 className="text-2xl font-bold text-foreground">Usage Reports</h2>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-zinc-800 border-zinc-700">
+          <TabsList className="bg-muted border-border">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
             <TabsTrigger value="abuse">Abuse Flags</TabsTrigger>
@@ -145,16 +145,16 @@ export default function AdminUsageReports() {
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               {isLoadingSummary ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <Card key={i} className="bg-zinc-800/50 border-zinc-700">
+                  <Card key={i} className="bg-muted/50 border-border">
                     <CardContent className="p-4">
-                      <Skeleton className="h-4 w-20 mb-2 bg-zinc-700" />
-                      <Skeleton className="h-8 w-16 bg-zinc-700" />
+                      <Skeleton className="h-4 w-20 mb-2 bg-muted" />
+                      <Skeleton className="h-8 w-16 bg-muted" />
                     </CardContent>
                   </Card>
                 ))
               ) : (
                 summaryCards.map((card) => (
-                  <Card key={card.label} className="bg-zinc-800/50 border-zinc-700">
+                  <Card key={card.label} className="bg-muted/50 border-border">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <card.icon className={`h-4 w-4 ${card.color}`} />
@@ -203,7 +203,7 @@ export default function AdminUsageReports() {
 
           {/* Leaderboard Tab */}
           <TabsContent value="leaderboard">
-            <Card className="bg-zinc-800/50 border-zinc-700">
+            <Card className="bg-muted/50 border-border">
               <CardHeader>
                 <CardTitle className="text-foreground">User Activity Leaderboard (30 days)</CardTitle>
               </CardHeader>
@@ -211,13 +211,13 @@ export default function AdminUsageReports() {
                 {isLoadingLeaderboard ? (
                   <div className="space-y-2">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton key={i} className="h-12 bg-zinc-700" />
+                      <Skeleton key={i} className="h-12 bg-muted" />
                     ))}
                   </div>
                 ) : leaderboard && leaderboard.length > 0 ? (
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-zinc-700">
+                      <TableRow className="border-border">
                         <TableHead>User</TableHead>
                         <TableHead>Uploads</TableHead>
                         <TableHead>Rows Processed</TableHead>
@@ -227,7 +227,7 @@ export default function AdminUsageReports() {
                     </TableHeader>
                     <TableBody>
                       {leaderboard.map((entry) => (
-                        <TableRow key={entry.user_id} className="border-zinc-700">
+                        <TableRow key={entry.user_id} className="border-border">
                           <TableCell>
                             <div>
                               <p className="text-sm font-medium">{entry.user_email}</p>
@@ -267,7 +267,7 @@ export default function AdminUsageReports() {
           <TabsContent value="abuse" className="space-y-4">
             <div className="flex items-center gap-4">
               <Select value={resolvedFilter} onValueChange={setResolvedFilter}>
-                <SelectTrigger className="w-40 bg-zinc-800 border-zinc-700">
+                <SelectTrigger className="w-40 bg-muted border-border">
                   <SelectValue placeholder="Filter" />
                 </SelectTrigger>
                 <SelectContent>
@@ -278,18 +278,18 @@ export default function AdminUsageReports() {
               </Select>
             </div>
 
-            <Card className="bg-zinc-800/50 border-zinc-700">
+            <Card className="bg-muted/50 border-border">
               <CardContent className="p-0">
                 {isLoadingFlags ? (
                   <div className="p-4 space-y-2">
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-12 bg-zinc-700" />
+                      <Skeleton key={i} className="h-12 bg-muted" />
                     ))}
                   </div>
                 ) : abuseFlags && abuseFlags.length > 0 ? (
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-zinc-700">
+                      <TableRow className="border-border">
                         <TableHead>User</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Severity</TableHead>
@@ -301,7 +301,7 @@ export default function AdminUsageReports() {
                     </TableHeader>
                     <TableBody>
                       {abuseFlags.map((flag) => (
-                        <TableRow key={flag.id} className="border-zinc-700">
+                        <TableRow key={flag.id} className="border-border">
                           <TableCell className="text-sm">{flag.user_email}</TableCell>
                           <TableCell>{getFlagTypeBadge(flag.flag_type)}</TableCell>
                           <TableCell>{getSeverityBadge(flag.severity)}</TableCell>

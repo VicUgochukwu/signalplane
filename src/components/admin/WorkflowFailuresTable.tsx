@@ -37,7 +37,7 @@ const statusConfig = {
     label: 'Resolved',
   },
   ignored: {
-    color: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/40',
+    color: 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/40',
     label: 'Ignored',
   },
 };
@@ -49,7 +49,7 @@ export const WorkflowFailuresTable = ({ failures }: WorkflowFailuresTableProps) 
 
   if (failures.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <AlertCircle className="h-8 w-8 mb-2" />
         <p className="font-mono text-sm">No failures in the last 7 days</p>
       </div>
@@ -57,17 +57,17 @@ export const WorkflowFailuresTable = ({ failures }: WorkflowFailuresTableProps) 
   }
 
   return (
-    <div className="rounded-lg border border-zinc-800 overflow-hidden">
+    <div className="rounded-lg border border-border overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-zinc-800 hover:bg-transparent">
-            <TableHead className="font-mono text-zinc-400">Workflow</TableHead>
-            <TableHead className="font-mono text-zinc-400">Failed Node</TableHead>
-            <TableHead className="font-mono text-zinc-400">Error</TableHead>
-            <TableHead className="font-mono text-zinc-400">Status</TableHead>
-            <TableHead className="font-mono text-zinc-400">Retries</TableHead>
-            <TableHead className="font-mono text-zinc-400">Failed At</TableHead>
-            <TableHead className="font-mono text-zinc-400 text-right">Actions</TableHead>
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="font-mono text-muted-foreground">Workflow</TableHead>
+            <TableHead className="font-mono text-muted-foreground">Failed Node</TableHead>
+            <TableHead className="font-mono text-muted-foreground">Error</TableHead>
+            <TableHead className="font-mono text-muted-foreground">Status</TableHead>
+            <TableHead className="font-mono text-muted-foreground">Retries</TableHead>
+            <TableHead className="font-mono text-muted-foreground">Failed At</TableHead>
+            <TableHead className="font-mono text-muted-foreground text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -76,17 +76,17 @@ export const WorkflowFailuresTable = ({ failures }: WorkflowFailuresTableProps) 
             const isActionable = failure.status === 'failed' || failure.status === 'retried';
 
             return (
-              <TableRow key={failure.id} className="border-zinc-800">
-                <TableCell className="font-mono font-medium text-zinc-200">
+              <TableRow key={failure.id} className="border-border">
+                <TableCell className="font-mono font-medium text-foreground/80">
                   {failure.workflow_name}
                 </TableCell>
-                <TableCell className="font-mono text-zinc-400 text-sm">
+                <TableCell className="font-mono text-muted-foreground text-sm">
                   {failure.failed_node || '—'}
                 </TableCell>
                 <TableCell className="max-w-[200px]">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="font-mono text-xs text-zinc-400 truncate block cursor-help">
+                      <span className="font-mono text-xs text-muted-foreground truncate block cursor-help">
                         {failure.error_message || 'No error message'}
                       </span>
                     </TooltipTrigger>
@@ -102,10 +102,10 @@ export const WorkflowFailuresTable = ({ failures }: WorkflowFailuresTableProps) 
                     {config.label}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-zinc-400">
+                <TableCell className="font-mono text-muted-foreground">
                   {failure.retry_count}
                 </TableCell>
-                <TableCell className="font-mono text-zinc-400 text-sm">
+                <TableCell className="font-mono text-muted-foreground text-sm">
                   {formatDistanceToNow(new Date(failure.failed_at), { addSuffix: true })}
                 </TableCell>
                 <TableCell className="text-right">
@@ -146,7 +146,7 @@ export const WorkflowFailuresTable = ({ failures }: WorkflowFailuresTableProps) 
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-zinc-400 hover:text-zinc-300 hover:bg-zinc-500/10"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10"
                             onClick={() => ignoreFailure.mutate(failure.id)}
                             disabled={ignoreFailure.isPending}
                           >

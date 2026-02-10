@@ -44,19 +44,19 @@ export const BudgetAlertBanner = ({ alerts }: BudgetAlertBannerProps) => {
           >
             {isCritical ? 'CRITICAL' : 'WARNING'}: Budget Alert
             {alerts.length > 1 && (
-              <span className="text-zinc-400 font-normal ml-2">
+              <span className="text-muted-foreground font-normal ml-2">
                 (+{alerts.length - 1} more)
               </span>
             )}
           </p>
-          <p className="text-sm text-zinc-400 font-mono mt-0.5">
+          <p className="text-sm text-muted-foreground font-mono mt-0.5">
             {primaryAlert.message} ({primaryAlert.threshold_percent}% threshold reached)
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <div className="text-right mr-4 hidden sm:block">
-          <p className="text-xs text-zinc-500 font-mono">Current / Limit</p>
+          <p className="text-xs text-muted-foreground font-mono">Current / Limit</p>
           <p
             className={cn(
               'font-mono font-semibold',

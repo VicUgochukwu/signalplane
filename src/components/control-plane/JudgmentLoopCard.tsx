@@ -53,7 +53,7 @@ function WeekDot({ entry }: { entry: JudgmentLoopData['history'][number] }) {
   if (entry.scored === 0) {
     return (
       <div className="flex flex-col items-center gap-1.5">
-        <div className="w-3 h-3 rounded-full bg-zinc-700 border border-zinc-600" title="Awaiting results" />
+        <div className="w-3 h-3 rounded-full bg-muted border border-border" title="Awaiting results" />
         <span className="text-[9px] text-muted-foreground/60 tabular-nums">
           {entry.week_start.slice(5)}
         </span>
@@ -116,7 +116,7 @@ export function JudgmentLoopCard({ judgmentLoop, predictions }: JudgmentLoopCard
                 <circle cx="50" cy="50" r={40} fill="none" strokeWidth="6" className="stroke-muted/30" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <Clock className="h-5 w-5 text-zinc-500 mb-1" />
+                <Clock className="h-5 w-5 text-muted-foreground mb-1" />
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                   pending
                 </span>
@@ -137,11 +137,11 @@ export function JudgmentLoopCard({ judgmentLoop, predictions }: JudgmentLoopCard
                   {stats.partial > 0 && <>, <span className="text-amber-400 font-medium">{stats.partial} partial</span></>}
                   {stats.incorrect > 0 && <>, <span className="text-rose-400 font-medium">{stats.incorrect} miss{stats.incorrect !== 1 ? 'es' : ''}</span></>}.
                   {stats.pending > 0 && (
-                    <span className="text-zinc-500"> {stats.pending} awaiting outcome.</span>
+                    <span className="text-muted-foreground"> {stats.pending} awaiting outcome.</span>
                   )}
                 </>
               ) : (
-                <span className="text-zinc-500">
+                <span className="text-muted-foreground">
                   {stats.total} prediction{stats.total !== 1 ? 's' : ''} made this week — outcomes pending.
                 </span>
               )}
@@ -167,7 +167,7 @@ export function JudgmentLoopCard({ judgmentLoop, predictions }: JudgmentLoopCard
                   </span>
                 )}
                 {stats.pending > 0 && (
-                  <span className="flex items-center gap-1.5 text-zinc-500">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />
                     {stats.pending} pending
                   </span>
