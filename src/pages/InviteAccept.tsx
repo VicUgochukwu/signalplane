@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { IconTeam } from '@/components/icons';
-import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
+import { Logo } from '@/components/Logo';
 
 /**
  * Page for accepting a team invite via token URL.
@@ -49,7 +49,7 @@ export default function InviteAccept() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md rounded-xl border border-border/50">
         <CardContent className="py-12 text-center space-y-4">
-          <img src={signalPlaneLogo} alt="Signal Plane" className="w-10 h-10 mx-auto" />
+          <Logo className="w-12 h-12 mx-auto" />
 
           {status === 'loading' && (
             <>

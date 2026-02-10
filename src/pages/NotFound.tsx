@@ -2,7 +2,7 @@ import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft, Home, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
+import { Logo } from "@/components/Logo";
 
 const NotFound = () => {
   const location = useLocation();
@@ -16,7 +16,7 @@ const NotFound = () => {
       {/* Minimal navbar */}
       <nav className="px-6 h-16 flex items-center border-b border-border/30">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src={signalPlaneLogo} alt="Signal Plane" className="w-7 h-7" />
+          <Logo className="w-9 h-9" />
           <span className="font-semibold text-foreground text-[15px] tracking-tight">
             Signal Plane
           </span>

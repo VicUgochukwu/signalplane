@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
-import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
+import { Logo } from '@/components/Logo';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 
@@ -96,7 +96,7 @@ const Login = () => {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-3">
-          <img src={signalPlaneLogo} alt="Signal Plane" className="w-12 h-12" />
+          <Logo className="w-14 h-14" />
           <span className="text-xl font-semibold text-foreground">Signal Plane</span>
         </Link>
 

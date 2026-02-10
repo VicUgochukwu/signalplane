@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Menu, ArrowRight, X } from "lucide-react";
-import signalPlaneLogo from "@/assets/signal-plane-logo-new.png";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -29,7 +29,7 @@ export function LandingNavbar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
-          <img src={signalPlaneLogo} alt="Signal Plane" className="w-7 h-7" />
+          <Logo className="w-9 h-9" />
           <span className="font-semibold text-foreground text-[15px] tracking-tight">
             Signal Plane
           </span>

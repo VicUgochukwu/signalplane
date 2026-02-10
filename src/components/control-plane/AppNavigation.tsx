@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { IconControlPlane, IconArtifacts, IconDiffTracker, IconSubmitSignal, IconShield, IconTeam, IconDeals } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Logo } from '@/components/Logo';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { UserMenu } from './UserMenu';
@@ -40,7 +40,7 @@ export function AppNavigation() {
         <div className="flex h-16 items-center gap-6">
           {/* Logo */}
           <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 font-semibold text-foreground hover:opacity-80 transition-opacity">
-            <img src={signalPlaneLogo} alt="Signal Plane" className="w-7 h-7" />
+            <Logo className="w-9 h-9" />
             <span className="hidden sm:inline text-sm">Signal Plane</span>
           </Link>
 
