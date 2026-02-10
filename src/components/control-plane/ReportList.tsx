@@ -2,7 +2,7 @@ import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
 import { PilotStatusBar } from './PilotStatusBar';
-import { KnowledgeLedgerCard } from './KnowledgeLedgerCard';
+import { IntelligenceOverview } from './IntelligenceOverview';
 import { Target } from 'lucide-react';
 import { IconPacket, IconSignalCount, IconConfidence, IconSignalRadio, IconPersonaRevenue } from '@/components/icons';
 import { useOnboarding } from '@/hooks/useOnboarding';
@@ -106,8 +106,8 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         </div>
       </div>
 
-      {/* Knowledge Ledger */}
-      <KnowledgeLedgerCard />
+      {/* Intelligence Overview — Knowledge Ledger + Compounding */}
+      <IntelligenceOverview />
 
       {/* Report Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
