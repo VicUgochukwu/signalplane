@@ -1,0 +1,257 @@
+{
+  "name": "Learning Calibration Weekly [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "cal-cron-001",
+      "name": "Weekly Sunday 06:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {},
+      "id": "cal-manual-001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Fetch all active users (pilot, growth, enterprise — not churned or free)\nSELECT\n  pa.user_id,\n  au.email,\n  pa.tier,\n  pa.status AS pilot_status\nFROM admin.pilot_accounts pa\nJOIN auth.users au ON au.id = pa.user_id\nWHERE pa.status NOT IN ('churned', 'free')\n  AND au.email IS NOT NULL\nORDER BY pa.created_at;",
+        "options": {}
+      },
+      "id": "cal-fetch-users-001",
+      "name": "Fetch Active Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [300, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {},
+        "batchSize": 1
+      },
+      "id": "cal-loop-001",
+      "name": "Loop Users",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [550, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \n'-- Signal velocity: count signals per company + type per week (last 12 weeks)\\n' +\n'WITH weekly_counts AS (\\n' +\n'  SELECT\\n'  +\n'    s.company_id,\\n' +\n'    COALESCE((s.meta->>\\x27company_name\\x27)::text, \\x27Unknown\\x27) AS company_name,\\n' +\n'    s.signal_type,\\n' +\n'    DATE_TRUNC(\\x27week\\x27, s.created_at) AS week,\\n' +\n'    COUNT(*) AS signal_count,\\n' +\n'    MAX(s.created_at) AS last_signal\\n' +\n'  FROM control_plane.signals s\\n' +\n'  JOIN control_plane.packets p ON p.id = s.packet_id\\n' +\n'  WHERE p.user_id = \\x27' + $json.user_id + '\\x27\\n' +\n'    AND s.created_at > NOW() - INTERVAL \\x2712 weeks\\x27\\n' +\n'  GROUP BY s.company_id, s.meta->>\\x27company_name\\x27, s.signal_type, DATE_TRUNC(\\x27week\\x27, s.created_at)\\n' +\n'),\\n' +\n'velocity_stats AS (\\n' +\n'  SELECT\\n' +\n'    company_id,\\n' +\n'    company_name,\\n' +\n'    signal_type,\\n' +\n'    COUNT(DISTINCT week) AS weeks_tracked,\\n' +\n'    AVG(signal_count) AS avg_signals,\\n' +\n'    STDDEV(signal_count) AS stddev_signals,\\n' +\n'    MAX(last_signal) AS last_signal_at\\n' +\n'  FROM weekly_counts\\n' +\n'  GROUP BY company_id, company_name, signal_type\\n' +\n')\\n' +\n'SELECT\\n' +\n'  company_id,\\n' +\n'  company_name,\\n' +\n'  signal_type,\\n' +\n'  weeks_tracked,\\n' +\n'  ROUND(avg_signals, 2) AS avg_signals_per_week,\\n' +\n'  ROUND(COALESCE(stddev_signals, 0), 2) AS stddev_signals_per_week,\\n' +\n'  last_signal_at\\n' +\n'FROM velocity_stats\\n' +\n'ORDER BY company_name, signal_type;'\n}}",
+        "options": {}
+      },
+      "id": "cal-velocity-query-001",
+      "name": "Query Signal Velocity",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [800, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate velocity multipliers and upsert baselines\nconst userId = $('Loop Users').first().json.user_id;\nconst velocityRows = $input.all();\nconst upserts = [];\nconst logEntries = [];\n\nfor (const row of velocityRows) {\n  const v = row.json;\n  const weeks = parseInt(v.weeks_tracked) || 0;\n  const avg = parseFloat(v.avg_signals_per_week) || 0;\n  const stddev = parseFloat(v.stddev_signals_per_week) || 1;\n\n  // Only calibrate after 8+ weeks of data\n  let multiplier = 1.0;\n  if (weeks >= 8) {\n    // Get this week's count (most recent week)\n    // For now, use avg as proxy — the actual deviation\n    // will be computed when we have this week's fresh data\n    // The key insight: we store the baseline and the pipeline\n    // uses it to boost/dampen scores at scoring time\n    multiplier = 1.0; // Will be updated by the scoring pipeline\n  }\n\n  upserts.push({\n    user_id: userId,\n    company_id: v.company_id,\n    company_name: v.company_name,\n    signal_type: v.signal_type,\n    weeks_tracked: weeks,\n    avg_signals_per_week: avg,\n    stddev_signals_per_week: stddev,\n    last_signal_at: v.last_signal_at,\n    velocity_multiplier: multiplier,\n  });\n}\n\nif (upserts.length === 0) {\n  return [{ json: { user_id: userId, velocity_count: 0, message: 'No velocity data' } }];\n}\n\nreturn [{ json: { user_id: userId, velocity_upserts: upserts, velocity_count: upserts.length } }];"
+      },
+      "id": "cal-velocity-calc-001",
+      "name": "Calculate Velocity Baselines",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \n(function() {\n  const data = $json;\n  if (!data.velocity_upserts || data.velocity_upserts.length === 0) {\n    return 'SELECT 1 AS skipped;';\n  }\n  \n  const values = data.velocity_upserts.map(u => \n    `('${u.user_id}', '${u.company_id}', '${u.company_name.replace(/'/g, \"''\")}', '${u.signal_type}', ${u.weeks_tracked}, ${u.avg_signals_per_week}, ${u.stddev_signals_per_week}, ${u.last_signal_at ? \"'\" + u.last_signal_at + \"'\" : 'NULL'}, ${u.velocity_multiplier})`\n  ).join(',\\n');\n  \n  return `INSERT INTO learning.signal_velocity_baselines (user_id, company_id, company_name, signal_type, weeks_tracked, avg_signals_per_week, stddev_signals_per_week, last_signal_at, velocity_multiplier)\nVALUES ${values}\nON CONFLICT (user_id, company_id, signal_type)\nDO UPDATE SET\n  weeks_tracked = EXCLUDED.weeks_tracked,\n  avg_signals_per_week = EXCLUDED.avg_signals_per_week,\n  stddev_signals_per_week = EXCLUDED.stddev_signals_per_week,\n  last_signal_at = EXCLUDED.last_signal_at,\n  previous_multiplier = learning.signal_velocity_baselines.velocity_multiplier,\n  velocity_multiplier = EXCLUDED.velocity_multiplier,\n  calibration_version = learning.signal_velocity_baselines.calibration_version + 1,\n  calibrated_at = NOW(),\n  updated_at = NOW();`;\n})()\n}}",
+        "options": {}
+      },
+      "id": "cal-velocity-upsert-001",
+      "name": "Upsert Velocity Baselines",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1300, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \n'-- Prediction calibration: per-company accuracy stats\\n' +\n'WITH pred_stats AS (\\n' +\n'  SELECT\\n' +\n'    p.company_id,\\n' +\n'    p.company_name,\\n' +\n'    COUNT(*) AS total_predictions,\\n' +\n'    COUNT(*) FILTER (WHERE po.outcome = \\x27correct\\x27) AS correct_count,\\n' +\n'    COUNT(*) FILTER (WHERE po.outcome = \\x27partial\\x27) AS partial_count,\\n' +\n'    COUNT(*) FILTER (WHERE po.outcome = \\x27incorrect\\x27) AS incorrect_count\\n' +\n'  FROM control_plane.predictions p\\n' +\n'  LEFT JOIN control_plane.prediction_outcomes po ON po.prediction_id = p.id\\n' +\n'  WHERE p.user_id = \\x27' + $('Loop Users').first().json.user_id + '\\x27\\n' +\n'    AND po.outcome IS NOT NULL\\n' +\n'  GROUP BY p.company_id, p.company_name\\n' +\n')\\n' +\n'SELECT\\n' +\n'  company_id,\\n' +\n'  company_name,\\n' +\n'  total_predictions,\\n' +\n'  correct_count,\\n' +\n'  partial_count,\\n' +\n'  incorrect_count,\\n' +\n'  ROUND(100.0 * (correct_count + 0.5 * partial_count) / NULLIF(total_predictions, 0), 1) AS accuracy_rate\\n' +\n'FROM pred_stats\\n' +\n'WHERE total_predictions > 0\\n' +\n'ORDER BY company_name;'\n}}",
+        "options": {}
+      },
+      "id": "cal-pred-query-001",
+      "name": "Query Prediction Stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1550, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate prediction calibration and upsert\nconst userId = $('Loop Users').first().json.user_id;\nconst predRows = $input.all();\nconst upserts = [];\n\nfor (const row of predRows) {\n  const p = row.json;\n  const total = parseInt(p.total_predictions) || 0;\n  const correct = parseInt(p.correct_count) || 0;\n  const partial = parseInt(p.partial_count) || 0;\n  const incorrect = parseInt(p.incorrect_count) || 0;\n  const accuracy = parseFloat(p.accuracy_rate) || 0;\n\n  // Confidence adjustment: positive if accuracy > 70%, negative if < 50%\n  let confidenceAdj = 0;\n  if (total >= 8) {\n    if (accuracy >= 80) confidenceAdj = 5;\n    else if (accuracy >= 70) confidenceAdj = 2;\n    else if (accuracy < 40) confidenceAdj = -5;\n    else if (accuracy < 50) confidenceAdj = -2;\n  }\n\n  // Predictability score: how consistent the accuracy is\n  const predictability = total >= 8 ? Math.min(1, accuracy / 100) : null;\n\n  upserts.push({\n    user_id: userId,\n    company_id: p.company_id,\n    company_name: p.company_name,\n    total_predictions: total,\n    correct_count: correct,\n    partial_count: partial,\n    incorrect_count: incorrect,\n    accuracy_rate: accuracy,\n    confidence_adjustment: confidenceAdj,\n    predictability_score: predictability,\n    is_calibrated: total >= 8,\n  });\n}\n\nif (upserts.length === 0) {\n  return [{ json: { user_id: userId, prediction_count: 0, message: 'No prediction data' } }];\n}\n\nreturn [{ json: { user_id: userId, prediction_upserts: upserts, prediction_count: upserts.length } }];"
+      },
+      "id": "cal-pred-calc-001",
+      "name": "Calculate Prediction Calibration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \n(function() {\n  const data = $json;\n  if (!data.prediction_upserts || data.prediction_upserts.length === 0) {\n    return 'SELECT 1 AS skipped;';\n  }\n  \n  const values = data.prediction_upserts.map(u => {\n    const companyId = u.company_id ? \"'\" + u.company_id + \"'\" : 'NULL';\n    const companyName = u.company_name ? \"'\" + u.company_name.replace(/'/g, \"''\") + \"'\" : 'NULL';\n    const predictability = u.predictability_score !== null ? u.predictability_score : 'NULL';\n    return `('${u.user_id}', ${companyId}, ${companyName}, NULL, ${u.total_predictions}, ${u.correct_count}, ${u.partial_count}, ${u.incorrect_count}, ${u.accuracy_rate}, ${u.confidence_adjustment}, ${predictability}, ${u.is_calibrated})`;\n  }).join(',\\n');\n  \n  return `INSERT INTO learning.prediction_calibration (user_id, company_id, company_name, signal_type, total_predictions, correct_count, partial_count, incorrect_count, accuracy_rate, confidence_adjustment, predictability_score, is_calibrated)\nVALUES ${values}\nON CONFLICT (user_id, COALESCE(company_id, '00000000-0000-0000-0000-000000000000'::UUID), COALESCE(signal_type, '__overall__'))\nDO UPDATE SET\n  total_predictions = EXCLUDED.total_predictions,\n  correct_count = EXCLUDED.correct_count,\n  partial_count = EXCLUDED.partial_count,\n  incorrect_count = EXCLUDED.incorrect_count,\n  accuracy_rate = EXCLUDED.accuracy_rate,\n  confidence_adjustment = EXCLUDED.confidence_adjustment,\n  predictability_score = EXCLUDED.predictability_score,\n  is_calibrated = EXCLUDED.is_calibrated,\n  calibration_version = learning.prediction_calibration.calibration_version + 1,\n  calibrated_at = NOW(),\n  updated_at = NOW();`;\n})()\n}}",
+        "options": {}
+      },
+      "id": "cal-pred-upsert-001",
+      "name": "Upsert Prediction Calibration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2050, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \n'-- Severity percentiles per signal type for this user\\n' +\n'SELECT\\n' +\n'  s.signal_type,\\n' +\n'  COUNT(*) AS total_signals,\\n' +\n'  PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY s.severity) AS severity_p25,\\n' +\n'  PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY s.severity) AS severity_p50,\\n' +\n'  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY s.severity) AS severity_p75,\\n' +\n'  PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY s.severity) AS severity_p90\\n' +\n'FROM control_plane.signals s\\n' +\n'JOIN control_plane.packets p ON p.id = s.packet_id\\n' +\n'WHERE p.user_id = \\x27' + $('Loop Users').first().json.user_id + '\\x27\\n' +\n'GROUP BY s.signal_type\\n' +\n'HAVING COUNT(*) >= 10\\n' +\n'ORDER BY s.signal_type;'\n}}",
+        "options": {}
+      },
+      "id": "cal-severity-query-001",
+      "name": "Query Severity Percentiles",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2300, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Upsert severity baselines and log calibration\nconst userId = $('Loop Users').first().json.user_id;\nconst severityRows = $input.all();\nconst velocityCount = $('Calculate Velocity Baselines').first().json.velocity_count || 0;\nconst predCount = $('Calculate Prediction Calibration').first().json.prediction_count || 0;\n\nconst severityUpserts = severityRows.map(row => {\n  const s = row.json;\n  return {\n    user_id: userId,\n    signal_type: s.signal_type,\n    total_signals: parseInt(s.total_signals) || 0,\n    severity_p25: parseFloat(s.severity_p25),\n    severity_p50: parseFloat(s.severity_p50),\n    severity_p75: parseFloat(s.severity_p75),\n    severity_p90: parseFloat(s.severity_p90),\n    is_calibrated: (parseInt(s.total_signals) || 0) >= 50,\n  };\n});\n\n// Summary\nreturn [{ json: {\n  user_id: userId,\n  velocity_baselines: velocityCount,\n  prediction_calibrations: predCount,\n  severity_baselines: severityUpserts.length,\n  severity_upserts: severityUpserts,\n  status: 'calibration_complete'\n} }];"
+      },
+      "id": "cal-severity-calc-001",
+      "name": "Calculate Severity + Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2550, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \n(function() {\n  const data = $json;\n  const parts = [];\n  \n  // Upsert severity baselines\n  if (data.severity_upserts && data.severity_upserts.length > 0) {\n    const values = data.severity_upserts.map(u =>\n      `('${u.user_id}', '${u.signal_type}', ${u.total_signals}, ${u.severity_p25}, ${u.severity_p50}, ${u.severity_p75}, ${u.severity_p90}, ${u.is_calibrated})`\n    ).join(',\\n');\n    \n    parts.push(`INSERT INTO learning.market_severity_baselines (user_id, signal_type, total_signals, severity_p25, severity_p50, severity_p75, severity_p90, is_calibrated)\nVALUES ${values}\nON CONFLICT (user_id, signal_type)\nDO UPDATE SET\n  total_signals = EXCLUDED.total_signals,\n  severity_p25 = EXCLUDED.severity_p25,\n  severity_p50 = EXCLUDED.severity_p50,\n  severity_p75 = EXCLUDED.severity_p75,\n  severity_p90 = EXCLUDED.severity_p90,\n  is_calibrated = EXCLUDED.is_calibrated,\n  calibration_version = learning.market_severity_baselines.calibration_version + 1,\n  calibrated_at = NOW(),\n  updated_at = NOW()`);\n  }\n  \n  // Log the calibration run\n  parts.push(`INSERT INTO learning.calibration_log (user_id, calibration_type, target_key, previous_value, new_value, data_points_used)\n  VALUES ('${data.user_id}', 'weekly_run', 'all', '{\"run\": \"previous\"}', '{\"velocity\": ${data.velocity_baselines}, \"predictions\": ${data.prediction_calibrations}, \"severity\": ${data.severity_baselines}}', ${data.velocity_baselines + data.prediction_calibrations + data.severity_baselines})`);\n  \n  return parts.join(';\\n') + ';';\n})()\n}}",
+        "options": {}
+      },
+      "id": "cal-final-upsert-001",
+      "name": "Upsert Severity + Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2800, 100],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Rate limit: 500ms between users\nconst result = $input.first().json;\nconsole.log(`Calibration complete for user ${$('Loop Users').first().json.user_id}: velocity=${result.velocity_baselines || 0}, predictions=${result.prediction_calibrations || 0}, severity=${result.severity_baselines || 0}`);\n\nawait new Promise(r => setTimeout(r, 500));\nreturn [{ json: { status: 'processed' } }];"
+      },
+      "id": "cal-rate-limit-001",
+      "name": "Log + Rate Limit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3050, 100]
+    }
+  ],
+  "connections": {
+    "Weekly Sunday 06:00 UTC": {
+      "main": [[{"node": "Fetch Active Users", "type": "main", "index": 0}]]
+    },
+    "Manual Trigger": {
+      "main": [[{"node": "Fetch Active Users", "type": "main", "index": 0}]]
+    },
+    "Fetch Active Users": {
+      "main": [[{"node": "Loop Users", "type": "main", "index": 0}]]
+    },
+    "Loop Users": {
+      "main": [null, [{"node": "Query Signal Velocity", "type": "main", "index": 0}]]
+    },
+    "Query Signal Velocity": {
+      "main": [[{"node": "Calculate Velocity Baselines", "type": "main", "index": 0}]]
+    },
+    "Calculate Velocity Baselines": {
+      "main": [[{"node": "Upsert Velocity Baselines", "type": "main", "index": 0}]]
+    },
+    "Upsert Velocity Baselines": {
+      "main": [[{"node": "Query Prediction Stats", "type": "main", "index": 0}]]
+    },
+    "Query Prediction Stats": {
+      "main": [[{"node": "Calculate Prediction Calibration", "type": "main", "index": 0}]]
+    },
+    "Calculate Prediction Calibration": {
+      "main": [[{"node": "Upsert Prediction Calibration", "type": "main", "index": 0}]]
+    },
+    "Upsert Prediction Calibration": {
+      "main": [[{"node": "Query Severity Percentiles", "type": "main", "index": 0}]]
+    },
+    "Query Severity Percentiles": {
+      "main": [[{"node": "Calculate Severity + Summary", "type": "main", "index": 0}]]
+    },
+    "Calculate Severity + Summary": {
+      "main": [[{"node": "Upsert Severity + Log", "type": "main", "index": 0}]]
+    },
+    "Upsert Severity + Log": {
+      "main": [[{"node": "Log + Rate Limit", "type": "main", "index": 0}]]
+    },
+    "Log + Rate Limit": {
+      "main": [[{"node": "Loop Users", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}
