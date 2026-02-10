@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, X, ArrowRight } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
+import { IconCompany } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,7 +29,7 @@ export const OnboardingBanner = () => {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-            <Building2 className="h-5 w-5 text-primary" />
+            <IconCompany className="h-5 w-5 text-primary" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">

@@ -1,23 +1,23 @@
-import { Antenna, SlidersHorizontal, Package } from "lucide-react";
+import { IconCollect, IconScoreFilter, IconWeeklyPacket } from "@/components/icons";
 
 const steps = [
   {
     number: "01",
-    icon: Antenna,
+    icon: IconCollect,
     title: "Collect",
     description:
       "10+ automated monitors scan public competitor signals weekly — messaging changes, narrative shifts, pricing edits, hiring patterns, and more. Bring your own internal data too: Gong snippets, win/loss notes, and enrichment signals from tools like Clay.",
   },
   {
     number: "02",
-    icon: SlidersHorizontal,
+    icon: IconScoreFilter,
     title: "Score & Filter",
     description:
       "Every signal is scored 0-100 on severity, recency, confidence, and source quality. Per-category caps prevent noise. Only the top 25 signals make the cut.",
   },
   {
     number: "03",
-    icon: Package,
+    icon: IconWeeklyPacket,
     title: "Deliver",
     description:
       "Each Monday, a structured decision packet ships to Slack, Notion, or email — executive summary, key shifts, open questions, and 90-day hypotheses, all mapped to owners and actions.",

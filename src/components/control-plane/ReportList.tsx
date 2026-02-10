@@ -1,7 +1,8 @@
 import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
-import { BarChart3, Target, Zap, TrendingUp, Radio } from 'lucide-react';
+import { Target } from 'lucide-react';
+import { IconPacket, IconSignalCount, IconConfidence, IconSignalRadio, IconPersonaRevenue } from '@/components/icons';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDemo } from '@/contexts/DemoContext';
 import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
@@ -26,7 +27,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         <h1 className="text-2xl font-bold text-foreground font-mono flex items-center gap-3">
           {demo?.isDemo && (
             <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-              <Radio className="h-5 w-5 text-primary" />
+              <IconSignalRadio className="h-5 w-5 text-primary" />
             </div>
           )}
           {demo?.isDemo ? (
@@ -59,7 +60,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-md bg-primary/10">
-              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <IconPacket className="h-3.5 w-3.5 text-primary" />
             </div>
           </div>
           <div className="text-2xl font-bold text-foreground tabular-nums">{reports.length}</div>
@@ -68,7 +69,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-md bg-emerald-500/10">
-              <Zap className="h-3.5 w-3.5 text-emerald-400" />
+              <IconSignalCount className="h-3.5 w-3.5 text-emerald-400" />
             </div>
           </div>
           <div className="text-2xl font-bold text-emerald-400 tabular-nums">
@@ -79,7 +80,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-md bg-sky-500/10">
-              <TrendingUp className="h-3.5 w-3.5 text-sky-400" />
+              <IconPersonaRevenue className="h-3.5 w-3.5 text-sky-400" />
             </div>
           </div>
           <div className="text-2xl font-bold text-sky-400 tabular-nums">
@@ -90,7 +91,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-md bg-violet-500/10">
-              <BarChart3 className="h-3.5 w-3.5 text-violet-400" />
+              <IconConfidence className="h-3.5 w-3.5 text-violet-400" />
             </div>
           </div>
           <div className="text-2xl font-bold text-violet-400 tabular-nums">

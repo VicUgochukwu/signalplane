@@ -5,10 +5,14 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  ArrowLeft, Radio, Zap, Shield, HelpCircle, Target,
-  MessageSquare, BookOpen, Users, Compass, ShieldAlert,
+  ArrowLeft, HelpCircle, Target,
   Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2
 } from 'lucide-react';
+import {
+  IconSignalRadio, IconSignalCount, IconConfidence,
+  IconSignalMessaging, IconSignalNarrative, IconSignalICP,
+  IconSignalHorizon, IconSignalObjection
+} from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
 import { JudgmentLoopCard } from './JudgmentLoopCard';
@@ -47,16 +51,16 @@ const statusConfig: Record<PacketStatus, { label: string; dotClass: string; badg
 interface SectionConfig {
   key: SectionKey;
   title: string;
-  icon: typeof MessageSquare;
+  icon: (props: { className?: string }) => React.JSX.Element;
   color: string;
 }
 
 const sectionConfigs: SectionConfig[] = [
-  { key: 'messaging', title: 'Messaging Intel', icon: MessageSquare, color: 'text-sky-400' },
-  { key: 'narrative', title: 'Narrative Intel', icon: BookOpen, color: 'text-violet-400' },
-  { key: 'icp', title: 'ICP Intel', icon: Users, color: 'text-emerald-400' },
-  { key: 'horizon', title: 'Horizon Intel', icon: Compass, color: 'text-amber-400' },
-  { key: 'objection', title: 'Objection Intel', icon: ShieldAlert, color: 'text-rose-400' },
+  { key: 'messaging', title: 'Messaging Intel', icon: IconSignalMessaging, color: 'text-sky-400' },
+  { key: 'narrative', title: 'Narrative Intel', icon: IconSignalNarrative, color: 'text-violet-400' },
+  { key: 'icp', title: 'ICP Intel', icon: IconSignalICP, color: 'text-emerald-400' },
+  { key: 'horizon', title: 'Horizon Intel', icon: IconSignalHorizon, color: 'text-amber-400' },
+  { key: 'objection', title: 'Objection Intel', icon: IconSignalObjection, color: 'text-rose-400' },
 ];
 
 const getConfidenceColor = (confidence: number) => {
@@ -120,7 +124,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
 
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-primary/10 shrink-0 text-primary">
-            <Radio className="h-8 w-8" />
+            <IconSignalRadio className="h-8 w-8" />
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -168,7 +172,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           <div className="rounded-xl border border-border/50 bg-card p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
-                <Radio className="h-5 w-5" />
+                <IconSignalRadio className="h-5 w-5" />
               </div>
               <div>
                 <div className="text-2xl font-bold text-foreground tabular-nums">
@@ -189,7 +193,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
               <div className="rounded-xl border border-border/50 bg-card p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-violet-500/10">
-                    <Shield className={`h-5 w-5 ${confColor}`} />
+                    <IconConfidence className={`h-5 w-5 ${confColor}`} />
                   </div>
                   <div className="flex-1">
                     <div className={`text-2xl font-bold tabular-nums ${confColor}`}>
@@ -217,7 +221,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
               <div className="rounded-xl border border-border/50 bg-card p-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${severity?.bgColor || 'bg-amber-500/10'}`}>
-                    <Zap className={`h-5 w-5 ${severity?.color || 'text-amber-400'}`} />
+                    <IconSignalCount className={`h-5 w-5 ${severity?.color || 'text-amber-400'}`} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-baseline gap-1">
@@ -369,7 +373,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         <Card className="rounded-xl border border-border/50">
           <CardHeader className="pb-3">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <Compass className="h-4 w-4 text-violet-400" />
+              <IconSignalHorizon className="h-4 w-4 text-violet-400" />
               Predictions
             </h2>
           </CardHeader>

@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Building2, Plug, UserCircle } from 'lucide-react';
+import { Plug, UserCircle } from 'lucide-react';
+import { IconCompany } from '@/components/icons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
 import { Footer } from '@/components/Footer';
@@ -100,7 +101,7 @@ const Settings = () => {
       <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
         {/* Page header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground font-mono">
+          <h1 className="text-2xl font-bold text-foreground">
             Settings
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -116,7 +117,7 @@ const Settings = () => {
         >
           <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
             <TabsTrigger value="profile" className="gap-2">
-              <Building2 className="h-4 w-4" />
+              <IconCompany className="h-4 w-4" />
               <span className="hidden sm:inline">Company Profile</span>
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>

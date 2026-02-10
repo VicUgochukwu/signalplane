@@ -1,22 +1,22 @@
-import { Target, Crosshair, TrendingUp } from "lucide-react";
+import { IconPersonaMarketing, IconPersonaPMM, IconPersonaRevenue } from "@/components/icons";
 
 const personas = [
   {
-    icon: Target,
+    icon: IconPersonaMarketing,
     role: "Marketing Leaders",
     problem: "Positioning decisions based on stale quarterly decks and Slack hearsay",
     outcome:
       "Weekly evidence-linked packets with severity-ranked signals and prediction accuracy you can show the board.",
   },
   {
-    icon: Crosshair,
+    icon: IconPersonaPMM,
     role: "Product Marketing",
     problem: "Manual competitor tracking — checking websites, G2, changelogs between cycles",
     outcome:
       "Automated monitoring across 10+ signal types with structured battlecards, objection libraries, and buyer language delivered every Monday.",
   },
   {
-    icon: TrendingUp,
+    icon: IconPersonaRevenue,
     role: "Revenue & Sales",
     problem: "Reps using six-month-old battlecards while competitors ship changes weekly",
     outcome:

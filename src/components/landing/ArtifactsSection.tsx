@@ -1,20 +1,20 @@
-import { Swords, MessageSquareQuote, FileText } from "lucide-react";
+import { IconBattlecard, IconObjectionLibrary, IconSwipeFile } from "@/components/icons";
 
 const artifacts = [
   {
-    icon: Swords,
+    icon: IconBattlecard,
     title: "Battlecards",
     description:
       "Per-competitor cards with what changed this week, talk tracks, landmines, and win/lose themes. Updated weekly.",
   },
   {
-    icon: MessageSquareQuote,
+    icon: IconObjectionLibrary,
     title: "Objection Library",
     description:
       "Buyer objections ranked by frequency with rebuttal frameworks. Tagged by persona and category.",
   },
   {
-    icon: FileText,
+    icon: IconSwipeFile,
     title: "Buyer Language Swipe File",
     description:
       "Exact phrases buyers use, tagged by persona and funnel stage. Trend-labeled: rising, stable, or fading.",

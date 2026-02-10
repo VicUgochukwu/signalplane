@@ -1,29 +1,29 @@
 import {
-  Activity,
-  LineChart,
-  Users,
-  Radar,
-  AlertTriangle,
-  TrendingDown,
-  DollarSign,
-  Shield,
-  Share2,
-  Briefcase,
-  TrendingUp,
-  Database,
-} from "lucide-react";
+  IconMonitorMessaging,
+  IconMonitorNarrative,
+  IconMonitorTargeting,
+  IconMonitorWarning,
+  IconMonitorPricing,
+  IconMonitorResistance,
+  IconMonitorPostLaunch,
+  IconMonitorProof,
+  IconMonitorChannel,
+  IconMonitorHiring,
+  IconJudgmentLoop,
+  IconCompounding,
+} from "@/components/icons";
 
 const monitors = [
-  { icon: Activity, title: "Competitive Messaging", description: "Tracks weekly messaging changes across home, pricing, and product pages." },
-  { icon: LineChart, title: "Market Narrative", description: "Detects which narratives are gaining momentum and which are fading." },
-  { icon: Users, title: "Targeting Shifts", description: "Surfaces when competitors quietly change who they sell to." },
-  { icon: Radar, title: "Early Warning", description: "Flags platform shifts, distribution changes, and category formation." },
-  { icon: DollarSign, title: "Pricing & Packaging", description: "Tracks gating changes, usage limits, and plan restructuring signals." },
-  { icon: AlertTriangle, title: "Buyer Resistance", description: "Monitors objection language across reviews, docs, and comparison pages." },
-  { icon: TrendingDown, title: "Post-Launch Intel", description: "Tracks what happens after launches — follow-on edits and momentum shifts." },
-  { icon: Shield, title: "Social Proof", description: "Surfaces case study shifts, logo wall changes, and compliance claims." },
-  { icon: Share2, title: "Channel & Partnerships", description: "Monitors integrations, marketplace listings, and co-selling cues." },
-  { icon: Briefcase, title: "Strategic Hiring", description: "Detects when job posting clusters indicate strategic investment shifts." },
+  { icon: IconMonitorMessaging, title: "Competitive Messaging", description: "Tracks weekly messaging changes across home, pricing, and product pages." },
+  { icon: IconMonitorNarrative, title: "Market Narrative", description: "Detects which narratives are gaining momentum and which are fading." },
+  { icon: IconMonitorTargeting, title: "Targeting Shifts", description: "Surfaces when competitors quietly change who they sell to." },
+  { icon: IconMonitorWarning, title: "Early Warning", description: "Flags platform shifts, distribution changes, and category formation." },
+  { icon: IconMonitorPricing, title: "Pricing & Packaging", description: "Tracks gating changes, usage limits, and plan restructuring signals." },
+  { icon: IconMonitorResistance, title: "Buyer Resistance", description: "Monitors objection language across reviews, docs, and comparison pages." },
+  { icon: IconMonitorPostLaunch, title: "Post-Launch Intel", description: "Tracks what happens after launches — follow-on edits and momentum shifts." },
+  { icon: IconMonitorProof, title: "Social Proof", description: "Surfaces case study shifts, logo wall changes, and compliance claims." },
+  { icon: IconMonitorChannel, title: "Channel & Partnerships", description: "Monitors integrations, marketplace listings, and co-selling cues." },
+  { icon: IconMonitorHiring, title: "Strategic Hiring", description: "Detects when job posting clusters indicate strategic investment shifts." },
 ];
 
 export function IntelligenceEngineSection() {
@@ -72,7 +72,7 @@ export function IntelligenceEngineSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <div className="p-6 rounded-xl border border-border/60 bg-card/30">
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 mb-5">
-              <TrendingUp className="w-5 h-5 text-primary" />
+              <IconJudgmentLoop className="w-5 h-5 text-primary" />
             </div>
             <h4 className="font-semibold text-foreground mb-2">Judgment Loop</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -83,7 +83,7 @@ export function IntelligenceEngineSection() {
           </div>
           <div className="p-6 rounded-xl border border-border/60 bg-card/30">
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 mb-5">
-              <Database className="w-5 h-5 text-primary" />
+              <IconCompounding className="w-5 h-5 text-primary" />
             </div>
             <h4 className="font-semibold text-foreground mb-2">GTM Memory</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">

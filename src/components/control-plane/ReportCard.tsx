@@ -1,7 +1,8 @@
 import { IntelPacket, PacketStatus } from '@/types/report';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Radio, Sparkles, ChevronRight } from 'lucide-react';
+import { ChevronRight, Sparkles } from 'lucide-react';
+import { IconSignalRadio } from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 
 interface ReportCardProps {
@@ -57,7 +58,7 @@ export const ReportCard = ({ report, onClick, isPersonalized = false }: ReportCa
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-2 rounded-lg bg-primary/10 shrink-0 text-primary">
-              <Radio className="h-4 w-4" />
+              <IconSignalRadio className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <h3 className="font-medium text-foreground leading-tight text-sm truncate">

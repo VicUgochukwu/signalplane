@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, FileText, ArrowRightLeft, PlusCircle, Shield } from 'lucide-react';
+import { IconControlPlane, IconArtifacts, IconDiffTracker, IconSubmitSignal, IconShield } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -8,10 +8,10 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { UserMenu } from './UserMenu';
 
 const navItems = [
-  { to: '/control-plane', label: 'Intel Packets', icon: BarChart3 },
-  { to: '/control-plane/artifacts', label: 'Artifacts', icon: FileText },
-  { to: '/messaging-diff', label: 'Competitor Messaging', icon: ArrowRightLeft },
-  { to: '/control-plane/submit', label: 'Submit Signal', icon: PlusCircle },
+  { to: '/control-plane', label: 'Intel Packets', icon: IconControlPlane },
+  { to: '/control-plane/artifacts', label: 'Artifacts', icon: IconArtifacts },
+  { to: '/messaging-diff', label: 'Competitor Messaging', icon: IconDiffTracker },
+  { to: '/control-plane/submit', label: 'Submit Signal', icon: IconSubmitSignal },
 ];
 
 const navItemFlags: Record<string, string> = {
@@ -76,7 +76,7 @@ export function AppNavigation() {
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
                 >
-                  <Shield className="h-4 w-4" />
+                  <IconShield className="h-4 w-4" />
                   <span className="hidden sm:inline">Admin</span>
                 </Link>
               )}

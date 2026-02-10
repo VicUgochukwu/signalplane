@@ -1,6 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Settings, FileText, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { IconSettings, IconArtifacts } from '@/components/icons';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -50,11 +51,11 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate('/settings')}>
-          <Settings className="mr-2 h-4 w-4" />
+          <IconSettings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/my-pages')}>
-          <FileText className="mr-2 h-4 w-4" />
+          <IconArtifacts className="mr-2 h-4 w-4" />
           My Pages
         </DropdownMenuItem>
         <DropdownMenuSeparator />

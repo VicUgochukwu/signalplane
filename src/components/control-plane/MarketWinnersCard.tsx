@@ -7,7 +7,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Trophy, TrendingUp, Building2, Clock, Users } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import { IconTrophy, IconPersonaRevenue, IconCompany, IconTeam } from '@/components/icons';
 import { MarketWinner, WINNER_CATEGORY_CONFIG } from '@/types/controlPlane';
 
 interface MarketWinnersCardProps {
@@ -39,7 +40,7 @@ const WinnerItem = ({ winner, index }: { winner: MarketWinner; index: number }) 
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Building2 className="h-3 w-3" />
+                <IconCompany className="h-3 w-3" />
                 {winner.where_seen.slice(0, 2).join(', ')}
                 {winner.where_seen.length > 2 && ` +${winner.where_seen.length - 2}`}
               </span>
@@ -48,7 +49,7 @@ const WinnerItem = ({ winner, index }: { winner: MarketWinner; index: number }) 
                 {winner.survival_weeks}w
               </span>
               <span className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
+                <IconTeam className="h-3 w-3" />
                 {winner.propagation_count}
               </span>
             </div>
@@ -108,7 +109,7 @@ export function MarketWinnersCard({ proven, emerging }: MarketWinnersCardProps) 
     <Card className="rounded-xl border border-border/50">
       <CardHeader className="pb-4">
         <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-400" />
+          <IconTrophy className="h-4 w-4 text-amber-400" />
           Market Winners
         </CardTitle>
       </CardHeader>
@@ -143,7 +144,7 @@ export function MarketWinnersCard({ proven, emerging }: MarketWinnersCardProps) 
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1" />
+                <IconPersonaRevenue className="h-3 w-3 mr-1" />
                 Emerging Patterns
               </Badge>
               <span className="text-xs text-muted-foreground">

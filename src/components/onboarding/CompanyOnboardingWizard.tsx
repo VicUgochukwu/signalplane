@@ -12,7 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  Building2,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -20,12 +19,12 @@ import {
   Search,
   Plus,
   X,
-  Target,
   Globe,
   ChevronDown,
   ChevronRight,
   AlertCircle,
 } from 'lucide-react';
+import { IconCompany, IconSignalICP } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -422,13 +421,13 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
           <CardTitle className="text-zinc-100 text-2xl flex items-center justify-center gap-3">
             {step === 'company' && (
               <>
-                <Building2 className="h-6 w-6 text-[#6B9B9B]" />
+                <IconCompany className="h-6 w-6 text-[#6B9B9B]" />
                 Tell us about your company
               </>
             )}
             {step === 'competitors' && (
               <>
-                <Target className="h-6 w-6 text-[#6B9B9B]" />
+                <IconSignalICP className="h-6 w-6 text-[#6B9B9B]" />
                 Who are your competitors?
               </>
             )}

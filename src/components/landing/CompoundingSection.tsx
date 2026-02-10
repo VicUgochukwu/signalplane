@@ -1,13 +1,13 @@
-import { TrendingUp, Database } from "lucide-react";
+import { IconJudgmentLoop, IconCompounding } from "@/components/icons";
 
 const compoundingFeatures = [
   {
-    icon: TrendingUp,
+    icon: IconJudgmentLoop,
     title: "Judgment Loop",
     description: "Each weekly packet includes 2–5 testable predictions with confidence levels. The following week, predictions are scored against actual outcomes. Over time, this creates a verifiable record of decision quality. No other competitive intelligence product tracks its own accuracy.",
   },
   {
-    icon: Database,
+    icon: IconCompounding,
     title: "GTM Memory",
     description: "Durable knowledge objects — objections, buyer phrases, proof points, competitive positions — persist across weeks and link to the signals that created or updated them. The system never re-learns the same pattern. Intelligence compounds.",
   },
@@ -15,11 +15,11 @@ const compoundingFeatures = [
 
 export function CompoundingSection() {
   return (
-    <section className="py-12 px-6 border-t border-border">
-      <div className="max-w-content mx-auto">
+    <section className="py-20 md:py-28 px-6 border-t border-border/50">
+      <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <div className="mb-8">
-          <h2 className="font-mono text-2xl font-bold text-foreground mb-3">
+          <h2 className="text-2xl font-bold text-foreground mb-3">
             Intelligence That Compounds
           </h2>
           <p className="text-muted-foreground max-w-2xl leading-relaxed">
@@ -35,7 +35,7 @@ export function CompoundingSection() {
               className="p-6 rounded-lg border border-border bg-card border-l-4 border-l-primary/20"
             >
               <feature.icon className="w-5 h-5 text-primary mb-3" />
-              <h4 className="font-mono font-bold text-foreground mb-3">
+              <h4 className="font-bold text-foreground mb-3">
                 {feature.title}
               </h4>
               <p className="text-sm text-muted-foreground leading-relaxed">

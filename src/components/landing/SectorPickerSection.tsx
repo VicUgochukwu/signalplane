@@ -1,33 +1,34 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Code2, BarChart3, Phone, HeartHandshake, Megaphone,
-  Database, Shield, Landmark, Users, MessageCircle,
-  Cloud, Brain, Activity, ShoppingCart, Blocks
-} from 'lucide-react';
+  IconSectorDevTools, IconSectorAnalytics, IconSectorSales, IconSectorSuccess, IconSectorMarketing,
+  IconSectorData, IconSectorSecurity, IconSectorFintech, IconSectorHR, IconSectorCollaboration,
+  IconSectorCloud, IconSectorAI, IconSectorDevOps, IconSectorEcommerce, IconSectorNoCode,
+} from '@/components/icons';
 
 interface SectorTile {
   slug: string;
   name: string;
-  icon: typeof Code2;
+  icon: (props: { className?: string }) => React.JSX.Element;
   companyCount: number;
 }
 
 const sectors: SectorTile[] = [
-  { slug: 'developer-tools', name: 'Developer Tools', icon: Code2, companyCount: 8 },
-  { slug: 'product-analytics', name: 'Product Analytics', icon: BarChart3, companyCount: 7 },
-  { slug: 'sales-engagement', name: 'Sales Engagement', icon: Phone, companyCount: 7 },
-  { slug: 'customer-success', name: 'Customer Success', icon: HeartHandshake, companyCount: 6 },
-  { slug: 'marketing-automation', name: 'Marketing Automation', icon: Megaphone, companyCount: 7 },
-  { slug: 'data-infrastructure', name: 'Data Infrastructure', icon: Database, companyCount: 7 },
-  { slug: 'cybersecurity', name: 'Cybersecurity', icon: Shield, companyCount: 7 },
-  { slug: 'fintech-infrastructure', name: 'Fintech', icon: Landmark, companyCount: 6 },
-  { slug: 'hr-tech', name: 'HR Tech', icon: Users, companyCount: 6 },
-  { slug: 'collaboration', name: 'Collaboration', icon: MessageCircle, companyCount: 7 },
-  { slug: 'cloud-infrastructure', name: 'Cloud Infrastructure', icon: Cloud, companyCount: 7 },
-  { slug: 'ai-ml-platforms', name: 'AI/ML Platforms', icon: Brain, companyCount: 7 },
-  { slug: 'devops-observability', name: 'DevOps', icon: Activity, companyCount: 7 },
-  { slug: 'ecommerce-platforms', name: 'E-commerce', icon: ShoppingCart, companyCount: 6 },
-  { slug: 'nocode-lowcode', name: 'No-Code / Low-Code', icon: Blocks, companyCount: 6 },
+  { slug: 'developer-tools', name: 'Developer Tools', icon: IconSectorDevTools, companyCount: 8 },
+  { slug: 'product-analytics', name: 'Product Analytics', icon: IconSectorAnalytics, companyCount: 7 },
+  { slug: 'sales-engagement', name: 'Sales Engagement', icon: IconSectorSales, companyCount: 7 },
+  { slug: 'customer-success', name: 'Customer Success', icon: IconSectorSuccess, companyCount: 6 },
+  { slug: 'marketing-automation', name: 'Marketing Automation', icon: IconSectorMarketing, companyCount: 7 },
+  { slug: 'data-infrastructure', name: 'Data Infrastructure', icon: IconSectorData, companyCount: 7 },
+  { slug: 'cybersecurity', name: 'Cybersecurity', icon: IconSectorSecurity, companyCount: 7 },
+  { slug: 'fintech-infrastructure', name: 'Fintech', icon: IconSectorFintech, companyCount: 6 },
+  { slug: 'hr-tech', name: 'HR Tech', icon: IconSectorHR, companyCount: 6 },
+  { slug: 'collaboration', name: 'Collaboration', icon: IconSectorCollaboration, companyCount: 7 },
+  { slug: 'cloud-infrastructure', name: 'Cloud Infrastructure', icon: IconSectorCloud, companyCount: 7 },
+  { slug: 'ai-ml-platforms', name: 'AI/ML Platforms', icon: IconSectorAI, companyCount: 7 },
+  { slug: 'devops-observability', name: 'DevOps', icon: IconSectorDevOps, companyCount: 7 },
+  { slug: 'ecommerce-platforms', name: 'E-commerce', icon: IconSectorEcommerce, companyCount: 6 },
+  { slug: 'nocode-lowcode', name: 'No-Code / Low-Code', icon: IconSectorNoCode, companyCount: 6 },
 ];
 
 export function SectorPickerSection() {

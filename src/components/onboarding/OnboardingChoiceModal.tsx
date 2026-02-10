@@ -1,4 +1,4 @@
-import { Building2, Compass } from 'lucide-react';
+import { IconCompany, IconSignalHorizon } from '@/components/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -28,7 +28,7 @@ export function OnboardingChoiceModal({ onSetupCompany, onSkip }: OnboardingChoi
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-[#6B9B9B]/20 text-[#6B9B9B] group-hover:bg-[#6B9B9B]/30">
-                <Building2 className="h-6 w-6" />
+                <IconCompany className="h-6 w-6" />
               </div>
               <div className="flex-1">
                 <h3 className="text-zinc-100 font-semibold text-lg mb-1">
@@ -52,7 +52,7 @@ export function OnboardingChoiceModal({ onSetupCompany, onSkip }: OnboardingChoi
           >
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-lg bg-zinc-700/50 text-zinc-400 group-hover:text-zinc-300">
-                <Compass className="h-6 w-6" />
+                <IconSignalHorizon className="h-6 w-6" />
               </div>
               <div className="flex-1">
                 <h3 className="text-zinc-100 font-semibold text-lg mb-1">

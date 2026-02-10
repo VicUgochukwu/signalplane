@@ -7,7 +7,8 @@ import { WeekSection } from '@/components/WeekSection';
 import { AppNavigation } from '@/components/control-plane/AppNavigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Globe, User, Plus, Activity, AlertCircle, ArrowRight, TrendingUp, Building2 } from 'lucide-react';
+import { Globe, User, Plus, AlertCircle, ArrowRight } from 'lucide-react';
+import { IconSignalCount, IconPersonaRevenue, IconCompany } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -81,7 +82,7 @@ const Index = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-md bg-primary/10">
-                  <Activity className="h-3.5 w-3.5 text-primary" />
+                  <IconSignalCount className="h-3.5 w-3.5 text-primary" />
                 </div>
               </div>
               <div className="text-2xl font-bold text-foreground tabular-nums">{totalSignals}</div>
@@ -92,7 +93,7 @@ const Index = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-md bg-rose-500/10">
-                  <TrendingUp className="h-3.5 w-3.5 text-rose-400" />
+                  <IconPersonaRevenue className="h-3.5 w-3.5 text-rose-400" />
                 </div>
               </div>
               <div className="text-2xl font-bold text-rose-400 tabular-nums">{highPriorityCount}</div>
@@ -103,7 +104,7 @@ const Index = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-md bg-sky-500/10">
-                  <Building2 className="h-3.5 w-3.5 text-sky-400" />
+                  <IconCompany className="h-3.5 w-3.5 text-sky-400" />
                 </div>
               </div>
               <div className="text-2xl font-bold text-sky-400 tabular-nums">{companies.length}</div>
