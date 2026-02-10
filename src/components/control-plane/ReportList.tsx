@@ -1,6 +1,8 @@
 import { IntelPacket } from '@/types/report';
 import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
+import { PilotStatusBar } from './PilotStatusBar';
+import { KnowledgeLedgerCard } from './KnowledgeLedgerCard';
 import { Target } from 'lucide-react';
 import { IconPacket, IconSignalCount, IconConfidence, IconSignalRadio, IconPersonaRevenue } from '@/components/icons';
 import { useOnboarding } from '@/hooks/useOnboarding';
@@ -52,6 +54,9 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         </p>
       </div>
 
+      {/* Pilot Status (hidden in demo) */}
+      {!demo?.isDemo && <PilotStatusBar />}
+
       {/* Onboarding Banner (hidden in demo) */}
       {!demo?.isDemo && <OnboardingBanner />}
 
@@ -100,6 +105,9 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
           <div className="text-xs text-muted-foreground mt-0.5">Avg Confidence</div>
         </div>
       </div>
+
+      {/* Knowledge Ledger (hidden in demo) */}
+      {!demo?.isDemo && <KnowledgeLedgerCard />}
 
       {/* Report Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

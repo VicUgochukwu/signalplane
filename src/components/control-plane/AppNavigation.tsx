@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { IconControlPlane, IconArtifacts, IconDiffTracker, IconSubmitSignal, IconShield } from '@/components/icons';
+import { IconControlPlane, IconArtifacts, IconDiffTracker, IconSubmitSignal, IconShield, IconTeam, IconDeals } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import signalPlaneLogo from '@/assets/signal-plane-logo-new.png';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -12,6 +12,8 @@ const navItems = [
   { to: '/control-plane/artifacts', label: 'Artifacts', icon: IconArtifacts },
   { to: '/messaging-diff', label: 'Competitor Messaging', icon: IconDiffTracker },
   { to: '/control-plane/submit', label: 'Submit Signal', icon: IconSubmitSignal },
+  { to: '/control-plane/team', label: 'Team', icon: IconTeam },
+  { to: '/control-plane/deals', label: 'Deals', icon: IconDeals },
 ];
 
 const navItemFlags: Record<string, string> = {
@@ -19,6 +21,8 @@ const navItemFlags: Record<string, string> = {
   '/control-plane/artifacts': 'artifacts',
   '/messaging-diff': 'messaging_diff',
   '/control-plane/submit': 'submit_signal',
+  '/control-plane/team': 'team_management',
+  '/control-plane/deals': 'deal_logging',
 };
 
 export function AppNavigation() {

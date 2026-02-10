@@ -12,6 +12,19 @@ interface UserContext {
   firstName: string;
   companyName: string;
   competitors: { name: string; domain: string; pageCount: number }[];
+  // Ledger metrics (populated for conversion emails)
+  ledger?: {
+    totalKnowledgeObjects: number;
+    totalSignals: number;
+    totalPackets: number;
+    predictionAccuracy: number;
+    predictionsScored: number;
+    predictionsTotal: number;
+    competitorsMonitored: number;
+    pagesTracked: number;
+    pilotDaysRemaining: number;
+    pilotDaysElapsed: number;
+  };
 }
 
 type DripKey =
@@ -23,7 +36,11 @@ type DripKey =
   | 'pkt_preview'
   | 'pkt_first_ready'
   | 'pkt_already_waiting'
-  | 'setup_nudge';
+  | 'setup_nudge'
+  | 'convert_week4'
+  | 'convert_week6'
+  | 'convert_week8'
+  | 'pkt_baseline_report';
 
 interface DripEmailRequest {
   user_id: string;
@@ -199,11 +216,38 @@ async function fetchUserContext(
     }
   }
 
+  // Fetch ledger metrics (for conversion emails)
+  let ledger: UserContext['ledger'] = undefined;
+  try {
+    const { data: ledgerData } = await supabase.rpc('get_knowledge_ledger', {
+      p_user_id: userId,
+    });
+    if (ledgerData && ledgerData.length > 0) {
+      const row = ledgerData[0];
+      ledger = {
+        totalKnowledgeObjects: row.total_knowledge_objects || 0,
+        totalSignals: row.total_signals_processed || 0,
+        totalPackets: row.total_packets || 0,
+        predictionAccuracy: row.prediction_accuracy || 0,
+        predictionsScored: row.predictions_scored || 0,
+        predictionsTotal: row.predictions_total || 0,
+        competitorsMonitored: row.competitors_monitored || 0,
+        pagesTracked: row.pages_tracked || 0,
+        pilotDaysRemaining: row.pilot_days_remaining || 0,
+        pilotDaysElapsed: row.pilot_days_elapsed || 0,
+      };
+    }
+  } catch (_e) {
+    // Ledger RPC may not exist yet — graceful fallback
+    console.warn('get_knowledge_ledger RPC not available, skipping ledger metrics');
+  }
+
   return {
     email: user.email!,
     firstName,
     companyName: profile?.company_name || 'your company',
     competitors: competitorList,
+    ledger,
   };
 }
 
@@ -232,6 +276,14 @@ function buildEmail(
       return buildPktAlreadyWaiting(ctx);
     case 'setup_nudge':
       return buildSetupNudge(ctx);
+    case 'convert_week4':
+      return buildConvertWeek4(ctx);
+    case 'convert_week6':
+      return buildConvertWeek6(ctx);
+    case 'convert_week8':
+      return buildConvertWeek8(ctx);
+    case 'pkt_baseline_report':
+      return buildPktBaselineReport(ctx);
     default:
       return null;
   }
@@ -583,5 +635,225 @@ function buildSetupNudge(ctx: UserContext) {
   return {
     subject: 'Complete Your Setup to Get Your First Packet',
     html: wrapHtml('Complete Your Setup', body),
+  };
+}
+
+// ─── Conversion Nudge Emails ──────────────────────────────────────────────────
+
+function buildConvertWeek4(ctx: UserContext) {
+  const l = ctx.ledger;
+  const projectedObjects = l ? Math.round(l.totalKnowledgeObjects * (12 / Math.max(4, l.pilotDaysElapsed / 7))) : 0;
+
+  const metricsRow = l ? `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+      <tr>
+        <td style="padding:12px;text-align:center;background:#1a1a2e;border-radius:8px 0 0 8px;">
+          <div style="color:#06b6d4;font-size:24px;font-weight:700;">${l.totalKnowledgeObjects}</div>
+          <div style="color:#9ca3af;font-size:11px;margin-top:4px;">Knowledge Objects</div>
+        </td>
+        <td style="padding:12px;text-align:center;background:#1a1a2e;">
+          <div style="color:#22c55e;font-size:24px;font-weight:700;">${l.totalSignals}</div>
+          <div style="color:#9ca3af;font-size:11px;margin-top:4px;">Signals Detected</div>
+        </td>
+        <td style="padding:12px;text-align:center;background:#1a1a2e;border-radius:0 8px 8px 0;">
+          <div style="color:#a855f7;font-size:24px;font-weight:700;">${l.totalPackets}</div>
+          <div style="color:#9ca3af;font-size:11px;margin-top:4px;">Packets Generated</div>
+        </td>
+      </tr>
+    </table>` : '';
+
+  const body = `
+    ${p(`Hi ${esc(ctx.firstName)},`)}
+    ${p(`You're 4 weeks into your pilot. Here's what Signal Plane has built for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong> so far:`)}
+
+    ${metricsRow}
+
+    ${card(`
+      <h3 style="margin:0 0 8px;color:#f59e0b;font-size:14px;">Your Intelligence Is Compounding</h3>
+      <p style="margin:0;color:#d1d5db;font-size:13px;line-height:1.7;">Every week of tracking adds to your competitive knowledge base. At this pace, by week 12 you'll have <strong style="color:#e5e7eb;">~${projectedObjects} knowledge objects</strong> &mdash; a permanent competitive intelligence asset that gets more valuable over time.</p>
+    `, '#f59e0b')}
+
+    ${p('Your pilot has 4 more weeks. Everything you\'ve built so far is yours to keep.')}
+    ${ctaButton('View Your Knowledge Ledger', CONTROL_PLANE_URL)}
+  `;
+
+  return {
+    subject: `Your Intelligence Is Growing \u2014 Here's What You've Built`,
+    html: wrapHtml("Your Intelligence Is Growing", body),
+  };
+}
+
+function buildConvertWeek6(ctx: UserContext) {
+  const l = ctx.ledger;
+
+  const accuracySection = l && l.predictionsScored > 0 ? `
+    ${card(`
+      <div style="text-align:center;">
+        <div style="color:#a855f7;font-size:36px;font-weight:700;">${l.predictionAccuracy.toFixed(0)}%</div>
+        <div style="color:#9ca3af;font-size:12px;margin-top:4px;">Prediction Accuracy (${l.predictionsScored}/${l.predictionsTotal} scored)</div>
+      </div>
+    `, '#a855f7')}
+
+    ${p('Your Judgment Loop is calibrating. The more predictions you score, the sharper your competitive foresight becomes. This accuracy record is <strong style="color:#e5e7eb;">unique to your team</strong> &mdash; no one else has your competitive calibration data.')}
+  ` : `
+    ${card(`
+      <div style="text-align:center;">
+        <div style="color:#a855f7;font-size:36px;font-weight:700;">${l ? l.predictionsTotal : 0}</div>
+        <div style="color:#9ca3af;font-size:12px;margin-top:4px;">Predictions Generated (Awaiting Scoring)</div>
+      </div>
+    `, '#a855f7')}
+
+    ${p('You have predictions waiting to be scored. Start clicking <strong style="color:#22c55e;">Correct</strong>, <strong style="color:#f59e0b;">Partial</strong>, or <strong style="color:#ef4444;">Incorrect</strong> to build your accuracy record. 4 more weeks builds a shareable track record.')}
+  `;
+
+  const body = `
+    ${p(`Hi ${esc(ctx.firstName)},`)}
+    ${p('Your Judgment Loop has been running for 6 weeks. Here\'s where your competitive foresight stands:')}
+
+    ${accuracySection}
+
+    ${card(`
+      <h3 style="margin:0 0 8px;color:#06b6d4;font-size:14px;">Why This Matters</h3>
+      <p style="margin:0;color:#d1d5db;font-size:13px;line-height:1.7;">Most competitive intel is reactive. Signal Plane's prediction scoring builds a <strong style="color:#e5e7eb;">proactive</strong> track record. After 12 weeks, you'll have data showing how accurately your team anticipates market moves.</p>
+    `, '#06b6d4')}
+
+    ${p('Your pilot has 2 more weeks. Your prediction data is permanent and gets more valuable with every scored outcome.')}
+    ${ctaButton('Score Your Predictions', CONTROL_PLANE_URL)}
+  `;
+
+  return {
+    subject: "Your Judgment Loop Is Getting Smarter",
+    html: wrapHtml("Your Judgment Loop Is Getting Smarter", body),
+  };
+}
+
+function buildConvertWeek8(ctx: UserContext) {
+  const l = ctx.ledger;
+
+  const ledgerSummary = l ? `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+      <tr>
+        <td style="padding:10px;text-align:center;background:#1a1a2e;border-radius:8px 0 0 0;">
+          <div style="color:#06b6d4;font-size:20px;font-weight:700;">${l.totalKnowledgeObjects}</div>
+          <div style="color:#9ca3af;font-size:10px;margin-top:2px;">Knowledge Objects</div>
+        </td>
+        <td style="padding:10px;text-align:center;background:#1a1a2e;">
+          <div style="color:#22c55e;font-size:20px;font-weight:700;">${l.totalSignals}</div>
+          <div style="color:#9ca3af;font-size:10px;margin-top:2px;">Signals</div>
+        </td>
+        <td style="padding:10px;text-align:center;background:#1a1a2e;border-radius:0 8px 0 0;">
+          <div style="color:#a855f7;font-size:20px;font-weight:700;">${l.totalPackets}</div>
+          <div style="color:#9ca3af;font-size:10px;margin-top:2px;">Packets</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px;text-align:center;background:#1a1a2e;border-radius:0 0 0 8px;">
+          <div style="color:#f59e0b;font-size:20px;font-weight:700;">${l.competitorsMonitored}</div>
+          <div style="color:#9ca3af;font-size:10px;margin-top:2px;">Competitors</div>
+        </td>
+        <td style="padding:10px;text-align:center;background:#1a1a2e;">
+          <div style="color:#ef4444;font-size:20px;font-weight:700;">${l.pagesTracked}</div>
+          <div style="color:#9ca3af;font-size:10px;margin-top:2px;">Pages Tracked</div>
+        </td>
+        <td style="padding:10px;text-align:center;background:#1a1a2e;border-radius:0 0 8px 0;">
+          <div style="color:#06b6d4;font-size:20px;font-weight:700;">${l.predictionsScored > 0 ? l.predictionAccuracy.toFixed(0) + '%' : '--'}</div>
+          <div style="color:#9ca3af;font-size:10px;margin-top:2px;">Pred. Accuracy</div>
+        </td>
+      </tr>
+    </table>` : '';
+
+  const body = `
+    ${p(`Hi ${esc(ctx.firstName)},`)}
+    ${p('Your 60-day pilot ends this week. Here\'s the intelligence asset you\'ve built:')}
+
+    ${heading('Your Knowledge Ledger')}
+    ${ledgerSummary}
+
+    ${card(`
+      <h3 style="margin:0 0 8px;color:#ef4444;font-size:14px;">What Happens Next</h3>
+      <p style="margin:0 0 10px;color:#d1d5db;font-size:13px;line-height:1.7;"><strong style="color:#e5e7eb;">If you convert:</strong> Everything you've built continues compounding. Your knowledge objects, prediction accuracy, and signal history remain intact and keep growing.</p>
+      <p style="margin:0;color:#d1d5db;font-size:13px;line-height:1.7;"><strong style="color:#e5e7eb;">If you don't:</strong> You'll keep your account on the Free plan (2 competitors). All your accumulated data is preserved, but additional competitor slots and team features require Growth.</p>
+    `, '#ef4444')}
+
+    ${card(`
+      <h3 style="margin:0 0 8px;color:#22c55e;font-size:14px;">Growth Plan</h3>
+      <ul style="margin:0;padding-left:20px;">
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;">5 competitors tracked simultaneously</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;">Team seats with role-based views</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;">Judgment Loop scoring &amp; accuracy tracking</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;">Win/Loss correlation analysis</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;">Packet export &amp; team annotations</li>
+        <li style="color:#d1d5db;font-size:13px;">Full Knowledge Ledger access</li>
+      </ul>
+    `, '#22c55e')}
+
+    ${p('Starting over means resetting to zero. Converting preserves 60 days of competitive intelligence.')}
+    ${ctaButton('Upgrade to Growth', CONTROL_PLANE_URL + '?upgrade=true')}
+    ${p('Questions? Reply to this email &mdash; we respond to every message.', '#9ca3af')}
+  `;
+
+  return {
+    subject: "60-Day Decision: Your Intelligence Asset",
+    html: wrapHtml("Your 60-Day Pilot Summary", body),
+  };
+}
+
+// ─── Baseline Report Email ──────────────────────────────────────────────────
+
+function buildPktBaselineReport(ctx: UserContext) {
+  const competitorRows = ctx.competitors.length > 0
+    ? ctx.competitors.map(c =>
+        `<tr>
+          <td style="padding:8px 12px;color:#e5e7eb;font-size:13px;border-bottom:1px solid #1f2937;">${esc(c.name)}</td>
+          <td style="padding:8px 12px;color:#9ca3af;font-size:13px;border-bottom:1px solid #1f2937;">${esc(c.domain)}</td>
+          <td style="padding:8px 12px;color:#06b6d4;font-size:13px;border-bottom:1px solid #1f2937;text-align:center;font-weight:600;">${c.pageCount}</td>
+        </tr>`
+      ).join('')
+    : `<tr><td colspan="3" style="padding:12px;color:#9ca3af;font-size:13px;text-align:center;">Setting up monitoring...</td></tr>`;
+
+  const totalPages = ctx.competitors.reduce((sum, c) => sum + c.pageCount, 0);
+
+  const body = `
+    ${p(`Hi ${esc(ctx.firstName)},`)}
+    ${p(`Signal Plane has completed its first crawl of your competitive landscape. Here's your baseline snapshot for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>:`)}
+
+    ${heading('Pages Being Monitored')}
+    <table style="width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+      <thead>
+        <tr style="background:#111827;">
+          <th style="padding:10px 12px;color:#9ca3af;font-size:11px;text-align:left;text-transform:uppercase;letter-spacing:1px;">Competitor</th>
+          <th style="padding:10px 12px;color:#9ca3af;font-size:11px;text-align:left;text-transform:uppercase;letter-spacing:1px;">Domain</th>
+          <th style="padding:10px 12px;color:#9ca3af;font-size:11px;text-align:center;text-transform:uppercase;letter-spacing:1px;">Pages</th>
+        </tr>
+      </thead>
+      <tbody>${competitorRows}</tbody>
+      <tfoot>
+        <tr style="background:#111827;">
+          <td colspan="2" style="padding:10px 12px;color:#e5e7eb;font-size:13px;font-weight:600;">Total</td>
+          <td style="padding:10px 12px;color:#06b6d4;font-size:13px;font-weight:700;text-align:center;">${totalPages}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    ${card(`
+      <h3 style="margin:0 0 8px;color:#22c55e;font-size:14px;">What Happens Next</h3>
+      <p style="margin:0 0 8px;color:#d1d5db;font-size:13px;line-height:1.7;">Signal Plane has captured the current state of every tracked page. From now on, our AI monitors these pages for:</p>
+      <ul style="margin:0;padding-left:20px;">
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;"><strong style="color:#06b6d4;">Messaging changes</strong> &mdash; positioning shifts, new value props</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;"><strong style="color:#a855f7;">Narrative shifts</strong> &mdash; new stories about the market</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;"><strong style="color:#22c55e;">ICP moves</strong> &mdash; new personas or verticals</li>
+        <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;"><strong style="color:#f59e0b;">Horizon signals</strong> &mdash; new features and launches</li>
+        <li style="color:#d1d5db;font-size:13px;"><strong style="color:#ef4444;">Objection tactics</strong> &mdash; competitive positioning against you</li>
+      </ul>
+    `, '#22c55e')}
+
+    ${p('Your first real intel packet with competitive changes arrives <strong style="color:#f59e0b;">next Monday</strong>. The more changes detected between now and then, the richer your packet will be.')}
+    ${ctaButton('View Your Control Plane', CONTROL_PLANE_URL)}
+    ${p('Want to add more pages? You can customize tracked pages for each competitor in your control plane settings.', '#9ca3af')}
+  `;
+
+  return {
+    subject: "Your Competitive Landscape Baseline Is Ready",
+    html: wrapHtml("Your Baseline Is Ready", body),
   };
 }

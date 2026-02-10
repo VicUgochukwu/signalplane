@@ -33,6 +33,9 @@ import CookiePolicy from "./pages/CookiePolicy";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
+import InviteAccept from "./pages/InviteAccept";
+import TeamSettings from "./components/control-plane/TeamSettings";
+import DealLogger from "./components/control-plane/DealLogger";
 
 const queryClient = new QueryClient();
 
@@ -198,6 +201,25 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* Team & Deals routes */}
+            <Route
+              path="/control-plane/team"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <TeamSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/control-plane/deals"
+              element={
+                <ProtectedRoute skipOnboarding>
+                  <DealLogger />
+                </ProtectedRoute>
+              }
+            />
+            {/* Invite accept — public (handles its own auth check) */}
+            <Route path="/invite/:token" element={<InviteAccept />} />
             {/* Demo routes — public, no auth required */}
             <Route path="/demo/:sectorSlug" element={<DemoControlPlane />} />
             <Route path="/demo/:sectorSlug/artifacts" element={<DemoArtifacts />} />
