@@ -106,8 +106,8 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         </div>
       </div>
 
-      {/* Knowledge Ledger (hidden in demo) */}
-      {!demo?.isDemo && <KnowledgeLedgerCard />}
+      {/* Knowledge Ledger */}
+      <KnowledgeLedgerCard />
 
       {/* Report Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

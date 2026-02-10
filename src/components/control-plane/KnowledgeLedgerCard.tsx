@@ -1,5 +1,6 @@
 import { useKnowledgeLedger } from '@/hooks/useKnowledgeLedger';
 import { usePilot } from '@/hooks/usePilot';
+import { useDemo } from '@/contexts/DemoContext';
 import {
   IconKnowledgeLedger, IconSignalCount, IconPacket,
   IconJudgmentLoop, IconCompany, IconPilotTimer
@@ -7,16 +8,30 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
+const DEMO_METRICS = {
+  total_knowledge_objects: 247,
+  total_signals_processed: 1_832,
+  total_packets: 12,
+  prediction_accuracy: 74,
+  predictions_scored: 18,
+  predictions_total: 26,
+  competitors_monitored: 5,
+  weekly_signal_growth: 12,
+};
+
 /**
  * Knowledge Ledger card for the Control Plane dashboard.
  * Shows compounding metrics: knowledge objects, signals, packets,
  * prediction accuracy, and pilot progress.
  */
 export function KnowledgeLedgerCard() {
-  const { metrics, isLoading } = useKnowledgeLedger();
+  const demo = useDemo();
+  const { metrics: liveMetrics, isLoading } = useKnowledgeLedger();
   const { isPilot, daysElapsed, daysRemaining } = usePilot();
 
-  if (isLoading) {
+  const metrics = demo?.isDemo ? DEMO_METRICS : liveMetrics;
+
+  if (!demo?.isDemo && isLoading) {
     return (
       <div className="rounded-xl border border-border/50 bg-card p-5">
         <Skeleton className="h-5 w-40 bg-muted mb-4" />
