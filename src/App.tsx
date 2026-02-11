@@ -39,6 +39,7 @@ const TeamSettings = lazy(() => import("./components/control-plane/TeamSettings"
 const DealLogger = lazy(() => import("./components/control-plane/DealLogger"));
 
 // Demo pages
+const DemoLayout = lazy(() => import("./components/demo/DemoLayout"));
 const DemoControlPlane = lazy(() => import("./pages/DemoControlPlane"));
 const DemoArtifacts = lazy(() => import("./pages/DemoArtifacts"));
 const DemoActionBoard = lazy(() => import("./pages/DemoActionBoard"));
@@ -123,11 +124,13 @@ const App = () => (
                 {/* Invite accept — public (handles its own auth check) */}
                 <Route path="/invite/:token" element={<InviteAccept />} />
 
-                {/* Demo routes — public, no auth required */}
-                <Route path="/demo/:sectorSlug" element={<DemoControlPlane />} />
-                <Route path="/demo/:sectorSlug/artifacts" element={<DemoArtifacts />} />
-                <Route path="/demo/:sectorSlug/board" element={<DemoActionBoard />} />
-                <Route path="/demo/:sectorSlug/signals" element={<DemoCompetitorMessaging />} />
+                {/* ── Demo routes — public, sidebar layout, no auth required ── */}
+                <Route path="/demo/:sectorSlug" element={<DemoLayout />}>
+                  <Route index element={<DemoControlPlane />} />
+                  <Route path="artifacts" element={<DemoArtifacts />} />
+                  <Route path="board" element={<DemoActionBoard />} />
+                  <Route path="signals" element={<DemoCompetitorMessaging />} />
+                </Route>
 
                 <Route path="/cookie-policy" element={<CookiePolicy />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />

@@ -1,8 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { DemoProvider, useDemo } from '@/contexts/DemoContext';
-import { DemoNavigation } from '@/components/demo/DemoNavigation';
-import { Footer } from '@/components/Footer';
+import { useDemo } from '@/contexts/DemoContext';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
 import { Card, CardContent } from '@/components/ui/card';
@@ -277,17 +274,5 @@ function DemoSignalFeed() {
 }
 
 export default function DemoCompetitorMessaging() {
-  const { sectorSlug = 'developer-tools' } = useParams();
-
-  return (
-    <DemoProvider sectorSlug={sectorSlug}>
-      <div className="min-h-screen bg-background flex flex-col">
-        <DemoNavigation />
-        <DemoSignalFeed />
-        <div className="container max-w-6xl mx-auto px-4">
-          <Footer />
-        </div>
-      </div>
-    </DemoProvider>
-  );
+  return <DemoSignalFeed />;
 }

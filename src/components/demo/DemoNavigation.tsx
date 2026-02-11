@@ -15,7 +15,7 @@ export function DemoNavigation() {
   const navItems = [
     { to: `/demo/${slug}`, label: 'Intel Packets', icon: BarChart3 },
     { to: `/demo/${slug}/artifacts`, label: 'Artifacts', icon: FileText },
-    { to: `/demo/${slug}/signals`, label: 'Signals', icon: Radio },
+    { to: `/demo/${slug}/signals`, label: 'Competitor Messaging', icon: Radio },
     { to: `/demo/${slug}/board`, label: 'Action Board', icon: Kanban },
   ];
 

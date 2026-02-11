@@ -5,17 +5,19 @@ interface ConfidenceBarProps {
 }
 
 export function ConfidenceBar({ confidence }: ConfidenceBarProps) {
-  const percentage = Math.round(confidence * 100);
+  // Confidence may arrive as 0-1 (decimal) or 0-100 (integer). Normalize to 0-100.
+  const percentage = confidence > 1 ? Math.round(confidence) : Math.round(confidence * 100);
+  const normalized = percentage / 100; // 0-1 for threshold comparisons
 
   const getColor = () => {
-    if (confidence >= 0.8) return 'bg-emerald-500';
-    if (confidence >= 0.5) return 'bg-amber-500';
+    if (normalized >= 0.8) return 'bg-emerald-500';
+    if (normalized >= 0.5) return 'bg-amber-500';
     return 'bg-rose-500';
   };
 
   const getTextColor = () => {
-    if (confidence >= 0.8) return 'text-emerald-400';
-    if (confidence >= 0.5) return 'text-amber-400';
+    if (normalized >= 0.8) return 'text-emerald-400';
+    if (normalized >= 0.5) return 'text-amber-400';
     return 'text-rose-400';
   };
 
