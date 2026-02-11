@@ -17,6 +17,10 @@ export interface LoopsContact {
   packetCount?: number;
   competitorCount?: number;
   lastPacketDate?: string;
+  // ICP fields for personalized drip emails
+  department?: string;   // marketing | sales | revops | product | executive | other
+  jobTitle?: string;
+  companySize?: string;
 }
 
 /**

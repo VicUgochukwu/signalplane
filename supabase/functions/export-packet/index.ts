@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Signal Plane <hello@signalplane.dev>',
+        from: 'Control Plane <hello@signalplane.dev>',
         to: [user.email],
         subject: `Intel Packet: ${packet.packet_title}`,
         html,
@@ -356,7 +356,7 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
   <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
     <!-- Header -->
     <div style="text-align:center;margin-bottom:32px;">
-      <img src="https://signalplane.dev/signal-plane-logo.png" alt="Signal Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
+      <img src="https://signalplane.dev/favicon-cropped.png" alt="Control Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
       <h1 style="margin:0 0 8px;color:#e5e7eb;font-size:22px;font-weight:700;">${escapeHtml(packet.packet_title)}</h1>
       <p style="margin:0;color:#9ca3af;font-size:13px;">${escapeHtml(packet.week_start)} &mdash; ${escapeHtml(packet.week_end)}</p>
     </div>
@@ -389,7 +389,7 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
     <!-- Footer -->
     <div style="text-align:center;padding-top:24px;border-top:1px solid #1f2937;">
       <p style="margin:0;color:#6b7280;font-size:12px;">
-        Sent from <a href="https://signalplane.dev" style="color:#06b6d4;text-decoration:none;">Signal Plane</a>
+        Sent from <a href="https://signalplane.dev" style="color:#06b6d4;text-decoration:none;">Control Plane</a>
       </p>
     </div>
   </div>

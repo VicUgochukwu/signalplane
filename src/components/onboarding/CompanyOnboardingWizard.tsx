@@ -374,12 +374,21 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
       description: `Tracking ${totalPages} pages across ${competitors.length} competitor${competitors.length !== 1 ? 's' : ''}`,
     });
 
-    // Fire Loops event (fire-and-forget)
+    // Fire Loops event with ICP data (fire-and-forget)
     invokeEdgeFunctionSilent('loops-sync', {
       action: 'track_event',
       event_name: 'onboarding_completed',
-      properties: { company_name: companyName, industry, competitor_count: competitors.length },
+      properties: {
+        company_name: companyName,
+        industry,
+        competitor_count: competitors.length,
+        department: department || 'other',
+        job_title: jobTitle || '',
+      },
     });
+
+    // Re-sync contact to Loops so ICP fields (department, jobTitle) are captured
+    invokeEdgeFunctionSilent('loops-sync', { action: 'sync_new_user' });
 
     onComplete();
   };

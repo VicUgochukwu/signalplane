@@ -12,6 +12,10 @@ interface UserContext {
   firstName: string;
   companyName: string;
   competitors: { name: string; domain: string; pageCount: number }[];
+  // ICP fields for personalized content
+  department: string;  // marketing | sales | revops | product | executive | other
+  jobTitle: string;
+  companySize: string;
   // Ledger metrics (populated for conversion emails)
   ledger?: {
     totalKnowledgeObjects: number;
@@ -123,7 +127,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Signal Plane <hello@signalplane.dev>',
+        from: 'Control Plane <hello@signalplane.dev>',
         to: [userCtx.email],
         subject: email.subject,
         html: email.html,
@@ -180,10 +184,10 @@ async function fetchUserContext(
     '';
   const firstName = displayName ? displayName.split(' ')[0] : user.email!.split('@')[0];
 
-  // Get company profile
+  // Get company profile (including ICP fields)
   const { data: profile } = await supabase
     .from('user_company_profiles')
-    .select('company_name')
+    .select('company_name, department, job_title, company_size')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -247,6 +251,9 @@ async function fetchUserContext(
     firstName,
     companyName: profile?.company_name || 'your company',
     competitors: competitorList,
+    department: profile?.department || 'other',
+    jobTitle: profile?.job_title || '',
+    companySize: profile?.company_size || '',
     ledger,
   };
 }
@@ -299,13 +306,13 @@ function wrapHtml(title: string, bodyContent: string): string {
 <body style="margin:0;padding:0;background:#0a0a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
     <div style="text-align:center;margin-bottom:28px;">
-      <img src="https://signalplane.dev/signal-plane-logo.png" alt="Signal Plane" width="40" height="40" style="display:block;margin:0 auto 12px;border-radius:10px;" />
+      <img src="https://signalplane.dev/favicon-cropped.png" alt="Control Plane" width="40" height="40" style="display:block;margin:0 auto 12px;border-radius:10px;" />
       <h1 style="margin:0;color:#e5e7eb;font-size:20px;font-weight:700;">${esc(title)}</h1>
     </div>
     ${bodyContent}
     <div style="text-align:center;padding-top:24px;margin-top:24px;border-top:1px solid #1f2937;">
       <p style="margin:0;color:#6b7280;font-size:11px;">
-        <a href="https://signalplane.dev" style="color:#06b6d4;text-decoration:none;">Signal Plane</a> &middot; Competitive intelligence on autopilot
+        <a href="https://signalplane.dev" style="color:#06b6d4;text-decoration:none;">Control Plane</a> &middot; Competitive intelligence on autopilot
       </p>
     </div>
   </div>
@@ -343,6 +350,112 @@ function esc(str: string): string {
     .replace(/"/g, '&quot;');
 }
 
+// ─── ICP Personalization ─────────────────────────────────────────────────────
+
+type IcpRole = 'marketing' | 'sales' | 'revops' | 'product' | 'executive' | 'other';
+
+/** Maps department to a friendly role label */
+function roleLabel(dept: string): string {
+  const labels: Record<string, string> = {
+    marketing: 'PMM',
+    sales: 'Sales',
+    revops: 'RevOps',
+    product: 'Product',
+    executive: 'Leadership',
+    other: 'GTM',
+  };
+  return labels[dept] || 'GTM';
+}
+
+/** Returns ICP-specific value proposition for the intro email */
+function icpValueProp(dept: string): string {
+  switch (dept) {
+    case 'marketing':
+      return 'As a marketing leader, you\'ll see exactly how competitors are shifting their positioning, messaging, and value props — so you can craft sharper campaigns and win more mindshare.';
+    case 'sales':
+      return 'As a sales leader, you\'ll get real-time intel on competitor pricing, objection-handling tactics, and battlecard changes — so your reps can handle objections and close deals faster.';
+    case 'revops':
+      return 'As a RevOps leader, you\'ll have a structured, data-driven view of the competitive landscape — helping you optimize your GTM motions and enable sales and marketing with better intelligence.';
+    case 'product':
+      return 'As a product leader, you\'ll spot competitor feature launches, roadmap shifts, and positioning pivots early — so you can make smarter prioritization decisions and stay ahead.';
+    case 'executive':
+      return 'As a leader, you\'ll get a concise, executive-level view of the competitive landscape each week — helping you make strategic decisions with confidence and keep your team aligned.';
+    default:
+      return 'You\'ll get a clear, structured view of your competitive landscape each week — actionable insights on positioning, features, pricing, and market moves delivered to you on autopilot.';
+  }
+}
+
+/** Returns the ICP-specific section to focus on from their intel packet */
+function icpPacketFocus(dept: string): { section: string; color: string; tip: string } {
+  switch (dept) {
+    case 'marketing':
+      return { section: 'Messaging Intel', color: '#06b6d4', tip: 'Start with the Messaging Intel section — it tracks positioning shifts, new taglines, and value prop changes that directly impact your campaigns.' };
+    case 'sales':
+      return { section: 'Objection Intel', color: '#ef4444', tip: 'Start with the Objection Intel section — it shows you competitor battlecards, comparison pages, and objection tactics being used against you in deals.' };
+    case 'revops':
+      return { section: 'ICP Intel', color: '#22c55e', tip: 'Start with the ICP Intel section — it tracks who competitors are targeting, new personas, and vertical expansions that affect your GTM strategy.' };
+    case 'product':
+      return { section: 'Horizon Intel', color: '#f59e0b', tip: 'Start with the Horizon Intel section — it detects new features, product launches, and strategic bets from competitors before they hit the market.' };
+    case 'executive':
+      return { section: 'Executive Summary', color: '#a855f7', tip: 'Start with the Executive Summary — it gives you the key changes at a glance so you can quickly brief your team and make informed decisions.' };
+    default:
+      return { section: 'Executive Summary', color: '#a855f7', tip: 'Start with the Executive Summary for a quick overview, then drill into the sections most relevant to your current priorities.' };
+  }
+}
+
+/** Returns role-specific power tips */
+function icpPowerTips(dept: string): { title: string; desc: string }[] {
+  const baseTips = [
+    { title: 'Train the AI with the Judgment Loop', desc: 'The more you agree/disagree with insights, the more accurate your packets become. Aim for 5+ judgments per packet.' },
+    { title: 'Export packets as Markdown', desc: 'Click the download button on any packet to get a clean Markdown file for your team wiki or docs.' },
+  ];
+
+  switch (dept) {
+    case 'marketing':
+      return [
+        { title: 'Track messaging changes weekly', desc: 'Set a 15-min recurring review of the Messaging Intel section every Monday. Catch positioning shifts before your market notices.' },
+        { title: 'Use Narrative Intel for content strategy', desc: 'Competitor narratives reveal gaps you can own. Use Narrative Intel to find angles they\'re ignoring.' },
+        { title: 'Share Objection Intel with Sales', desc: 'Forward competitor battlecard changes to your sales team. They\'ll know exactly what objections are coming.' },
+        ...baseTips,
+      ];
+    case 'sales':
+      return [
+        { title: 'Prep for calls with Objection Intel', desc: 'Before key deals, check Objection Intel for the latest competitor tactics being used against you.' },
+        { title: 'Use ICP Intel to find new angles', desc: 'When competitors shift their target audience, it opens doors for you. ICP Intel spots these moves.' },
+        { title: 'Set up Slack notifications', desc: 'Get intel delivered to your team channel so reps stay informed without extra meetings.' },
+        ...baseTips,
+      ];
+    case 'revops':
+      return [
+        { title: 'Feed intel into win/loss analysis', desc: 'Cross-reference competitor moves in your packets with your CRM win/loss data for deeper insights.' },
+        { title: 'Track competitor pricing changes', desc: 'Horizon Intel catches pricing page updates. Use this to keep your pricing strategy competitive.' },
+        { title: 'Build competitive dashboards', desc: 'Export weekly packet data to build trend dashboards showing how the competitive landscape is evolving.' },
+        ...baseTips,
+      ];
+    case 'product':
+      return [
+        { title: 'Watch Horizon Intel for feature launches', desc: 'Horizon Intel catches new features and product updates before they\'re announced. Use this for roadmap planning.' },
+        { title: 'Monitor ICP shifts for opportunity', desc: 'When competitors target new personas or verticals, it signals market gaps you can fill with product bets.' },
+        { title: 'Use predictions for sprint planning', desc: 'AI predictions with confidence scores help you anticipate competitor moves. Factor these into your product roadmap.' },
+        ...baseTips,
+      ];
+    case 'executive':
+      return [
+        { title: 'Start with the Executive Summary', desc: 'Get the key competitive changes in 2 minutes. Share with your leadership team in your weekly sync.' },
+        { title: 'Use predictions for board prep', desc: 'Prediction accuracy builds over time. Use your track record to show the board your team\'s competitive foresight.' },
+        { title: 'Delegate sections to team leads', desc: 'Route Messaging Intel to marketing, Objection Intel to sales, and Horizon Intel to product for distributed competitive intelligence.' },
+        ...baseTips,
+      ];
+    default:
+      return [
+        { title: 'Add competitors mid-cycle', desc: 'New competitor on your radar? Add them anytime and they\'ll be included in your next Monday packet.' },
+        { title: 'Review action items weekly', desc: 'The "This Week" section gives you concrete actions. Add these to your sprint planning for competitive advantage.' },
+        { title: 'Use predictions to plan ahead', desc: 'Each packet includes AI predictions with confidence scores. Use these to anticipate competitor moves before they happen.' },
+        ...baseTips,
+      ];
+  }
+}
+
 // ─── Education Track Emails ──────────────────────────────────────────────────
 
 function buildEduYourCompetitors(ctx: UserContext) {
@@ -358,7 +471,7 @@ function buildEduYourCompetitors(ctx: UserContext) {
 
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p(`Welcome aboard! Signal Plane is now monitoring your competitive landscape around the clock. Here's what we're tracking for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>:`)}
+    ${p(`Welcome aboard! Control Plane is now monitoring your competitive landscape around the clock. Here's what we're tracking for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>:`)}
 
     <table style="width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;margin-bottom:16px;">
       <thead>
@@ -371,13 +484,14 @@ function buildEduYourCompetitors(ctx: UserContext) {
       <tbody>${competitorRows}</tbody>
     </table>
 
+    ${p(icpValueProp(ctx.department))}
     ${p('Every week, our AI crawls these pages for messaging changes, pricing shifts, new feature launches, and narrative pivots. You\'ll receive a personalized intel packet every Monday.')}
     ${p('Want to add more competitors or adjust tracked pages? You can do that anytime from your control plane.')}
     ${ctaButton('View Your Control Plane', CONTROL_PLANE_URL)}
   `;
 
   return {
-    subject: `Here's What We're Tracking For ${ctx.companyName}`,
+    subject: `${esc(ctx.firstName)}, Here's Your ${roleLabel(ctx.department)} Competitive Intel Setup`,
     html: wrapHtml("Here's What We're Tracking", body),
   };
 }
@@ -402,7 +516,13 @@ function buildEduReadingPackets(ctx: UserContext) {
     ${p(`Hi ${esc(ctx.firstName)},`)}
     ${p('Your weekly intel packet is packed with insights. Here\'s how to get the most from each section:')}
     ${sectionCards}
-    ${p('Each section includes <strong style="color:#e5e7eb;">highlights</strong> (what changed) and <strong style="color:#22c55e;">action items</strong> (what to do about it). Start with the executive summary for a quick overview, then dive into the sections most relevant to your current priorities.')}
+    ${p('Each section includes <strong style="color:#e5e7eb;">highlights</strong> (what changed) and <strong style="color:#22c55e;">action items</strong> (what to do about it).')}
+
+    ${card(`
+      <h3 style="margin:0 0 6px;color:${icpPacketFocus(ctx.department).color};font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">&#x1F3AF; Recommended for ${roleLabel(ctx.department)}</h3>
+      <p style="margin:0;color:#d1d5db;font-size:13px;line-height:1.6;">${icpPacketFocus(ctx.department).tip}</p>
+    `, icpPacketFocus(ctx.department).color)}
+
     ${ctaButton('Read Your Latest Packet', CONTROL_PLANE_URL)}
   `;
 
@@ -415,13 +535,13 @@ function buildEduReadingPackets(ctx: UserContext) {
 function buildEduJudgmentLoop(ctx: UserContext) {
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p('Signal Plane has a feature most users don\'t discover until week 3. We want you to know about it now.')}
+    ${p('Control Plane has a feature most users don\'t discover until week 3. We want you to know about it now.')}
 
     ${heading('The Judgment Loop')}
 
     ${card(`
       <p style="margin:0 0 10px;color:#d1d5db;font-size:14px;line-height:1.7;">When you read your intel packet, you'll see <strong style="color:#22c55e;">Agree</strong> and <strong style="color:#ef4444;">Disagree</strong> buttons on predictions and insights.</p>
-      <p style="margin:0;color:#d1d5db;font-size:14px;line-height:1.7;">This isn't just feedback &mdash; it's <strong style="color:#e5e7eb;">training data</strong>. Every time you agree or disagree, Signal Plane learns how <em>you</em> think about your market.</p>
+      <p style="margin:0;color:#d1d5db;font-size:14px;line-height:1.7;">This isn't just feedback &mdash; it's <strong style="color:#e5e7eb;">training data</strong>. Every time you agree or disagree, Control Plane learns how <em>you</em> think about your market.</p>
     `, '#a855f7')}
 
     ${p('<strong style="color:#e5e7eb;">How it works:</strong>')}
@@ -471,9 +591,13 @@ function buildEduIntegrations(ctx: UserContext) {
 
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p('Signal Plane works best when intel reaches you where you already work. Connect your favorite tools to get packets delivered automatically:')}
+    ${p('Control Plane works best when intel reaches you where you already work. Connect your favorite tools to get packets delivered automatically:')}
     ${integrationCards}
-    ${p('Setting up takes less than 2 minutes. Just click the integration you want and follow the OAuth flow.')}
+    ${ctx.department === 'sales' || ctx.department === 'executive'
+      ? p('<strong style="color:#e5e7eb;">Recommended for you:</strong> Set up Slack to get intel delivered to your team channel — no extra meetings needed to stay competitive.')
+      : ctx.department === 'product'
+      ? p('<strong style="color:#e5e7eb;">Recommended for you:</strong> Set up Notion to auto-create structured pages — perfect for product roadmap planning and competitive analysis docs.')
+      : p('<strong style="color:#e5e7eb;">Recommended for you:</strong> Set up the integration that fits your workflow best. Setup takes less than 2 minutes.')}
     ${ctaButton('Set Up Integrations', CONTROL_PLANE_URL + '?tab=integrations')}
   `;
 
@@ -484,13 +608,7 @@ function buildEduIntegrations(ctx: UserContext) {
 }
 
 function buildEduPowerTips(ctx: UserContext) {
-  const tips = [
-    { title: 'Add competitors mid-cycle', desc: 'New competitor on your radar? Add them anytime and they\'ll be included in your next Monday packet.' },
-    { title: 'Export packets as Markdown', desc: 'Click the download button on any packet to get a clean Markdown file. Perfect for pasting into Notion, Docs, or your team wiki.' },
-    { title: 'Use predictions to plan ahead', desc: 'Each packet includes AI predictions with confidence scores. Use these to anticipate competitor moves before they happen.' },
-    { title: 'Review action items weekly', desc: 'The "This Week" section gives you concrete actions. Add these to your sprint planning for competitive advantage.' },
-    { title: 'Train the AI with the Judgment Loop', desc: 'The more you agree/disagree with insights, the more accurate your packets become. Aim for 5+ judgments per packet.' },
-  ];
+  const tips = icpPowerTips(ctx.department);
 
   const tipCards = tips.map((t, i) =>
     card(`
@@ -504,17 +622,18 @@ function buildEduPowerTips(ctx: UserContext) {
     `, '#f59e0b')
   ).join('');
 
+  const rl = roleLabel(ctx.department);
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p('You\'ve been using Signal Plane for a bit now. Here are 5 power tips from our most active users:')}
+    ${p(`You've been using Control Plane for a bit now. Here are ${tips.length} power tips curated for ${rl} leaders:`)}
     ${tipCards}
     ${p('Have questions or feedback? Reply to this email &mdash; we read every response.')}
     ${ctaButton('Open Your Control Plane', CONTROL_PLANE_URL)}
   `;
 
   return {
-    subject: '5 Power Tips From Top Signal Plane Users',
-    html: wrapHtml('5 Power Tips', body),
+    subject: `${tips.length} Power Tips for ${rl} Leaders Using Control Plane`,
+    html: wrapHtml(`Power Tips for ${rl}`, body),
   };
 }
 
@@ -579,7 +698,7 @@ function buildPktFirstReady(ctx: UserContext) {
       </div>
     `)}
 
-    ${p('Your next packet arrives next Monday. Each one gets smarter as Signal Plane learns your market.')}
+    ${p('Your next packet arrives next Monday. Each one gets smarter as Control Plane learns your market.')}
     ${ctaButton('Read Your Packet Now', CONTROL_PLANE_URL)}
   `;
 
@@ -615,7 +734,7 @@ function buildPktAlreadyWaiting(ctx: UserContext) {
 function buildSetupNudge(ctx: UserContext) {
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p('You signed up for Signal Plane, but you haven\'t finished setting up your competitive tracking yet.')}
+    ${p('You signed up for Control Plane, but you haven\'t finished setting up your competitive tracking yet.')}
 
     ${card(`
       ${heading('What you\'re missing:')}
@@ -629,7 +748,7 @@ function buildSetupNudge(ctx: UserContext) {
 
     ${p('Setup takes less than 2 minutes. Just tell us your company name and add the competitors you want to track.')}
     ${ctaButton('Complete Your Setup', CONTROL_PLANE_URL)}
-    ${p('Intel packets ship every Monday. Complete your setup before then to get your first one.', '#9ca3af')}
+    ${p('Intel packets ship every Monday. Complete setup before then to get your first one — personalized for your role and competitive landscape.', '#9ca3af')}
   `;
 
   return {
@@ -664,7 +783,7 @@ function buildConvertWeek4(ctx: UserContext) {
 
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p(`You're 4 weeks into your pilot. Here's what Signal Plane has built for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong> so far:`)}
+    ${p(`You're 4 weeks into your pilot. Here's what Control Plane has built for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong> so far:`)}
 
     ${metricsRow}
 
@@ -714,7 +833,7 @@ function buildConvertWeek6(ctx: UserContext) {
 
     ${card(`
       <h3 style="margin:0 0 8px;color:#06b6d4;font-size:14px;">Why This Matters</h3>
-      <p style="margin:0;color:#d1d5db;font-size:13px;line-height:1.7;">Most competitive intel is reactive. Signal Plane's prediction scoring builds a <strong style="color:#e5e7eb;">proactive</strong> track record. After 12 weeks, you'll have data showing how accurately your team anticipates market moves.</p>
+      <p style="margin:0;color:#d1d5db;font-size:13px;line-height:1.7;">Most competitive intel is reactive. Control Plane's prediction scoring builds a <strong style="color:#e5e7eb;">proactive</strong> track record. After 12 weeks, you'll have data showing how accurately your team anticipates market moves.</p>
     `, '#06b6d4')}
 
     ${p('Your pilot has 2 more weeks. Your prediction data is permanent and gets more valuable with every scored outcome.')}
@@ -815,7 +934,7 @@ function buildPktBaselineReport(ctx: UserContext) {
 
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p(`Signal Plane has completed its first crawl of your competitive landscape. Here's your baseline snapshot for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>:`)}
+    ${p(`Control Plane has completed its first crawl of your competitive landscape. Here's your baseline snapshot for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>:`)}
 
     ${heading('Pages Being Monitored')}
     <table style="width:100%;border-collapse:collapse;background:#1a1a2e;border-radius:8px;overflow:hidden;margin-bottom:16px;">
@@ -837,7 +956,7 @@ function buildPktBaselineReport(ctx: UserContext) {
 
     ${card(`
       <h3 style="margin:0 0 8px;color:#22c55e;font-size:14px;">What Happens Next</h3>
-      <p style="margin:0 0 8px;color:#d1d5db;font-size:13px;line-height:1.7;">Signal Plane has captured the current state of every tracked page. From now on, our AI monitors these pages for:</p>
+      <p style="margin:0 0 8px;color:#d1d5db;font-size:13px;line-height:1.7;">Control Plane has captured the current state of every tracked page. From now on, our AI monitors these pages for:</p>
       <ul style="margin:0;padding-left:20px;">
         <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;"><strong style="color:#06b6d4;">Messaging changes</strong> &mdash; positioning shifts, new value props</li>
         <li style="color:#d1d5db;font-size:13px;margin-bottom:4px;"><strong style="color:#a855f7;">Narrative shifts</strong> &mdash; new stories about the market</li>

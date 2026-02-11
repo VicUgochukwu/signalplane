@@ -76,12 +76,23 @@ async function handleSyncNewUser(
   const source =
     provider === 'google' ? 'google_oauth' : provider === 'github' ? 'github_oauth' : 'magic_link';
 
+  // Fetch ICP data from company profile (if onboarding completed)
+  const serviceClient = createServiceRoleClient();
+  const { data: profile } = await serviceClient
+    .from('user_company_profiles')
+    .select('department, job_title, company_size')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   const contactSynced = await createOrUpdateContact({
     email,
     firstName,
     userId: user.id,
     signupDate: user.created_at,
     source,
+    department: profile?.department || undefined,
+    jobTitle: profile?.job_title || undefined,
+    companySize: profile?.company_size || undefined,
   });
 
   const eventSent = await sendEvent(email, 'signup', { source });
@@ -170,10 +181,10 @@ async function handleBackfill(
   for (const user of users) {
     if (!user.email) continue;
 
-    // Fetch company profile if exists
+    // Fetch company profile if exists (including ICP fields)
     const { data: profile } = await serviceClient
       .from('user_company_profiles')
-      .select('company_name, industry, onboarding_completed_at')
+      .select('company_name, industry, onboarding_completed_at, department, job_title, company_size')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -216,6 +227,9 @@ async function handleBackfill(
       competitorCount: competitorCount || 0,
       packetCount: packetCount || 0,
       lastPacketDate: packetStats?.[0]?.created_at || undefined,
+      department: profile?.department || undefined,
+      jobTitle: profile?.job_title || undefined,
+      companySize: profile?.company_size || undefined,
     });
 
     if (success) synced++;
