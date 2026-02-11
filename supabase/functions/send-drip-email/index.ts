@@ -352,8 +352,6 @@ function esc(str: string): string {
 
 // ─── ICP Personalization ─────────────────────────────────────────────────────
 
-type IcpRole = 'marketing' | 'sales' | 'revops' | 'product' | 'executive' | 'other';
-
 /** Maps department to a friendly role label */
 function roleLabel(dept: string): string {
   const labels: Record<string, string> = {
@@ -491,7 +489,7 @@ function buildEduYourCompetitors(ctx: UserContext) {
   `;
 
   return {
-    subject: `${esc(ctx.firstName)}, Here's Your ${roleLabel(ctx.department)} Competitive Intel Setup`,
+    subject: `${ctx.firstName}, Here's Your ${roleLabel(ctx.department)} Competitive Intel Setup`,
     html: wrapHtml("Here's What We're Tracking", body),
   };
 }
