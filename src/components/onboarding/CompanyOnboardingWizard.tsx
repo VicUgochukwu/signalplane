@@ -4,6 +4,8 @@ import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 import { detectPages, confidenceDot, confidenceLabel } from '@/lib/pageDetection';
 import type { DetectedPage, DetectionResult } from '@/lib/pageDetection';
 import { getUrlTypeLabel } from '@/lib/urlGenerator';
+import { fetchCompetitorSuggestions, confidenceBadge, confidenceTag } from '@/lib/competitorSuggestions';
+import type { CompetitorSuggestion } from '@/lib/competitorSuggestions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,13 +18,13 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
-  Search,
   Plus,
   X,
   Globe,
   ChevronDown,
   ChevronRight,
   AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import { IconCompany, IconSignalICP } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
@@ -89,12 +91,18 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
 
   // Step 2: Competitors
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; domain: string }>>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [showAddNew, setShowAddNew] = useState(false);
   const [newCompetitorName, setNewCompetitorName] = useState('');
   const [newCompetitorDomain, setNewCompetitorDomain] = useState('');
+
+  // AI suggestions for step 2
+  const [aiSuggestions, setAiSuggestions] = useState<CompetitorSuggestion[]>([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState(false);
+
+  // Search state for competitor lookup (used in addCompetitor reset)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ id?: string; name: string; domain: string }>>([]);
 
   // Step 3: Page detection results per competitor
   const [detectionResults, setDetectionResults] = useState<Map<string, DetectionResult>>(new Map());
@@ -115,38 +123,42 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
     }
   }, [companyName]);
 
-  // Search companies
+  // ── Fetch AI suggestions when entering step 2 ──────────────────
+  // Track what profile was used for suggestions so we re-fetch when it changes
+  const [lastSuggestedProfile, setLastSuggestedProfile] = useState('');
+
   useEffect(() => {
-    const searchCompanies = async () => {
-      if (!searchQuery || searchQuery.length < 2) {
-        setSearchResults([]);
-        return;
-      }
+    if (step !== 'competitors') return;
+    if (isFetchingSuggestions) return;
 
-      setIsSearching(true);
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, domain')
-        .or(`name.ilike.%${searchQuery}%,domain.ilike.%${searchQuery}%`)
-        .limit(10);
-
-      setIsSearching(false);
-
-      if (error) {
-        console.error('Search error:', error);
-        return;
-      }
-
-      // Filter out already selected competitors
-      const filtered = (data || []).filter(
-        (c) => !competitors.some((comp) => comp.domain === c.domain)
-      );
-      setSearchResults(filtered);
+    const profileOverride = {
+      company_name: companyName.trim(),
+      company_domain: companyDomain.trim(),
+      industry: industry || '',
     };
 
-    const debounce = setTimeout(searchCompanies, 300);
-    return () => clearTimeout(debounce);
-  }, [searchQuery, competitors]);
+    if (!profileOverride.company_name) return;
+
+    // Build a profile key to detect changes (e.g. user went back and changed company name)
+    const profileKey = `${profileOverride.company_name}|${profileOverride.company_domain}|${profileOverride.industry}`;
+    if (aiSuggestions.length > 0 && profileKey === lastSuggestedProfile) return;
+
+    setIsFetchingSuggestions(true);
+    setSuggestionsError(false);
+
+    fetchCompetitorSuggestions(profileOverride)
+      .then((res) => {
+        setAiSuggestions(res.suggestions || []);
+        setLastSuggestedProfile(profileKey);
+      })
+      .catch((err) => {
+        console.warn('AI suggestions failed:', err);
+        setSuggestionsError(true);
+      })
+      .finally(() => {
+        setIsFetchingSuggestions(false);
+      });
+  }, [step, companyName, companyDomain, industry]);
 
   // ── Page detection ───────────────────────────────────────────────
 
@@ -569,47 +581,64 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
           {/* ── Step 2: Competitors ──────────────────────────────── */}
           {step === 'competitors' && (
             <div className="space-y-5">
-              {/* Search input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search for competitors..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-muted border-border text-foreground"
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                )}
-              </div>
-
-              {/* Search results */}
-              {searchResults.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden">
-                  {searchResults.map((company) => (
-                    <button
-                      key={company.id}
-                      onClick={() => addCompetitor(company)}
-                      className="w-full px-4 py-3 text-left hover:bg-muted border-b border-border last:border-0 flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">{company.name}</p>
-                        <p className="text-muted-foreground text-sm">{company.domain}</p>
-                      </div>
-                      <Plus className="h-4 w-4 text-[#6B9B9B]" />
-                    </button>
-                  ))}
+              {/* AI Suggestions */}
+              {(isFetchingSuggestions || aiSuggestions.length > 0) && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <Label className="text-muted-foreground text-sm">Suggested for you</Label>
+                    {isFetchingSuggestions && (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  {!isFetchingSuggestions && aiSuggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {aiSuggestions
+                        .filter(
+                          (s) => !competitors.some((c) => c.domain === s.domain),
+                        )
+                        .slice(0, competitors.length >= 3 ? 4 : 8)
+                        .map((s) => (
+                          <button
+                            key={s.domain}
+                            onClick={() =>
+                              addCompetitor({ name: s.name, domain: s.domain })
+                            }
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border border-border bg-muted/50 hover:bg-[#6B9B9B]/20 hover:border-[#6B9B9B]/30 transition-colors"
+                            title={s.reason}
+                          >
+                            <Plus className="h-3 w-3 text-[#6B9B9B]" />
+                            <span className="text-foreground">{s.name}</span>
+                            <span
+                              className={`text-[9px] px-1 py-0.5 rounded border ${confidenceBadge(s.confidence)}`}
+                            >
+                              {Math.round(s.confidence * 100)}%
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  {isFetchingSuggestions && (
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className="h-8 w-28 rounded-full bg-muted animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Add new competitor manually */}
+              {/* Add competitor manually */}
               {!showAddNew ? (
                 <button
                   onClick={() => setShowAddNew(true)}
                   className="text-sm text-[#6B9B9B] hover:text-[#5A8A8A] flex items-center gap-1"
                 >
                   <Plus className="h-4 w-4" />
-                  Add competitor not in list
+                  Add a competitor manually
                 </button>
               ) : (
                 <div className="p-4 border border-border rounded-lg space-y-3">

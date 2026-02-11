@@ -3,20 +3,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { detectPages, confidenceDot, confidenceLabel } from '@/lib/pageDetection';
 import type { DetectedPage } from '@/lib/pageDetection';
 import { getUrlTypeLabel } from '@/lib/urlGenerator';
+import { checkCompetitorRelevance, relevanceLevel } from '@/lib/competitorSuggestions';
+import type { RelevanceResponse } from '@/lib/competitorSuggestions';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Loader2, ArrowLeft, Building2, Globe } from 'lucide-react';
+import { Plus, Loader2, ArrowLeft, Building2, Globe, AlertTriangle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddCompanyWizardProps {
   onSuccess: () => void;
+  initialCompany?: { name: string; domain: string } | null;
+  onInitialCompanyConsumed?: () => void;
 }
 
-export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
+export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyConsumed }: AddCompanyWizardProps) {
   const { toast } = useToast();
   const { profile } = useOnboarding();
   const [step, setStep] = useState<'company' | 'pages'>('company');
@@ -29,6 +33,21 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
   const [pages, setPages] = useState<DetectedPage[]>([]);
 
   const [domainManuallyEdited, setDomainManuallyEdited] = useState(false);
+
+  // Relevance warning state
+  const [relevanceCheck, setRelevanceCheck] = useState<RelevanceResponse | null>(null);
+  const [isCheckingRelevance, setIsCheckingRelevance] = useState(false);
+  const [relevanceDismissed, setRelevanceDismissed] = useState(false);
+
+  // Prefill from suggestion
+  useEffect(() => {
+    if (initialCompany && step === 'company') {
+      setCompanyName(initialCompany.name);
+      setCompanyDomain(initialCompany.domain);
+      setDomainManuallyEdited(true);
+      onInitialCompanyConsumed?.();
+    }
+  }, [initialCompany]);
 
   // Auto-generate domain from company name (only if user hasn't manually edited domain)
   useEffect(() => {
@@ -145,6 +164,20 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
       setStep('pages');
       // Start smart detection
       detectCompanyPages(companyDomain);
+      // Check relevance in background (non-blocking)
+      setIsCheckingRelevance(true);
+      setRelevanceCheck(null);
+      setRelevanceDismissed(false);
+      checkCompetitorRelevance(trimmedName, companyDomain)
+        .then((result) => {
+          setRelevanceCheck(result);
+        })
+        .catch((err) => {
+          console.warn('Relevance check failed:', err);
+        })
+        .finally(() => {
+          setIsCheckingRelevance(false);
+        });
     }
   };
 
@@ -215,6 +248,8 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
     setCompanyId(null);
     setPages([]);
     setDomainManuallyEdited(false);
+    setRelevanceCheck(null);
+    setRelevanceDismissed(false);
     onSuccess();
   };
 
@@ -222,6 +257,8 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
     setStep('company');
     setCompanyId(null);
     setPages([]);
+    setRelevanceCheck(null);
+    setRelevanceDismissed(false);
   };
 
   return (
@@ -303,6 +340,30 @@ export function AddCompanyWizard({ onSuccess }: AddCompanyWizardProps) {
           </form>
         ) : (
           <div className="space-y-4">
+            {/* Relevance warning banner */}
+            {relevanceCheck && relevanceLevel(relevanceCheck.relevance) === 'low' && !relevanceDismissed && (
+              <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10">
+                <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-amber-300 font-medium">
+                    "{companyName}" may not be a direct competitor
+                  </p>
+                  <p className="text-xs text-amber-400/80 mt-0.5">
+                    {relevanceCheck.reason}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You can still track them, but their signals may not be relevant to your competitive strategy.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setRelevanceDismissed(true)}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* Loading state */}
             {isDetecting && (
               <div className="flex items-center justify-center py-8">

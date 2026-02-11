@@ -190,20 +190,20 @@ async function handleBackfill(
 
     // Fetch competitor count
     const { count: competitorCount } = await serviceClient
-      .from('tracked_companies')
+      .from('user_tracked_competitors')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
     // Fetch packet count and latest packet date
     const { data: packetStats } = await serviceClient
-      .from('intel_packets')
+      .from('packets')
       .select('created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1);
 
     const { count: packetCount } = await serviceClient
-      .from('intel_packets')
+      .from('packets')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 

@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Loader2, Plus, X, Copy, Check, Link } from 'lucide-react';
 import { IconTeam } from '@/components/icons';
 import { useTeam } from '@/hooks/useTeam';
 import { useTierGate } from '@/hooks/useTierGate';
-import { AppNavigation } from './AppNavigation';
-import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import type { TeamRole } from '@/types/teams';
+
+function buildInviteUrl(token: string): string {
+  return `${window.location.origin}/invite/${token}`;
+}
 
 const ROLE_LABELS: Record<TeamRole, string> = {
   admin: 'Admin',
@@ -28,25 +30,37 @@ const ROLE_COLORS: Record<TeamRole, string> = {
 };
 
 export default function TeamSettings() {
-  const { team, members, invites, role, isAdmin, hasTeam, isLoading, inviteMember, revokeInvite } = useTeam();
-  const { canUse, isFree } = useTierGate();
+  const { team, members, invites, role, isAdmin, hasTeam, isLoading, membership, inviteMember, revokeInvite } = useTeam();
+  const { canUse, isFree, tier, status, isLoading: tierLoading } = useTierGate();
   const canManageTeam = canUse('team');
   const { toast } = useToast();
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<TeamRole>('pmm');
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
 
     try {
-      await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
-      toast({ title: 'Invite Sent', description: `Invitation sent to ${inviteEmail}` });
+      const token = await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
+      const link = buildInviteUrl(token as string);
+      setLastInviteLink(link);
+      toast({ title: 'Invite Created', description: `Share the invite link with ${inviteEmail}` });
       setInviteEmail('');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to send invite';
       toast({ title: 'Error', description: msg, variant: 'destructive' });
     }
+  };
+
+  const handleCopyLink = async (token: string, inviteId: string) => {
+    const link = buildInviteUrl(token);
+    await navigator.clipboard.writeText(link);
+    setCopiedInviteId(inviteId);
+    toast({ title: 'Link Copied', description: 'Invite link copied to clipboard' });
+    setTimeout(() => setCopiedInviteId(null), 2000);
   };
 
   const handleRevoke = async (inviteId: string) => {
@@ -59,9 +73,7 @@ export default function TeamSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
+    <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
         {/* Page header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
@@ -206,6 +218,36 @@ export default function TeamSettings() {
                     </Button>
                   </div>
 
+                  {/* Last invite link */}
+                  {lastInviteLink && (
+                    <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Link className="h-3.5 w-3.5 text-emerald-400" />
+                        <p className="text-xs font-medium text-emerald-400">Invite link created</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Share this link with your teammate. They'll need to sign in to accept.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs bg-background/50 rounded px-2 py-1.5 text-foreground truncate">
+                          {lastInviteLink}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 h-7 text-xs"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(lastInviteLink);
+                            toast({ title: 'Copied!' });
+                          }}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Pending Invites */}
                   {invites.length > 0 && (
                     <div className="mt-6">
@@ -218,20 +260,36 @@ export default function TeamSettings() {
                             key={invite.id}
                             className="flex items-center justify-between p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20"
                           >
-                            <div>
+                            <div className="min-w-0 flex-1">
                               <p className="text-sm text-foreground">{invite.email}</p>
                               <p className="text-xs text-muted-foreground">
                                 {ROLE_LABELS[invite.role]} — expires {new Date(invite.expires_at).toLocaleDateString()}
                               </p>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRevoke(invite.id)}
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-400"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyLink(invite.invite_token, invite.id)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                title="Copy invite link"
+                              >
+                                {copiedInviteId === invite.id ? (
+                                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                ) : (
+                                  <Copy className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRevoke(invite.id)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-400"
+                                title="Revoke invite"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -242,10 +300,6 @@ export default function TeamSettings() {
             )}
           </div>
         )}
-      </div>
-      <div className="container max-w-6xl mx-auto px-4">
-        <Footer />
-      </div>
     </div>
   );
 }

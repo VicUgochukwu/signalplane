@@ -58,17 +58,14 @@ export function useTeam() {
     enabled: !!teamId,
   });
 
-  // Fetch team members (only if user has a team)
+  // Fetch team members with emails (via RPC that joins auth.users)
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ['team-members', teamId],
     queryFn: async (): Promise<TeamMember[]> => {
       if (!teamId) return [];
 
       const { data, error } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('team_id', teamId)
-        .order('joined_at', { ascending: true });
+        .rpc('get_team_members_with_email', { p_team_id: teamId });
 
       if (error) {
         console.error('Error fetching team members:', error);
