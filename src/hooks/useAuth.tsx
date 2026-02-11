@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 
 interface AuthContextType {
   user: User | null;
@@ -18,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const syncedRef = useRef(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -26,6 +28,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Sync new user to Loops on first sign-in (fire-and-forget)
+        if (event === 'SIGNED_IN' && session?.user && !syncedRef.current) {
+          syncedRef.current = true;
+          invokeEdgeFunctionSilent('loops-sync', { action: 'sync_new_user' });
+        }
       }
     );
 
