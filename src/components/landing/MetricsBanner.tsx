@@ -1,7 +1,7 @@
 export function MetricsBanner() {
   const metrics = [
     { value: "10+", label: "Live Monitors", detail: "Running weekly" },
-    { value: "25", label: "Signals Per Packet", detail: "Severity-ranked" },
+    { value: "25+", label: "Signals Per Packet", detail: "Severity-ranked" },
     { value: "100%", label: "Evidence-Linked", detail: "Every claim sourced" },
     { value: "52", label: "Packets Per Year", detail: "Ships every Monday" },
   ];

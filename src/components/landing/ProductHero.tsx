@@ -95,7 +95,7 @@ export function ProductHero() {
               </div>
               <div className="mt-4 pt-4 border-t border-border/60 dark:border-border/30 flex items-center justify-between">
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span><strong className="text-foreground">25</strong> signals scored</span>
+                  <span><strong className="text-foreground">25+</strong> signals scored</span>
                   <span><strong className="text-foreground">100%</strong> sourced</span>
                 </div>
                 <span className="text-[10px] text-primary font-medium">Evidence-grade</span>
