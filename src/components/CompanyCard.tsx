@@ -41,7 +41,7 @@ interface CompanyCardProps {
 export function CompanyCard({ companyId, companyName, companySlug, pages }: CompanyCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [deletingCompany, setDeletingCompany] = useState(false);
@@ -89,6 +89,8 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
     }
     toast({ title: 'Deleted', description: `${companyName} and all its pages removed` });
     queryClient.invalidateQueries({ queryKey: ['tracked-pages'] });
+    queryClient.invalidateQueries({ queryKey: ['onboarding'] });
+    queryClient.invalidateQueries({ queryKey: ['knowledge-ledger'] });
   };
 
   return (
@@ -134,7 +136,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                   Delete {companyName}?
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-muted-foreground">
-                  This will permanently remove {companyName} and all {pages.length} tracked page{pages.length !== 1 ? 's' : ''}. This action cannot be undone.
+                  This will permanently remove {companyName} from your competitors, delete all {pages.length} tracked page{pages.length !== 1 ? 's' : ''}, and erase all collected snapshots and change history. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

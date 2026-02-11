@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { ProductHero } from "@/components/landing/ProductHero";
 import { MetricsBanner } from "@/components/landing/MetricsBanner";
@@ -14,6 +16,7 @@ import { ContactSection } from "@/components/landing/ContactSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { StructuredData } from "@/components/StructuredData";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Landing page flow — aligned with ControlPlane_Messaging_Guide hierarchy:
@@ -33,6 +36,15 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
  */
 const Landing = () => {
   const containerRef = useScrollAnimation();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users straight to the app
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/control-plane', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   return (
     <div ref={containerRef} className="min-h-screen bg-background">

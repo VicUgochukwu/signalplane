@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CookieBanner } from "./components/CookieBanner";
+import { ControlPlaneLayout } from "./components/control-plane/ControlPlaneLayout";
 
 // ---------------------------------------------------------------------------
 // Eagerly loaded pages (critical path — above the fold / first interaction)
@@ -41,6 +42,7 @@ const DealLogger = lazy(() => import("./components/control-plane/DealLogger"));
 const DemoControlPlane = lazy(() => import("./pages/DemoControlPlane"));
 const DemoArtifacts = lazy(() => import("./pages/DemoArtifacts"));
 const DemoActionBoard = lazy(() => import("./pages/DemoActionBoard"));
+const DemoCompetitorMessaging = lazy(() => import("./pages/DemoCompetitorMessaging"));
 
 // Legal
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
@@ -88,191 +90,45 @@ const App = () => (
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
-                <Route
-                  path="/messaging-diff"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/control-plane"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <ControlPlane />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/control-plane/artifacts"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <Artifacts />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/control-plane/submit"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <SubmitSignal />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/control-plane/upload"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <BulkUpload />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/users"
-                  element={
-                    <AdminRoute>
-                      <AdminUsers />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/audit-log"
-                  element={
-                    <AdminRoute>
-                      <AdminAuditLog />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/feature-flags"
-                  element={
-                    <AdminRoute>
-                      <AdminFeatureFlags />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/system"
-                  element={
-                    <AdminRoute>
-                      <AdminSystemOverview />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/system-health"
-                  element={
-                    <AdminRoute>
-                      <AdminSystemHealth />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/workflows"
-                  element={
-                    <AdminRoute>
-                      <AdminWorkflows />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/api-health"
-                  element={
-                    <AdminRoute>
-                      <AdminApiHealth />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/csv-upload"
-                  element={
-                    <AdminRoute>
-                      <AdminCsvUpload />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/usage"
-                  element={
-                    <AdminRoute>
-                      <AdminUsageReports />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/costs"
-                  element={
-                    <AdminRoute>
-                      <AdminCostDashboard />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/tracked-pages"
-                  element={
-                    <AdminRoute>
-                      <AdminTrackedPages />
-                    </AdminRoute>
-                  }
-                />
                 <Route path="/login" element={<Login />} />
-                <Route
-                  path="/my-pages"
-                  element={
-                    <ProtectedRoute>
-                      <MyPages />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* Action Board */}
-                <Route
-                  path="/control-plane/board"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <ActionBoard />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* Team & Deals routes */}
-                <Route
-                  path="/control-plane/team"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <TeamSettings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/control-plane/deals"
-                  element={
-                    <ProtectedRoute skipOnboarding>
-                      <DealLogger />
-                    </ProtectedRoute>
-                  }
-                />
+
+                {/* ── Sidebar layout: all authenticated app pages ── */}
+                <Route element={<ProtectedRoute skipOnboarding><ControlPlaneLayout /></ProtectedRoute>}>
+                  <Route path="/control-plane" element={<ControlPlane />} />
+                  <Route path="/control-plane/artifacts" element={<Artifacts />} />
+                  <Route path="/messaging-diff" element={<Index />} />
+                  <Route path="/control-plane/submit" element={<SubmitSignal />} />
+                  <Route path="/control-plane/upload" element={<BulkUpload />} />
+                  <Route path="/control-plane/board" element={<ActionBoard />} />
+                  <Route path="/control-plane/team" element={<TeamSettings />} />
+                  <Route path="/control-plane/deals" element={<DealLogger />} />
+                  <Route path="/my-pages" element={<MyPages />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+
+                {/* ── Admin routes (own sidebar layout) ── */}
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+                <Route path="/admin/audit-log" element={<AdminRoute><AdminAuditLog /></AdminRoute>} />
+                <Route path="/admin/feature-flags" element={<AdminRoute><AdminFeatureFlags /></AdminRoute>} />
+                <Route path="/admin/system" element={<AdminRoute><AdminSystemOverview /></AdminRoute>} />
+                <Route path="/admin/system-health" element={<AdminRoute><AdminSystemHealth /></AdminRoute>} />
+                <Route path="/admin/workflows" element={<AdminRoute><AdminWorkflows /></AdminRoute>} />
+                <Route path="/admin/api-health" element={<AdminRoute><AdminApiHealth /></AdminRoute>} />
+                <Route path="/admin/csv-upload" element={<AdminRoute><AdminCsvUpload /></AdminRoute>} />
+                <Route path="/admin/usage" element={<AdminRoute><AdminUsageReports /></AdminRoute>} />
+                <Route path="/admin/costs" element={<AdminRoute><AdminCostDashboard /></AdminRoute>} />
+                <Route path="/admin/tracked-pages" element={<AdminRoute><AdminTrackedPages /></AdminRoute>} />
+
                 {/* Invite accept — public (handles its own auth check) */}
                 <Route path="/invite/:token" element={<InviteAccept />} />
+
                 {/* Demo routes — public, no auth required */}
                 <Route path="/demo/:sectorSlug" element={<DemoControlPlane />} />
                 <Route path="/demo/:sectorSlug/artifacts" element={<DemoArtifacts />} />
                 <Route path="/demo/:sectorSlug/board" element={<DemoActionBoard />} />
+                <Route path="/demo/:sectorSlug/signals" element={<DemoCompetitorMessaging />} />
+
                 <Route path="/cookie-policy" element={<CookiePolicy />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

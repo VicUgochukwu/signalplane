@@ -243,13 +243,15 @@ export const useReports = () => {
       const { data, error } = await query;
 
       if (error) {
-        console.warn('Failed to fetch from Supabase, using mock data:', error.message);
-        return mockReports;
+        console.warn('Failed to fetch from Supabase:', error.message);
+        // Only fall back to mock data for unauthenticated visitors (marketing demo)
+        return user ? [] : mockReports;
       }
 
       if (!data || data.length === 0) {
-        console.info('No data in Supabase, using mock data');
-        return mockReports;
+        console.info('No packets in Supabase');
+        // Authenticated users see empty state; visitors see mock demo
+        return user ? [] : mockReports;
       }
 
       return data.map(mapRowToPacket);

@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { ObjectionLibraryTab } from '@/components/control-plane/artifacts/ObjectionLibraryTab';
 import { SwipeFileTab } from '@/components/control-plane/artifacts/SwipeFileTab';
 import { BattlecardsTab } from '@/components/control-plane/artifacts/BattlecardsTab';
-import { AppNavigation } from '@/components/control-plane/AppNavigation';
-import { Footer } from '@/components/Footer';
 import { useDemo } from '@/contexts/DemoContext';
 
 // Extracted content component — reused by DemoArtifacts
@@ -66,13 +64,5 @@ export function ArtifactsContent() {
 }
 
 export default function Artifacts() {
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-      <ArtifactsContent />
-      <div className="container max-w-6xl mx-auto px-4">
-        <Footer />
-      </div>
-    </div>
-  );
+  return <ArtifactsContent />;
 }

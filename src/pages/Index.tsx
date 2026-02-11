@@ -4,7 +4,6 @@ import { useMyChangelog } from '@/hooks/useMyChangelog';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
-import { AppNavigation } from '@/components/control-plane/AppNavigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Globe, User, Plus, AlertCircle, ArrowRight } from 'lucide-react';
@@ -63,8 +62,7 @@ const Index = () => {
   const highPriorityCount = entries?.filter(e => e.change_magnitude === 'major').length || 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppNavigation />
+    <div>
       <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-8">
         {/* Page Header */}
         <div className="space-y-1">

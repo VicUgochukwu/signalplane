@@ -10,8 +10,6 @@ import { IconDeals, IconTrophy } from '@/components/icons';
 import { useDeals } from '@/hooks/useDeals';
 import { useTierGate } from '@/hooks/useTierGate';
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { AppNavigation } from './AppNavigation';
-import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import type { DealOutcome } from '@/types/teams';
 
@@ -66,9 +64,7 @@ export default function DealLogger() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
+    <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
         {/* Page header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
@@ -243,10 +239,6 @@ export default function DealLogger() {
             </Card>
           </div>
         )}
-      </div>
-      <div className="container max-w-6xl mx-auto px-4">
-        <Footer />
-      </div>
     </div>
   );
 }

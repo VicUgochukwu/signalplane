@@ -3,8 +3,6 @@ import { IntelPacket } from '@/types/report';
 import { useReports } from '@/hooks/useReports';
 import { ReportList } from '@/components/control-plane/ReportList';
 import { ReportDetail } from '@/components/control-plane/ReportDetail';
-import { AppNavigation } from '@/components/control-plane/AppNavigation';
-import { Footer } from '@/components/Footer';
 import { Loader2 } from 'lucide-react';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 
@@ -62,15 +60,7 @@ export const ControlPlaneContent = () => {
 };
 
 const ControlPlane = () => {
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-      <ControlPlaneContent />
-      <div className="container max-w-6xl mx-auto px-4">
-        <Footer />
-      </div>
-    </div>
-  );
+  return <ControlPlaneContent />;
 };
 
 export default ControlPlane;

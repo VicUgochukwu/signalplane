@@ -54,7 +54,7 @@ export function AppNavigation() {
                 })
                 .map((item) => {
                   const isActive = location.pathname === item.to ||
-                    (item.to !== '/' && location.pathname.startsWith(item.to));
+                    (item.to !== '/' && location.pathname.startsWith(item.to + '/'));
                   return (
                     <Link
                       key={item.to}

@@ -3,8 +3,6 @@ import { useEffect } from 'react';
 import { Plug, UserCircle, Palette } from 'lucide-react';
 import { IconCompany } from '@/components/icons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AppNavigation } from '@/components/control-plane/AppNavigation';
-import { Footer } from '@/components/Footer';
 import { DeliveryIntegrations } from '@/components/DeliveryIntegrations';
 import { CompanyProfileSettings } from '@/components/settings/CompanyProfileSettings';
 import { AccountSettings } from '@/components/settings/AccountSettings';
@@ -98,75 +96,69 @@ const Settings = () => {
   }, [toast, searchParams, setSearchParams]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-      <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
-        {/* Page header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">
-            Settings
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Configure your profile, integrations, and account
-          </p>
-        </div>
-
-        {/* Tabbed content */}
-        <Tabs
-          value={activeTab}
-          onValueChange={handleTabChange}
-          className="space-y-6"
-        >
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="profile" className="gap-2">
-              <IconCompany className="h-4 w-4" />
-              <span className="hidden sm:inline">Company Profile</span>
-              <span className="sm:hidden">Profile</span>
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="gap-2">
-              <Plug className="h-4 w-4" />
-              <span>Integrations</span>
-            </TabsTrigger>
-            <TabsTrigger value="account" className="gap-2">
-              <UserCircle className="h-4 w-4" />
-              <span>Account</span>
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2">
-              <Palette className="h-4 w-4" />
-              <span>Appearance</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="profile">
-            <CompanyProfileSettings />
-          </TabsContent>
-
-          <TabsContent value="integrations">
-            <DeliveryIntegrations />
-          </TabsContent>
-
-          <TabsContent value="account">
-            <AccountSettings />
-          </TabsContent>
-
-          <TabsContent value="appearance">
-            <Card>
-              <CardHeader>
-                <CardTitle>Theme</CardTitle>
-                <CardDescription>
-                  Choose how Signal Plane looks to you. Select a single theme or sync with your system settings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ThemeToggle variant="full" />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+    <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">
+          Settings
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Configure your profile, integrations, and account
+        </p>
       </div>
-      <div className="container max-w-6xl mx-auto px-4">
-        <Footer />
-      </div>
+
+      {/* Tabbed content */}
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-6"
+      >
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="profile" className="gap-2">
+            <IconCompany className="h-4 w-4" />
+            <span className="hidden sm:inline">Company Profile</span>
+            <span className="sm:hidden">Profile</span>
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-2">
+            <Plug className="h-4 w-4" />
+            <span>Integrations</span>
+          </TabsTrigger>
+          <TabsTrigger value="account" className="gap-2">
+            <UserCircle className="h-4 w-4" />
+            <span>Account</span>
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="gap-2">
+            <Palette className="h-4 w-4" />
+            <span>Appearance</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <CompanyProfileSettings />
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <DeliveryIntegrations />
+        </TabsContent>
+
+        <TabsContent value="account">
+          <AccountSettings />
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Theme</CardTitle>
+              <CardDescription>
+                Choose how Signal Plane looks to you. Select a single theme or sync with your system settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThemeToggle variant="full" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

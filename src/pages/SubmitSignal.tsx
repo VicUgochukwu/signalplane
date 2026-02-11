@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { AppNavigation } from '@/components/control-plane/AppNavigation';
-import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,10 +73,7 @@ export default function SubmitSignal() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-
-      <main className="flex-1 container max-w-2xl mx-auto px-4 py-8">
+    <main className="flex-1 container max-w-2xl mx-auto px-4 py-8">
         {isSuccess ? (
           <Card className="bg-emerald-500/10 border-emerald-500/30">
             <CardContent className="p-8 text-center">
@@ -238,9 +233,6 @@ export default function SubmitSignal() {
             </div>
           </div>
         )}
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

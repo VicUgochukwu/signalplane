@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AppNavigation } from '@/components/control-plane/AppNavigation';
-import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -192,10 +190,7 @@ export default function BulkUpload() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavigation />
-
-      <main className="flex-1 container max-w-3xl mx-auto px-4 py-8">
+    <main className="flex-1 container max-w-3xl mx-auto px-4 py-8">
         <div className="space-y-6">
           {/* Header with back link */}
           <div className="flex items-center gap-4">
@@ -485,9 +480,6 @@ export default function BulkUpload() {
             </Card>
           )}
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }
