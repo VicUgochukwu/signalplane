@@ -18,9 +18,9 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
   const demo = useDemo();
   const { profile, competitors } = useOnboarding();
   const totalSignals = reports.reduce((sum, r) => sum + (r.metrics?.signals_detected || 0), 0);
-  const avgConfidence = Math.round(
-    reports.reduce((sum, r) => sum + (r.metrics?.confidence_score || 0), 0) / reports.length
-  );
+  const avgConfidence = reports.length > 0
+    ? Math.round(reports.reduce((sum, r) => sum + (r.metrics?.confidence_score || 0), 0) / reports.length)
+    : 0;
 
   return (
     <div className="animate-fade-in space-y-8">

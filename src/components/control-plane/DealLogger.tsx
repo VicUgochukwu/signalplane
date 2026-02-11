@@ -37,6 +37,15 @@ export default function DealLogger() {
   const handleSubmit = async () => {
     if (!competitorName.trim()) return;
 
+    // Validate deal value if provided
+    if (dealValue) {
+      const parsed = parseFloat(dealValue);
+      if (isNaN(parsed) || parsed < 0) {
+        toast({ title: 'Invalid Value', description: 'Deal value must be a positive number', variant: 'destructive' });
+        return;
+      }
+    }
+
     try {
       await logDeal.mutateAsync({
         competitor_name: competitorName.trim(),

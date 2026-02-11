@@ -227,11 +227,12 @@ export const useReports = () => {
         return data.map(mapRowToPacket);
       }
 
-      // Normal mode: fetch from public.packets
+      // Normal mode: fetch from public.packets (limit to 50 most recent)
       let query = supabase
         .from('packets')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (user?.id) {
         query = query.or(`user_id.eq.${user.id},user_id.is.null`);

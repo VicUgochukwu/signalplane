@@ -39,8 +39,8 @@
       "position": [300, 100],
       "credentials": {
         "postgres": {
-          "id": "R4dqt2sDzMKpQu7a",
-          "name": "Supabase Postgres"
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
         }
       }
     },

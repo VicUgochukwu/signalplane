@@ -4,6 +4,7 @@
 
 import { createSupabaseClient, createServiceRoleClient } from "../_shared/supabase.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { enforceRateLimit, enforceBodySize } from "../_shared/rate-limit.ts";
 
 // =====================================================
 // Field mapping (from n8n_code/objection_csv_parser.js)
@@ -176,6 +177,10 @@ Deno.serve(async (req: Request) => {
 
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
 
+  // Reject oversized uploads (5MB limit)
+  const sizeBlock = enforceBodySize(req, headers);
+  if (sizeBlock) return sizeBlock;
+
   try {
     if (req.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers });
@@ -194,6 +199,10 @@ Deno.serve(async (req: Request) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
     }
+
+    // Rate limit: 10 uploads per minute per user
+    const rateLimited = enforceRateLimit(req, headers, user.id, 10);
+    if (rateLimited) return rateLimited;
 
     // Service role client for inserts
     const serviceClient = createServiceRoleClient();
@@ -361,7 +370,7 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error("CSV upload error:", err);
     return new Response(
-      JSON.stringify({ error: "Internal server error", detail: (err as Error).message }),
+      JSON.stringify({ error: "An error occurred processing your CSV. Please check the file format and try again." }),
       { status: 500, headers }
     );
   }

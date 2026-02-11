@@ -1,5 +1,6 @@
 import { createSupabaseClient, createServiceRoleClient } from '../_shared/supabase.ts';
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
+import { enforceRateLimit } from '../_shared/rate-limit.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 
@@ -55,6 +56,10 @@ Deno.serve(async (req) => {
         headers,
       });
     }
+
+    // Rate limit: 10 exports per minute per user (protects Resend quota)
+    const rateLimited = enforceRateLimit(req, headers, user.id, 10);
+    if (rateLimited) return rateLimited;
 
     const body = await req.json().catch(() => ({}));
     const { action, packet_id, packet_data } = body;
@@ -143,7 +148,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('export-packet error:', error);
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
+      JSON.stringify({ error: 'Failed to export packet. Please try again later.' }),
       { status: 500, headers }
     );
   }

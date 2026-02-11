@@ -4,6 +4,7 @@
 
 import { createSupabaseClient, createServiceRoleClient } from "../_shared/supabase.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { enforceRateLimit } from "../_shared/rate-limit.ts";
 
 const VALID_SIGNAL_TYPES = [
   'messaging', 'narrative', 'icp', 'horizon', 'objection', 'pricing', 'other',
@@ -47,6 +48,10 @@ Deno.serve(async (req) => {
         { status: 401, headers: { ...headers, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Rate limit: 30 signal submissions per minute per user
+    const rateLimited = enforceRateLimit(req, { ...headers, 'Content-Type': 'application/json' }, user.id, 30);
+    if (rateLimited) return rateLimited;
 
     // Parse request body
     const body = await req.json();
