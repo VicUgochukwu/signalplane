@@ -1,5 +1,5 @@
 {
-  "name": "Control Plane v2 – Personalized Weekly Packet",
+  "name": "Control Plane v2 \u2013 Evidence-Grade Personalized Packet",
   "nodes": [
     {
       "parameters": {
@@ -16,7 +16,10 @@
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 300]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {},
@@ -24,7 +27,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 80]
+      "position": [
+        0,
+        80
+      ]
     },
     {
       "parameters": {
@@ -34,7 +40,10 @@
       "name": "Compute Week Range",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [250, 190]
+      "position": [
+        250,
+        190
+      ]
     },
     {
       "parameters": {
@@ -46,7 +55,10 @@
       "name": "Get Onboarded Users",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [500, 190],
+      "position": [
+        500,
+        190
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
@@ -62,7 +74,10 @@
       "name": "Prepare User List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [750, 190]
+      "position": [
+        750,
+        190
+      ]
     },
     {
       "parameters": {
@@ -74,7 +89,10 @@
       "name": "Loop Through Users",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [1008, 190]
+      "position": [
+        1008,
+        190
+      ]
     },
     {
       "parameters": {
@@ -86,7 +104,10 @@
       "name": "Load User Context",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1258, 190],
+      "position": [
+        1258,
+        190
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
@@ -102,7 +123,10 @@
       "name": "Format User Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1508, 190]
+      "position": [
+        1508,
+        190
+      ]
     },
     {
       "parameters": {
@@ -114,7 +138,10 @@
       "name": "Load Signals",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1758, 190],
+      "position": [
+        1758,
+        190
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
@@ -124,13 +151,16 @@
     },
     {
       "parameters": {
-        "jsCode": "const signals = $input.all().map(item => item.json);\nconst userContext = $('Format User Context').first().json;\nconst weekRange = { week_start: userContext.week_start, week_end: userContext.week_end };\n\nconst SHIP_CAPS = {\n  messaging: 8, narrative: 5, icp: 5, horizon: 3, objection: 5,\n  pricing: 4, proof: 3, distribution: 3, hiring: 2, launch_decay: 2, experiment: 5\n};\nconst MAX_TOTAL = 45;\nconst WEIGHTS = { severity: 8, recency: 30, confidence: 15, source_quality: 15 };\n\nfunction filterByUserCompetitors(allSignals, ctx) {\n  if (!ctx || !ctx.competitor_ids || ctx.competitor_ids.length === 0) {\n    return allSignals;\n  }\n  const competitorIds = new Set(ctx.competitor_ids);\n  const competitorDomains = new Set((ctx.competitor_domains || []).map(d => d?.toLowerCase()));\n  const competitorNames = new Set((ctx.competitor_names || []).map(n => n?.toLowerCase()));\n\n  return allSignals.filter(signal => {\n    if (signal.company_id && competitorIds.has(signal.company_id)) return true;\n    const evidenceUrls = signal.evidence_urls || [];\n    for (const url of evidenceUrls) {\n      const urlLower = (url || '').toLowerCase();\n      for (const domain of competitorDomains) {\n        if (domain && urlLower.includes(domain)) return true;\n      }\n    }\n    const titleLower = (signal.title || '').toLowerCase();\n    const summaryLower = (signal.summary || '').toLowerCase();\n    for (const name of competitorNames) {\n      if (name && (titleLower.includes(name) || summaryLower.includes(name))) return true;\n    }\n    return false;\n  });\n}\n\nconst filteredSignals = filterByUserCompetitors(signals, userContext);\nlet relevantSignals = filteredSignals;\n\nif (relevantSignals.length < 10 && userContext.user_industry) {\n  const industrySignals = signals.filter(s => {\n    if (relevantSignals.includes(s)) return false;\n    const meta = s.meta || {};\n    return meta.industry === userContext.user_industry;\n  });\n  industrySignals.forEach(s => { s._widened = 'industry'; });\n  relevantSignals = [...relevantSignals, ...industrySignals];\n}\n\nif (relevantSignals.length < 10) {\n  const horizonSignals = signals.filter(s =>\n    !relevantSignals.includes(s) && s.signal_type === 'horizon'\n  );\n  horizonSignals.forEach(s => { s._widened = 'horizon'; });\n  relevantSignals = [...relevantSignals, ...horizonSignals];\n}\n\nif (relevantSignals.length < 5) {\n  const highSeverity = signals.filter(s =>\n    !relevantSignals.includes(s) && (s.severity || 0) >= 4\n  );\n  highSeverity.forEach(s => { s._widened = 'market'; });\n  relevantSignals = [...relevantSignals, ...highSeverity];\n}\n\nfunction computeScore(signal) {\n  const now = new Date();\n  const createdAt = new Date(signal.created_at);\n  const daysOld = (now - createdAt) / (1000 * 60 * 60 * 24);\n  const severityScore = (signal.severity || 3) * WEIGHTS.severity;\n  const recencyScore = Math.max(0, WEIGHTS.recency - (daysOld * 4.3));\n  const confidenceScore = (parseFloat(signal.confidence) || 0.5) * WEIGHTS.confidence;\n  const sourceQuality = signal.source_quality || 'medium';\n  const sourceScore = sourceQuality === 'high' ? 15 : sourceQuality === 'medium' ? 10 : 5;\n  return Math.round((severityScore + recencyScore + confidenceScore + sourceScore) * 100) / 100;\n}\n\nconst enrichedSignals = relevantSignals.map(signal => ({\n  ...signal,\n  score: computeScore(signal),\n  summary_short: signal.summary ? signal.summary.substring(0, 100) + (signal.summary.length > 100 ? '...' : '') : ''\n}));\n\nconst sections = ['messaging', 'narrative', 'icp', 'horizon', 'objection', 'pricing', 'proof', 'distribution', 'hiring', 'launch_decay', 'experiment'];\nconst selectedBySection = {};\nlet totalSelected = [];\n\nfor (const section of sections) {\n  const cap = SHIP_CAPS[section] || 6;\n  const sectionSignals = enrichedSignals.filter(s => s.signal_type === section).sort((a, b) => b.score - a.score).slice(0, cap);\n  selectedBySection[section] = sectionSignals;\n  totalSelected = totalSelected.concat(sectionSignals);\n}\n\nif (totalSelected.length > MAX_TOTAL) {\n  totalSelected.sort((a, b) => b.score - a.score);\n  totalSelected = totalSelected.slice(0, MAX_TOTAL);\n}\n\nconst signalSummaries = {};\nfor (const section of sections) {\n  signalSummaries[section] = (selectedBySection[section] || []).map(s => ({\n    id: s.id, severity: s.severity, title: s.title, summary_short: s.summary_short, score: s.score\n  }));\n}\n\nconst isPersonalized = userContext.is_personalized;\nconst companyName = userContext.company_name || 'your company';\nconst competitorsList = userContext.competitor_names?.join(', ') || 'competitors';\n\nconst systemPrompt = `You are a GTM intelligence analyst creating weekly packets for ${isPersonalized ? companyName + \"'s\" : 'a'} PMM team.\\n${isPersonalized ? `COMPANY: ${companyName}\\nTRACKED COMPETITORS: ${competitorsList}\\nFrame insights as \"${companyName} vs [Competitor]\" where relevant.` : ''}\\nFor widened signals, prefix with context: industry=>\"In your industry sector\", horizon=>\"Market-wide trend\", market=>\"Notable cross-market development\"\\nOutput STRICT JSON only.\\nSchema: { \"packet_title\": \"string\", \"exec_summary\": [\"max 7 bullets\"], \"sections\": { \"messaging\": {\"summary\":\"str\",\"highlights\":[],\"action_items\":[]}, \"narrative\":{...}, \"icp\":{...}, \"horizon\":{...}, \"objection\":{...} }, \"key_questions\": [\"3-5 items\"], \"bets\": [{\"hypothesis\":\"str\",\"signal_ids\":[],\"confidence\":\"low|medium|high\"}], \"predictions\": [{\"prediction\":\"str\",\"timeframe\":\"str\",\"confidence\":0.0-1.0,\"signals\":[]}], \"action_mapping\": {\"this_week\":[{\"action\":\"str\",\"owner\":\"str\",\"priority\":\"str\"}],\"monitor\":[{\"signal\":\"str\",\"trigger\":\"str\",\"action\":\"str\"}]} }`;\n\nconst userContent = `Week: ${weekRange.week_start} to ${weekRange.week_end}\\n${isPersonalized ? `Company: ${companyName}` : ''}\\nTotal signals: ${signals.length}, Filtered: ${filteredSignals.length}, Selected: ${totalSelected.length}\\n\\nMESSAGING: ${JSON.stringify(signalSummaries.messaging)}\\nNARRATIVE: ${JSON.stringify(signalSummaries.narrative)}\\nICP: ${JSON.stringify(signalSummaries.icp)}\\nHORIZON: ${JSON.stringify(signalSummaries.horizon)}\\nOBJECTION: ${JSON.stringify(signalSummaries.objection)}\\n\\nGenerate weekly GTM intelligence packet.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 3000,\n  temperature: 0.3,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{ json: {\n  week_start: weekRange.week_start,\n  week_end: weekRange.week_end,\n  user_id: userContext.user_id,\n  user_company_name: userContext.company_name,\n  is_personalized: isPersonalized,\n  competitor_names: userContext.competitor_names || [],\n  total_signals: signals.length,\n  filtered_signals: filteredSignals.length,\n  selected_count: totalSelected.length,\n  selected_signals: totalSelected,\n  signal_summaries: signalSummaries,\n  anthropic_body: anthropicBody\n}}];"
+        "jsCode": "const signals = $input.all().map(item => item.json);\nconst userContext = $('Format User Context').first().json;\nconst weekRange = { week_start: userContext.week_start, week_end: userContext.week_end };\n\nconst SHIP_CAPS = {\n  messaging: 8, narrative: 5, icp: 5, horizon: 3, objection: 5,\n  pricing: 4, proof: 3, distribution: 3, hiring: 2, launch_decay: 2, experiment: 5\n};\nconst MAX_TOTAL = 45;\nconst WEIGHTS = { severity: 8, recency: 30, confidence: 15, source_quality: 15 };\n\nfunction filterByUserCompetitors(allSignals, ctx) {\n  if (!ctx || !ctx.competitor_ids || ctx.competitor_ids.length === 0) return allSignals;\n  const competitorIds = new Set(ctx.competitor_ids);\n  const competitorDomains = new Set((ctx.competitor_domains || []).map(d => d?.toLowerCase()));\n  const competitorNames = new Set((ctx.competitor_names || []).map(n => n?.toLowerCase()));\n  return allSignals.filter(signal => {\n    if (signal.company_id && competitorIds.has(signal.company_id)) return true;\n    for (const url of (signal.evidence_urls || [])) {\n      const urlLower = (url || '').toLowerCase();\n      for (const domain of competitorDomains) { if (domain && urlLower.includes(domain)) return true; }\n    }\n    const titleLower = (signal.title || '').toLowerCase();\n    const summaryLower = (signal.summary || '').toLowerCase();\n    for (const name of competitorNames) {\n      if (name && (titleLower.includes(name) || summaryLower.includes(name))) return true;\n    }\n    return false;\n  });\n}\n\nconst filteredSignals = filterByUserCompetitors(signals, userContext);\nlet relevantSignals = [...filteredSignals];\n\n// Auto-widening tiers\nif (relevantSignals.length < 10 && userContext.user_industry) {\n  const industrySignals = signals.filter(s => {\n    if (relevantSignals.includes(s)) return false;\n    return (s.meta || {}).industry === userContext.user_industry;\n  });\n  industrySignals.forEach(s => { s._widened = 'industry'; });\n  relevantSignals = [...relevantSignals, ...industrySignals];\n}\nif (relevantSignals.length < 10) {\n  const horizonSignals = signals.filter(s => !relevantSignals.includes(s) && s.signal_type === 'horizon');\n  horizonSignals.forEach(s => { s._widened = 'horizon'; });\n  relevantSignals = [...relevantSignals, ...horizonSignals];\n}\nif (relevantSignals.length < 5) {\n  const highSeverity = signals.filter(s => !relevantSignals.includes(s) && (s.severity || 0) >= 4);\n  highSeverity.forEach(s => { s._widened = 'market'; });\n  relevantSignals = [...relevantSignals, ...highSeverity];\n}\n\nfunction computeScore(signal) {\n  const now = new Date();\n  const daysOld = (now - new Date(signal.created_at)) / (1000 * 60 * 60 * 24);\n  const severityScore = (signal.severity || 3) * WEIGHTS.severity;\n  const recencyScore = Math.max(0, WEIGHTS.recency - (daysOld * 4.3));\n  const confidenceScore = (parseFloat(signal.confidence) || 0.5) * WEIGHTS.confidence;\n  const sq = signal.source_quality || 'medium';\n  const sourceScore = sq === 'high' ? 15 : sq === 'medium' ? 10 : 5;\n  return Math.round((severityScore + recencyScore + confidenceScore + sourceScore) * 100) / 100;\n}\n\nconst enriched = relevantSignals.map(s => ({ ...s, score: computeScore(s) }));\n\nconst sectionNames = ['messaging','narrative','icp','horizon','objection','pricing','proof','distribution','hiring','launch_decay','experiment'];\nconst selectedBySection = {};\nlet totalSelected = [];\nfor (const sec of sectionNames) {\n  const cap = SHIP_CAPS[sec] || 6;\n  const secSignals = enriched.filter(s => s.signal_type === sec).sort((a,b) => b.score - a.score).slice(0, cap);\n  selectedBySection[sec] = secSignals;\n  totalSelected = totalSelected.concat(secSignals);\n}\nif (totalSelected.length > MAX_TOTAL) {\n  totalSelected.sort((a,b) => b.score - a.score);\n  totalSelected = totalSelected.slice(0, MAX_TOTAL);\n}\n\n// Build STRUCTURED signal input \u2014 full data for each signal\nconst structuredSignals = totalSelected.map(s => ({\n  signal_id: s.id,\n  signal_type: s.signal_type,\n  severity: s.severity,\n  confidence: s.confidence,\n  title: s.title,\n  summary: s.summary,\n  evidence_urls: s.evidence_urls || [],\n  source_schema: s.source_schema,\n  detected_at: s.created_at,\n  widened_from: s._widened || null\n}));\n\nconst isPersonalized = userContext.is_personalized;\nconst companyName = userContext.company_name || 'your company';\nconst competitorsList = (userContext.competitor_names || []).join(', ') || 'competitors';\n\n// ====== ANTI-HALLUCINATION PROMPT ======\nconst systemPrompt = `You are a SIGNAL FORMATTER for a competitive intelligence system. You are NOT an analyst. You do NOT generate insights.\n\nABSOLUTE RULES \u2014 VIOLATION OF ANY RULE INVALIDATES THE ENTIRE OUTPUT:\n1. You MUST ONLY report information that is EXPLICITLY present in the signals provided below.\n2. Every statement you write MUST include a \"signal_ids\" array citing the specific signal(s) that support it.\n3. If you CANNOT cite a signal_id for a statement, you MUST NOT include that statement.\n4. You MUST NOT infer, speculate, predict, or extrapolate beyond what the signals explicitly state.\n5. You MUST NOT fabricate competitor names, pricing, features, product launches, hires, or events.\n6. You MUST NOT add context, background, or market knowledge that is not in the signals.\n7. If a section has no relevant signals, return empty arrays for that section. Do NOT fill it with invented content.\n8. Use the EXACT language from signals where possible. Paraphrase minimally.\n9. For widened signals (industry/horizon/market), prefix with the context tag provided.\n\n${isPersonalized ? `COMPANY: ${companyName}\\nTRACKED COMPETITORS: ${competitorsList}\\nFrame observations as \"${companyName} vs [Competitor]\" where relevant, but ONLY based on signal data.` : ''}\n\nOUTPUT FORMAT \u2014 Strict JSON:\n{\n  \"packet_title\": \"Week of YYYY-MM-DD: [brief factual title based on signals]\",\n  \"exec_summary\": [\n    { \"text\": \"string \u2014 one observation\", \"signal_ids\": [\"uuid\"] }\n  ],\n  \"sections\": {\n    \"messaging\": {\n      \"summary\": \"string \u2014 factual summary of messaging signals only\",\n      \"highlights\": [\n        { \"text\": \"string \u2014 one observed change\", \"signal_ids\": [\"uuid\"] }\n      ],\n      \"action_items\": [\n        { \"text\": \"string \u2014 recommended action based on observed signal\", \"signal_ids\": [\"uuid\"] }\n      ]\n    },\n    \"narrative\": { \"summary\": \"...\", \"highlights\": [...], \"action_items\": [...] },\n    \"icp\": { \"summary\": \"...\", \"highlights\": [...], \"action_items\": [...] },\n    \"horizon\": { \"summary\": \"...\", \"highlights\": [...], \"action_items\": [...] },\n    \"objection\": { \"summary\": \"...\", \"highlights\": [...], \"action_items\": [...] }\n  },\n  \"key_questions\": [\n    { \"text\": \"string \u2014 question raised by the signals\", \"signal_ids\": [\"uuid\"] }\n  ],\n  \"action_mapping\": {\n    \"this_week\": [{ \"action\": \"str\", \"owner\": \"str\", \"priority\": \"str\", \"signal_ids\": [\"uuid\"] }],\n    \"monitor\": [{ \"signal\": \"str\", \"trigger\": \"str\", \"action\": \"str\", \"signal_ids\": [\"uuid\"] }]\n  }\n}\n\nCRITICAL: Do NOT include \"bets\" or \"predictions\" sections. Only report what was observed.\nIf there are fewer than 3 signals for a section, it is BETTER to return fewer highlights than to invent content.`;\n\nconst userContent = `Week: ${weekRange.week_start} to ${weekRange.week_end}\n${isPersonalized ? 'Company: ' + companyName : ''}\nTotal signals available: ${signals.length}\nSignals selected for this packet: ${totalSelected.length}\n\nSIGNALS (structured input \u2014 use signal_id to cite every claim):\n${JSON.stringify(structuredSignals, null, 2)}\n\nOrganize and summarize ONLY the signals above. Do not add any information not present in the signals.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 4000,\n  temperature: 0.1,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\n// Build signal ID set for validation\nconst validSignalIds = totalSelected.map(s => s.id);\n\nreturn [{ json: {\n  week_start: weekRange.week_start,\n  week_end: weekRange.week_end,\n  user_id: userContext.user_id,\n  user_company_name: userContext.company_name,\n  is_personalized: isPersonalized,\n  competitor_names: userContext.competitor_names || [],\n  total_signals: signals.length,\n  filtered_signals: filteredSignals.length,\n  selected_count: totalSelected.length,\n  selected_signals: totalSelected,\n  valid_signal_ids: validSignalIds,\n  structured_signals: structuredSignals,\n  anthropic_body: anthropicBody\n}}];"
       },
       "id": "af2b85eb-b22b-4b1e-bc9f-54e6c5a28bcd",
       "name": "Score + Select Top Signals",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2008, 190]
+      "position": [
+        2008,
+        190
+      ]
     },
     {
       "parameters": {
@@ -162,7 +192,10 @@
       "name": "Anthropic Synthesize Packet",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2258, 190],
+      "position": [
+        2258,
+        190
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "tiqqmgq14G2sygfA",
@@ -172,13 +205,16 @@
     },
     {
       "parameters": {
-        "jsCode": "const resp = $input.first().json;\nconst selectData = $('Score + Select Top Signals').first().json;\n\nlet packetData;\ntry {\n  const content = resp.content?.[0]?.text || '{}';\n  const cleaned = content.replace(/^```json?\\s*\\n?/, '').replace(/\\n?```\\s*$/, '').trim();\n  packetData = JSON.parse(cleaned);\n} catch (e) {\n  packetData = {\n    packet_title: `Week of ${selectData.week_start}: Intelligence Packet`,\n    exec_summary: ['Signal synthesis failed - manual review required'],\n    sections: {\n      messaging: { summary: 'Parsing error', highlights: [], action_items: [] },\n      narrative: { summary: 'Parsing error', highlights: [], action_items: [] },\n      icp: { summary: 'Parsing error', highlights: [], action_items: [] },\n      horizon: { summary: 'Parsing error', highlights: [], action_items: [] },\n      objection: { summary: 'Parsing error', highlights: [], action_items: [] }\n    },\n    key_questions: ['Review raw signals for this week'],\n    bets: [],\n    predictions: [],\n    action_mapping: { this_week: [], monitor: [] }\n  };\n}\n\nreturn [{ json: {\n  ...selectData,\n  packet: packetData\n}}];"
+        "jsCode": "const resp = $input.first().json;\nconst selectData = $('Score + Select Top Signals').first().json;\nconst validIds = new Set(selectData.valid_signal_ids || []);\n\nlet packetData;\ntry {\n  const content = resp.content?.[0]?.text || '{}';\n  const cleaned = content.replace(/^```json?\\s*\\n?/, '').replace(/\\n?```\\s*$/, '').trim();\n  packetData = JSON.parse(cleaned);\n} catch (e) {\n  packetData = {\n    packet_title: `Week of ${selectData.week_start}: Intelligence Packet (parse error)`,\n    exec_summary: [],\n    sections: { messaging: { summary: '', highlights: [], action_items: [] }, narrative: { summary: '', highlights: [], action_items: [] }, icp: { summary: '', highlights: [], action_items: [] }, horizon: { summary: '', highlights: [], action_items: [] }, objection: { summary: '', highlights: [], action_items: [] } },\n    key_questions: [],\n    action_mapping: { this_week: [], monitor: [] }\n  };\n}\n\n// ====== VALIDATION: Strip uncited and invalid-cited claims ======\nconst auditTrail = [];\nconst validationErrors = [];\n\nfunction validateCitedItems(items, location) {\n  if (!Array.isArray(items)) return [];\n  return items.filter(item => {\n    const text = typeof item === 'string' ? item : (item.text || item.action || item.signal || '');\n    const sids = item.signal_ids || [];\n    \n    // If item is a plain string (old format), flag but keep with warning\n    if (typeof item === 'string') {\n      validationErrors.push({ type: 'uncited_string', location, text: item });\n      return false; // Strip uncited string claims\n    }\n    \n    // Must have at least one signal_id\n    if (!sids || sids.length === 0) {\n      validationErrors.push({ type: 'no_citation', location, text });\n      return false;\n    }\n    \n    // Validate signal_ids exist in our input set\n    const validSids = sids.filter(sid => validIds.has(sid));\n    if (validSids.length === 0) {\n      validationErrors.push({ type: 'invalid_citations', location, text, cited: sids });\n      return false;\n    }\n    \n    // Keep item, record in audit trail\n    item.signal_ids = validSids; // Only keep valid signal_ids\n    auditTrail.push({ claim_text: text, claim_location: location, signal_ids: validSids });\n    return true;\n  });\n}\n\n// Validate exec_summary\nif (packetData.exec_summary) {\n  packetData.exec_summary = validateCitedItems(packetData.exec_summary, 'exec_summary');\n}\n\n// Validate sections\nconst sectionNames = ['messaging', 'narrative', 'icp', 'horizon', 'objection'];\nfor (const sec of sectionNames) {\n  const section = packetData.sections?.[sec];\n  if (!section) continue;\n  \n  if (section.highlights) {\n    section.highlights = validateCitedItems(section.highlights, `${sec}.highlights`);\n  }\n  if (section.action_items) {\n    section.action_items = validateCitedItems(section.action_items, `${sec}.action_items`);\n  }\n}\n\n// Validate key_questions\nif (packetData.key_questions) {\n  packetData.key_questions = validateCitedItems(packetData.key_questions, 'key_questions');\n}\n\n// Validate action_mapping\nif (packetData.action_mapping) {\n  if (packetData.action_mapping.this_week) {\n    packetData.action_mapping.this_week = validateCitedItems(packetData.action_mapping.this_week, 'action_mapping.this_week');\n  }\n  if (packetData.action_mapping.monitor) {\n    packetData.action_mapping.monitor = validateCitedItems(packetData.action_mapping.monitor, 'action_mapping.monitor');\n  }\n}\n\n// Strip predictions and bets entirely (speculative features)\ndelete packetData.predictions;\ndelete packetData.bets;\n\n// Convert cited exec_summary items to plain text array for DB storage\n// but keep signal_ids in a separate field for the audit trail\nconst execSummaryTexts = (packetData.exec_summary || []).map(item => \n  typeof item === 'string' ? item : (item.text || '')\n);\n\n// Convert sections highlights/action_items to plain text arrays\nfor (const sec of sectionNames) {\n  const section = packetData.sections?.[sec];\n  if (!section) continue;\n  section.highlights = (section.highlights || []).map(h => typeof h === 'string' ? h : (h.text || ''));\n  section.action_items = (section.action_items || []).map(a => typeof a === 'string' ? a : (a.text || ''));\n}\n\n// Convert key_questions to plain text\nconst keyQuestionsTexts = (packetData.key_questions || []).map(q =>\n  typeof q === 'string' ? q : (q.text || '')\n);\n\n// Store the validation metadata\nconst validationSummary = {\n  total_claims: auditTrail.length + validationErrors.length,\n  verified_claims: auditTrail.length,\n  stripped_claims: validationErrors.length,\n  errors: validationErrors\n};\n\nreturn [{ json: {\n  ...selectData,\n  packet: {\n    ...packetData,\n    exec_summary: execSummaryTexts,\n    key_questions: keyQuestionsTexts,\n    bets: [],\n    predictions: []\n  },\n  audit_trail: auditTrail,\n  validation_summary: validationSummary\n}}];"
       },
       "id": "ea217774-06f2-4de0-81cb-f44c7b764106",
       "name": "Parse Packet JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2508, 190]
+      "position": [
+        2508,
+        190
+      ]
     },
     {
       "parameters": {
@@ -190,7 +226,10 @@
       "name": "Upsert Packet",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2758, 190],
+      "position": [
+        2758,
+        190
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
@@ -200,13 +239,16 @@
     },
     {
       "parameters": {
-        "jsCode": "const weekRange = $('Format User Context').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\nconst userCtx = $('Format User Context').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\n\nconst signals = scoreResult.selected_signals.filter(s =>\n  ['messaging', 'narrative', 'icp'].includes(s.signal_type)\n);\n\nconst MAX_OBJECTIONS = 12;\nconst MAX_EVIDENCE_PER_OBJECTION = 2;\nconst isPersonalized = userCtx.is_personalized;\nconst companyName = userCtx.company_name || 'your company';\n\nconst systemPrompt = `You are a sales enablement expert building an Objection Library from GTM signals${isPersonalized ? ` for ${companyName}'s sales team` : ''}.\nCRITICAL: Output STRICT JSON only.\nSchema:\n{\n  \"objections\": [\n    {\n      \"category\": \"price_value|timing|complexity|risk|fit|competition|inertia\",\n      \"objection_text\": \"string\",\n      \"frequency\": \"high|medium|low\",\n      \"personas\": [\"string\"],\n      \"segments\": [\"string\"],\n      \"evidence_urls\": [\"string (max ${MAX_EVIDENCE_PER_OBJECTION})\"],\n      \"rebuttal\": {\n        \"acknowledge\": \"string\",\n        \"reframe\": \"string\",\n        \"proof\": \"string\",\n        \"talk_track\": \"string\"\n      },\n      \"signal_ids\": [\"uuid\"],\n      \"is_new_this_week\": true|false\n    }\n  ],\n  \"summary\": {\n    \"total_objections\": number,\n    \"top_category\": \"string\",\n    \"new_this_week\": number,\n    \"trending_up\": [\"string\"],\n    \"trending_down\": [\"string\"]\n  }\n}\nCONSTRAINTS: Max ${MAX_OBJECTIONS} objections. Max ${MAX_EVIDENCE_PER_OBJECTION} evidence URLs per objection. Each objection must have at least one signal_id. Rebuttals must be specific.`;\n\nconst userContent = `Week: ${weekStart} to ${weekEnd}\\nPacket ID: ${packetId}\\n${isPersonalized ? `Company: ${companyName}` : ''}\\n\\nBuild an Objection Library from these signals:\\n\\nSIGNALS (${signals.length} total):\\n${JSON.stringify(signals.map(s => ({ id: s.id, type: s.signal_type, severity: s.severity, title: s.title, summary: s.summary, evidence_urls: s.evidence_urls || [] })), null, 2)}\\n\\nExtract objections mentioned or implied in these signals. Group by category, provide evidence-linked rebuttals.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 2500,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'objection_library',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    user_id: userCtx.user_id || null,\n    user_company_name: userCtx.company_name || null,\n    is_personalized: isPersonalized || false,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
+        "jsCode": "const weekRange = $('Format User Context').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\nconst userCtx = $('Format User Context').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\nconst isPersonalized = userCtx.is_personalized;\nconst companyName = userCtx.company_name || 'your company';\n\nconst signals = scoreResult.selected_signals.filter(s =>\n  ['messaging', 'narrative', 'icp', 'objection'].includes(s.signal_type)\n);\n\nconst structuredSignals = signals.map(s => ({\n  signal_id: s.id,\n  signal_type: s.signal_type,\n  severity: s.severity,\n  title: s.title,\n  summary: s.summary,\n  evidence_urls: s.evidence_urls || []\n}));\n\nconst systemPrompt = `You are a SIGNAL FORMATTER extracting objections from competitive intelligence signals${isPersonalized ? ` for ${companyName}` : ''}.\n\nABSOLUTE RULES:\n1. ONLY extract objections that are EXPLICITLY mentioned or directly implied in the signals.\n2. Every objection MUST cite the signal_id(s) it came from.\n3. Do NOT invent objections, competitor claims, pricing, or features not in the signals.\n4. Rebuttals should reference signal evidence, not made-up proof points.\n5. If fewer than 3 objections can be extracted, return fewer. Do NOT pad with invented content.\n\nOutput STRICT JSON only:\n{\n  \"objections\": [\n    {\n      \"category\": \"price_value|timing|complexity|risk|fit|competition|inertia\",\n      \"objection_text\": \"string \u2014 as a buyer would say it, based on signal evidence\",\n      \"frequency\": \"high|medium|low\",\n      \"rebuttal\": {\n        \"acknowledge\": \"string\",\n        \"reframe\": \"string\",\n        \"proof\": \"string \u2014 cite signal evidence only\",\n        \"talk_track\": \"string\"\n      },\n      \"signal_ids\": [\"uuid \u2014 REQUIRED, at least one\"],\n      \"evidence_urls\": [\"string \u2014 from the signal data\"]\n    }\n  ],\n  \"summary\": {\n    \"total_objections\": number,\n    \"top_category\": \"string\"\n  }\n}`;\n\nconst userContent = `Week: ${weekStart} to ${weekEnd}\n${isPersonalized ? 'Company: ' + companyName : ''}\n\nExtract objections from these signals ONLY:\n${JSON.stringify(structuredSignals, null, 2)}\n\nDo NOT add any objections not supported by the signal data above.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 2500,\n  temperature: 0.1,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'objection_library',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    user_id: userCtx.user_id || null,\n    user_company_name: userCtx.company_name || null,\n    is_personalized: isPersonalized || false,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
       },
       "id": "887498d4-0448-4d77-aecc-b6c1b8bd8075",
       "name": "Builder: Objection Library",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3008, 190]
+      "position": [
+        3258,
+        190
+      ]
     },
     {
       "parameters": {
@@ -238,7 +280,10 @@
       "name": "Anthropic Build Objections",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3258, 190],
+      "position": [
+        3508,
+        190
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "tiqqmgq14G2sygfA",
@@ -254,7 +299,10 @@
       "name": "Parse Objection Library",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3508, 190]
+      "position": [
+        3758,
+        190
+      ]
     },
     {
       "parameters": {
@@ -269,23 +317,29 @@
       "name": "Insert Objection Library",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [3758, 190],
+      "position": [
+        4008,
+        190
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "H8tMhKgDqMwTB6An",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const weekRange = $('Format User Context').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\nconst userCtx = $('Format User Context').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\nconst signals = scoreResult.selected_signals;\nconst isPersonalized = userCtx.is_personalized;\nconst companyName = userCtx.company_name || 'your company';\n\nconst PHRASE_CATEGORIES = ['pain_points', 'desired_outcomes', 'objections', 'trigger_events', 'evaluation_criteria', 'competitive_mentions', 'budget_signals', 'timeline_indicators'];\n\nconst systemPrompt = `You are a PMM assistant specialized in creating buyer language swipe files${isPersonalized ? ` for ${companyName}'s team` : ''}. Your task is to extract authentic buyer phrases from market signals and organize them by persona and category. Rules: 1) Extract EXACT phrases when possible, light paraphrasing only when needed for clarity. 2) Tag each phrase with the persona most likely to use it. 3) Maximum 30 phrases total, maximum 5 per persona. 4) Include source attribution for traceability. 5) Focus on language that reveals pain, desired outcomes, objections, and buying triggers. IMPORTANT: If you need to include quotation marks inside a string value, you MUST escape them with a backslash like this: \\\\\"quoted text\\\\\". Never put unescaped double quotes inside JSON string values. Output raw JSON only without markdown code fences. Output valid JSON with structure:\\n\\n { \"swipe_file_version\": \"1.0\", \"phrases\": [{ \"text\": \"phrase\", \"category\": \"category_name\", \"persona\": \"persona_tag\", \"source_signal_id\": \"uuid\", \"confidence\": 0.9 }], \"persona_summary\": { \"persona_name\": { \"phrase_count\": 5, \"top_categories\": [\"cat1\", \"cat2\"] } } }`;\n\nconst signalSummaries = signals.map(s => \"Signal ID: \" + s.id + \" | Type: \" + s.signal_type + \" | Title: \" + s.title + \" | Summary: \" + s.summary).join(\" --- \");\n\nconst userContent = \"Analyze these \" + signals.length + \" signals from the week of \" + weekStart + \" to \" + weekEnd + (isPersonalized ? \" for \" + companyName : \"\") + \" and extract buyer language phrases. Categories to extract: \" + PHRASE_CATEGORIES.join(', ') + \". Signals: \" + signalSummaries + \". Return a JSON swipe file with extracted phrases tagged by persona and category.\";\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 4096,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'swipe_file',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    user_id: userCtx.user_id || null,\n    user_company_name: userCtx.company_name || null,\n    is_personalized: isPersonalized || false,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
+        "jsCode": "const weekRange = $('Format User Context').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\nconst userCtx = $('Format User Context').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\nconst signals = scoreResult.selected_signals;\nconst isPersonalized = userCtx.is_personalized;\nconst companyName = userCtx.company_name || 'your company';\n\nconst structuredSignals = signals.map(s => ({\n  signal_id: s.id,\n  signal_type: s.signal_type,\n  title: s.title,\n  summary: s.summary,\n  evidence_urls: s.evidence_urls || []\n}));\n\nconst systemPrompt = `You are a SIGNAL FORMATTER extracting buyer language phrases from competitive intelligence signals${isPersonalized ? ` for ${companyName}` : ''}.\n\nABSOLUTE RULES:\n1. ONLY extract phrases that appear in or are directly supported by the signals.\n2. Every phrase MUST cite the source_signal_id it came from.\n3. Do NOT invent buyer language, pain points, or competitive mentions not in the signals.\n4. Use EXACT language from signals where possible. Minimal paraphrasing only.\n5. If fewer than 5 phrases can be extracted, return fewer. Do NOT pad with invented content.\n\nOutput raw JSON only (no markdown fences):\n{\n  \"phrases\": [\n    {\n      \"text\": \"string \u2014 exact or near-exact phrase from signal\",\n      \"category\": \"pain_points|desired_outcomes|objections|trigger_events|evaluation_criteria|competitive_mentions\",\n      \"persona\": \"string\",\n      \"source_signal_id\": \"uuid \u2014 REQUIRED\",\n      \"confidence\": 0.0-1.0\n    }\n  ],\n  \"persona_summary\": {}\n}`;\n\nconst userContent = `Week: ${weekStart} to ${weekEnd}\n${isPersonalized ? 'Company: ' + companyName : ''}\n\nExtract buyer language phrases from these signals ONLY:\n${JSON.stringify(structuredSignals, null, 2)}\n\nDo NOT add any phrases not supported by the signal data above.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 3000,\n  temperature: 0.1,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'swipe_file',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    user_id: userCtx.user_id || null,\n    user_company_name: userCtx.company_name || null,\n    is_personalized: isPersonalized || false,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
       },
       "id": "2302e724-f164-4b1b-9aa3-0597459cd2f2",
       "name": "Builder: Swipe File",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4008, 190]
+      "position": [
+        4258,
+        190
+      ]
     },
     {
       "parameters": {
@@ -317,7 +371,10 @@
       "name": "Anthropic Build Swipe File",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [4258, 190],
+      "position": [
+        4508,
+        190
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "tiqqmgq14G2sygfA",
@@ -333,7 +390,10 @@
       "name": "Parse Swipe File",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4508, 190]
+      "position": [
+        4758,
+        190
+      ]
     },
     {
       "parameters": {
@@ -348,23 +408,29 @@
       "name": "Insert Swipe File",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [4758, 190],
+      "position": [
+        5008,
+        190
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "H8tMhKgDqMwTB6An",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const weekRange = $('Format User Context').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\nconst userCtx = $('Format User Context').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\nconst isPersonalized = userCtx.is_personalized;\nconst companyName = userCtx.company_name || 'your company';\nconst competitorNames = userCtx.competitor_names || [];\n\nconst signals = scoreResult.selected_signals.filter(s =>\n  ['messaging', 'icp'].includes(s.signal_type)\n);\n\nconst MAX_COMPETITORS = isPersonalized ? Math.min(competitorNames.length, 5) : 3;\n\nconst systemPrompt = `You are a competitive intelligence expert building Battlecards from GTM signals${isPersonalized ? ` for ${companyName}` : ''}.\nBattlecards are delta-focused: they emphasize WHAT CHANGED THIS WEEK and the implications.\n${isPersonalized ? `COMPANY: ${companyName}\\nTRACKED COMPETITORS: ${competitorNames.join(', ')}\\nBuild battlecards ONLY for the tracked competitors listed above.` : ''}\nCRITICAL: Output STRICT JSON only. IMPORTANT: If you need to include quotation marks inside a string value, you MUST escape them with a backslash.\nSchema:\n{\n  \"battlecards\": [\n    {\n      \"competitor_name\": \"string\",\n      \"what_changed_this_week\": [\n        {\n          \"change\": \"string\",\n          \"implication\": \"string\",\n          \"counter_move\": \"string\",\n          \"signal_ids\": [\"uuid\"],\n          \"evidence_urls\": [\"string\"]\n        }\n      ],\n      \"talk_tracks\": [\n        {\n          \"scenario\": \"string\",\n          \"opener\": \"string\",\n          \"key_points\": [\"string (3 bullets max)\"],\n          \"proof_point\": \"string\"\n        }\n      ],\n      \"landmines\": [\n        {\n          \"claim_to_avoid\": \"string\",\n          \"why\": \"string\",\n          \"alternative\": \"string\"\n        }\n      ],\n      \"win_themes\": [\"string\"],\n      \"lose_themes\": [\"string\"],\n      \"ideal_battleground\": \"string\"\n    }\n  ],\n  \"summary\": {\n    \"competitors_covered\": number,\n    \"total_changes_this_week\": number,\n    \"highest_priority_competitor\": \"string\",\n    \"key_market_shifts\": [\"string\"]\n  }\n}\nCONSTRAINTS: Max ${MAX_COMPETITORS} competitors. Focus on CHANGES this week. Talk tracks must be specific. Landmines are critical.`;\n\nconst userContent = `Week: ${weekStart} to ${weekEnd}\\nPacket ID: ${packetId}\\n${isPersonalized ? `Company: ${companyName}\\nTracked Competitors: ${competitorNames.join(', ')}` : ''}\\n\\nBuild Battlecards from these competitive signals:\\n\\nSIGNALS (${signals.length} total):\\n${JSON.stringify(signals.map(s => ({ id: s.id, type: s.signal_type, severity: s.severity, title: s.title, summary: s.summary, evidence_urls: s.evidence_urls || [] })), null, 2)}\\n\\nInstructions:\\n1. Identify up to ${MAX_COMPETITORS} competitors${isPersonalized ? ' from the tracked list' : ''}\\n2. Focus on WHAT CHANGED this week\\n3. Provide specific talk tracks\\n4. Highlight landmines\\n5. Include win/lose themes`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 3000,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'battlecards',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    user_id: userCtx.user_id || null,\n    user_company_name: userCtx.company_name || null,\n    is_personalized: isPersonalized || false,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
+        "jsCode": "const weekRange = $('Format User Context').first().json;\nconst packetResult = $('Upsert Packet').first().json;\nconst scoreResult = $('Score + Select Top Signals').first().json;\nconst userCtx = $('Format User Context').first().json;\n\nconst weekStart = weekRange.week_start;\nconst weekEnd = weekRange.week_end;\nconst packetId = packetResult.id;\nconst isPersonalized = userCtx.is_personalized;\nconst companyName = userCtx.company_name || 'your company';\nconst competitorNames = userCtx.competitor_names || [];\n\nconst signals = scoreResult.selected_signals.filter(s =>\n  ['messaging', 'icp', 'pricing', 'narrative'].includes(s.signal_type)\n);\n\nconst structuredSignals = signals.map(s => ({\n  signal_id: s.id,\n  signal_type: s.signal_type,\n  severity: s.severity,\n  title: s.title,\n  summary: s.summary,\n  evidence_urls: s.evidence_urls || []\n}));\n\nconst MAX_COMPETITORS = isPersonalized ? Math.min(competitorNames.length, 5) : 3;\n\nconst systemPrompt = `You are a SIGNAL FORMATTER building competitive battlecards from intelligence signals${isPersonalized ? ` for ${companyName}` : ''}.\n\nABSOLUTE RULES:\n1. ONLY report changes that are EXPLICITLY described in the signals provided.\n2. Every change, talk track, and landmine MUST cite signal_id(s).\n3. Do NOT fabricate competitor pricing, features, hires, product launches, or strategic moves.\n4. Do NOT infer strategic intent beyond what signals explicitly state.\n5. If a competitor has no signals this week, do NOT create a battlecard for them.\n6. Talk tracks must be based on observed signal evidence, not invented competitive claims.\n\n${isPersonalized ? `COMPANY: ${companyName}\\nTRACKED COMPETITORS: ${competitorNames.join(', ')}\\nOnly build battlecards for competitors that appear in the signals.` : ''}\n\nOutput STRICT JSON only:\n{\n  \"battlecards\": [\n    {\n      \"competitor_name\": \"string \u2014 must match a name in the signals\",\n      \"what_changed_this_week\": [\n        {\n          \"change\": \"string \u2014 factual observation from signal\",\n          \"implication\": \"string \u2014 what this means based on the signal\",\n          \"counter_move\": \"string \u2014 recommended response\",\n          \"signal_ids\": [\"uuid \u2014 REQUIRED\"],\n          \"evidence_urls\": [\"string \u2014 from signal data\"]\n        }\n      ],\n      \"talk_tracks\": [\n        {\n          \"scenario\": \"string\",\n          \"key_points\": [\"string \u2014 max 3, based on signals\"],\n          \"signal_ids\": [\"uuid\"]\n        }\n      ],\n      \"landmines\": [\n        {\n          \"claim_to_avoid\": \"string\",\n          \"why\": \"string \u2014 based on signal evidence\",\n          \"signal_ids\": [\"uuid\"]\n        }\n      ]\n    }\n  ],\n  \"summary\": {\n    \"competitors_covered\": number,\n    \"total_changes_this_week\": number\n  }\n}`;\n\nconst userContent = `Week: ${weekStart} to ${weekEnd}\n${isPersonalized ? 'Company: ' + companyName + '\\nTracked Competitors: ' + competitorNames.join(', ') : ''}\n\nBuild battlecards from these signals ONLY:\n${JSON.stringify(structuredSignals, null, 2)}\n\nDo NOT add any competitive claims not supported by the signal data above.`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 3000,\n  temperature: 0.1,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    builder_type: 'battlecards',\n    week_start: weekStart,\n    week_end: weekEnd,\n    packet_id: packetId,\n    user_id: userCtx.user_id || null,\n    user_company_name: userCtx.company_name || null,\n    is_personalized: isPersonalized || false,\n    input_signal_count: signals.length,\n    input_signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
       },
       "id": "2a6ba653-8459-4fb0-ab17-6a9e13d977de",
       "name": "Builder: Battlecards",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5008, 190]
+      "position": [
+        5258,
+        190
+      ]
     },
     {
       "parameters": {
@@ -396,7 +462,10 @@
       "name": "Anthropic Build Battlecards",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [5258, 190],
+      "position": [
+        5508,
+        190
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "tiqqmgq14G2sygfA",
@@ -412,7 +481,10 @@
       "name": "Parse Battlecards",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5508, 190]
+      "position": [
+        5758,
+        190
+      ]
     },
     {
       "parameters": {
@@ -427,11 +499,14 @@
       "name": "Insert Battlecards",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [5758, 190],
+      "position": [
+        6008,
+        190
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "H8tMhKgDqMwTB6An",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       }
     },
@@ -443,7 +518,31 @@
       "name": "Continue Loop",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6008, 190]
+      "position": [
+        6258,
+        190
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Insert audit trail for verified claims\n{{ \n  (() => {\n    const auditTrail = $('Parse Packet JSON').first().json.audit_trail || [];\n    const packetId = $json.id;\n    if (auditTrail.length === 0) return 'SELECT 1; -- no claims to audit';\n    \n    const values = auditTrail.map(claim => {\n      const text = claim.claim_text.replace(/'/g, \"''\");\n      const loc = claim.claim_location.replace(/'/g, \"''\");\n      const sids = claim.signal_ids.map(s => \"'\" + s + \"'\").join(',');\n      return \"('\" + packetId + \"', '\" + text + \"', '\" + loc + \"', ARRAY[\" + sids + \"]::uuid[])\";\n    }).join(',\\n');\n    \n    return 'INSERT INTO control_plane.packet_claim_sources (packet_id, claim_text, claim_location, signal_ids) VALUES\\n' + values + '\\nON CONFLICT DO NOTHING;';\n  })()\n}}",
+        "options": {}
+      },
+      "id": "7fa88619-f511-447d-997c-5909f4cfb7f9",
+      "name": "Insert Audit Trail",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3008,
+        190
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      }
     }
   ],
   "connections": {
@@ -584,7 +683,7 @@
       "main": [
         [
           {
-            "node": "Builder: Objection Library",
+            "node": "Insert Audit Trail",
             "type": "main",
             "index": 0
           }
@@ -728,6 +827,17 @@
         [
           {
             "node": "Loop Through Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Audit Trail": {
+      "main": [
+        [
+          {
+            "node": "Builder: Objection Library",
             "type": "main",
             "index": 0
           }

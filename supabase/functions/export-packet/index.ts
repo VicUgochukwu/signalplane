@@ -368,13 +368,10 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
   <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
     <!-- Header -->
     <div style="text-align:center;margin-bottom:32px;">
-<<<<<<< Updated upstream
-      <img src="https://signalplane.dev/favicon-cropped.png" alt="Control Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
-=======
       <img src="https://dnqjzgfunvbofsuibcsk.supabase.co/storage/v1/object/public/email-assets/signal-plane-logo-email.png" alt="Signal Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
->>>>>>> Stashed changes
       <h1 style="margin:0 0 8px;color:#e5e7eb;font-size:22px;font-weight:700;">${escapeHtml(packet.packet_title)}</h1>
       <p style="margin:0;color:#9ca3af;font-size:13px;">${escapeHtml(packet.week_start)} &mdash; ${escapeHtml(packet.week_end)}</p>
+      <div style="margin-top:8px;"><span style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600;color:#22c55e;background:#22c55e1a;border:1px solid #22c55e33;text-transform:uppercase;letter-spacing:1px;">Evidence-Grade &middot; All Claims Source-Verified</span></div>
     </div>
 
     ${metricsHtml}
