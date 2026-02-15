@@ -35,14 +35,16 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
     low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   };
 
+  const rebuttal = objection.rebuttal || { acknowledge: '', reframe: '', proof: '', talk_track: '' };
+
   const handleCopyRebuttal = async () => {
-    const rebuttalText = `**Acknowledge:** ${objection.rebuttal.acknowledge}
+    const rebuttalText = `**Acknowledge:** ${rebuttal.acknowledge || ''}
 
-**Reframe:** ${objection.rebuttal.reframe}
+**Reframe:** ${rebuttal.reframe || ''}
 
-**Proof:** ${objection.rebuttal.proof}
+**Proof:** ${rebuttal.proof || ''}
 
-**Talk Track:** ${objection.rebuttal.talk_track}`;
+**Talk Track:** ${rebuttal.talk_track || ''}`;
 
     try {
       await navigator.clipboard.writeText(rebuttalText);
@@ -73,7 +75,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
       recordEdit.mutate({
         artifactType: 'objection_rebuttal',
         artifactVersionId: versionId,
-        sectionKey: `${objection.id}.${field}`,
+        sectionKey: `${objection.id || 'unknown'}.${field}`,
         originalContent: original,
         editedContent: editValue,
         editType: 'modify',
@@ -84,10 +86,10 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
   };
 
   const rebuttalSections = [
-    { key: 'acknowledge', label: 'Acknowledge', value: objection.rebuttal.acknowledge },
-    { key: 'reframe', label: 'Reframe', value: objection.rebuttal.reframe },
-    { key: 'proof', label: 'Proof', value: objection.rebuttal.proof },
-    { key: 'talk_track', label: 'Talk Track', value: objection.rebuttal.talk_track },
+    { key: 'acknowledge', label: 'Acknowledge', value: rebuttal.acknowledge || '' },
+    { key: 'reframe', label: 'Reframe', value: rebuttal.reframe || '' },
+    { key: 'proof', label: 'Proof', value: rebuttal.proof || '' },
+    { key: 'talk_track', label: 'Talk Track', value: rebuttal.talk_track || '' },
   ];
 
   return (
@@ -100,16 +102,16 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
       )}
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start gap-2 mb-2">
-          <Badge className={frequencyColors[objection.frequency]}>
-            {objection.frequency} frequency
+          <Badge className={frequencyColors[objection.frequency] || frequencyColors.medium}>
+            {objection.frequency || 'medium'} frequency
           </Badge>
-          <Badge variant="outline">{objection.category}</Badge>
+          <Badge variant="outline">{objection.category || 'General'}</Badge>
         </div>
         <CardTitle className="text-base font-medium leading-relaxed">
-          &ldquo;{objection.objection_text}&rdquo;
+          &ldquo;{objection.objection_text || ''}&rdquo;
         </CardTitle>
         <div className="flex flex-wrap gap-1 mt-2">
-          {objection.personas.map((persona) => (
+          {(objection.personas || []).map((persona) => (
             <Badge key={persona} variant="secondary" className="text-xs">
               {persona}
             </Badge>
@@ -412,8 +414,8 @@ export function ObjectionLibraryTab() {
             {category} ({objections.length})
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
-            {objections.map((objection) => (
-              <ObjectionCard key={objection.id} objection={objection} versionId={currentVersion.id} />
+            {objections.map((objection, idx) => (
+              <ObjectionCard key={objection.id || `obj-${idx}`} objection={objection} versionId={currentVersion.id} />
             ))}
           </div>
         </div>

@@ -63,11 +63,22 @@ export const useObjectionLibrary = () => {
 
       return filtered.map(row => {
         const raw = row.content_json || { objections: [], total_count: 0, new_this_week_count: 0, categories: [] };
-        // Normalize objections: ensure personas array exists on each objection
+        // Normalize objections: ensure all required fields exist on each objection
         if (Array.isArray(raw.objections)) {
-          raw.objections = raw.objections.map((o: any) => ({
+          raw.objections = raw.objections.map((o: any, idx: number) => ({
             ...o,
+            id: o.id || `obj-${row.id}-${idx}`,
+            objection_text: o.objection_text || '',
+            category: o.category || 'General',
+            frequency: o.frequency || 'medium',
             personas: o.personas || [],
+            rebuttal: {
+              acknowledge: '',
+              reframe: '',
+              proof: '',
+              talk_track: '',
+              ...(o.rebuttal || {}),
+            },
             is_new_this_week: o.is_new_this_week ?? false,
           }));
         }
@@ -127,10 +138,11 @@ export const useSwipeFile = () => {
 
       return filtered.map(row => {
         const raw = row.content_json || { phrases: [], total_count: 0, by_persona: {}, by_category: {} };
-        // Normalize phrases: map 'text' → 'phrase' and ensure optional fields
+        // Normalize phrases: map 'text' → 'phrase' and ensure all required fields
         if (Array.isArray(raw.phrases)) {
-          raw.phrases = raw.phrases.map((p: any) => ({
+          raw.phrases = raw.phrases.map((p: any, idx: number) => ({
             ...p,
+            id: p.id || `phrase-${row.id}-${idx}`,
             phrase: p.phrase || p.text || '',
             persona: p.persona || 'General',
             category: p.category || 'Uncategorized',

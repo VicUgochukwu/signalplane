@@ -107,8 +107,8 @@ function PhraseCard({ phrase, versionId }: { phrase: SwipePhrase; versionId: str
             <Badge variant="outline">{phrase.category}</Badge>
             <Badge variant="secondary">{phrase.persona}</Badge>
             <Badge variant="outline" className="gap-1">
-              {TREND_ICONS[phrase.trend]}
-              {TREND_LABELS[phrase.trend]}
+              {TREND_ICONS[phrase.trend] || TREND_ICONS.stable}
+              {TREND_LABELS[phrase.trend] || 'Stable'}
             </Badge>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -451,8 +451,8 @@ export function SwipeFileTab() {
       {/* Phrases Display */}
       {viewMode === 'grid' ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {filteredPhrases.map((phrase) => (
-            <PhraseCard key={phrase.id} phrase={phrase} versionId={currentVersion.id} />
+          {filteredPhrases.map((phrase, idx) => (
+            <PhraseCard key={phrase.id || `phrase-${idx}`} phrase={phrase} versionId={currentVersion.id} />
           ))}
         </div>
       ) : (
@@ -465,8 +465,8 @@ export function SwipeFileTab() {
                 <Badge variant="secondary" className="text-xs">{phrases.length}</Badge>
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
-                {phrases.map((phrase) => (
-                  <PhraseCard key={phrase.id} phrase={phrase} versionId={currentVersion.id} />
+                {phrases.map((phrase, idx) => (
+                  <PhraseCard key={phrase.id || `phrase-g-${idx}`} phrase={phrase} versionId={currentVersion.id} />
                 ))}
               </div>
             </div>
