@@ -190,7 +190,7 @@ export default function BulkUpload() {
   };
 
   return (
-    <main className="flex-1 container max-w-3xl mx-auto px-4 py-8">
+    <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 md:py-8">
         <div className="space-y-6">
           {/* Header with back link */}
           <div className="flex items-center gap-4">
@@ -204,12 +204,12 @@ export default function BulkUpload() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+              <Upload className="h-5 w-5 text-primary" />
               Bulk Upload
             </h1>
-            <p className="text-muted-foreground">
-              Import signals from a CSV file. The system auto-detects column mappings
-              for text, author, date, and company fields.
+            <p className="text-sm text-muted-foreground mt-1.5">
+              Import signals from a CSV file. Auto-detects column mappings for text, author, date, and company.
             </p>
           </div>
 

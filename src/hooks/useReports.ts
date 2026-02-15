@@ -22,9 +22,13 @@ const parseBets = (data: unknown): Bet[] => {
   if (!Array.isArray(data)) return [];
   return data.map((bet) => {
     const b = bet as Record<string, unknown>;
+    // Support both { hypothesis, confidence (number), signal_ids } and { bet, confidence (string), rationale }
+    const label = typeof b.hypothesis === 'string' ? b.hypothesis : (typeof b.bet === 'string' ? b.bet : '');
+    const confMap: Record<string, number> = { high: 85, medium: 60, low: 35 };
+    const conf = typeof b.confidence === 'number' ? b.confidence : (typeof b.confidence === 'string' ? (confMap[b.confidence.toLowerCase()] || 50) : 0);
     return {
-      hypothesis: typeof b.hypothesis === 'string' ? b.hypothesis : '',
-      confidence: typeof b.confidence === 'number' ? b.confidence : 0,
+      hypothesis: label,
+      confidence: conf,
       signal_ids: Array.isArray(b.signal_ids) ? b.signal_ids : [],
     };
   });
@@ -152,7 +156,9 @@ const parseMarketWinners = (data: unknown): IntelPacket['market_winners'] => {
         survival_weeks: typeof winner.survival_weeks === 'number' ? winner.survival_weeks : 0,
         propagation_count: typeof winner.propagation_count === 'number' ? winner.propagation_count : 0,
         why_it_matters: typeof winner.why_it_matters === 'string' ? winner.why_it_matters : '',
-        implementation_guidance: typeof winner.implementation_guidance === 'string' ? winner.implementation_guidance : '',
+        trend: typeof winner.trend === 'string' ? winner.trend as 'accelerating' | 'stable' | 'fading' : undefined,
+        your_gap: typeof winner.your_gap === 'string' ? winner.your_gap : undefined,
+        implementation_guidance: typeof winner.implementation_guidance === 'string' ? winner.implementation_guidance : undefined,
       };
     });
   };
@@ -181,6 +187,8 @@ const mapRowToPacket = (row: Record<string, any>): IntelPacket => {
       icp: parseIntelSection(sections.icp),
       horizon: parseIntelSection(sections.horizon),
       objection: parseIntelSection(sections.objection || sections.pipeline_intel),
+      social: parseIntelSection(sections.social),
+      enablement: parseIntelSection(sections.enablement),
     },
     key_questions: row.key_questions || [],
     bets: parseBets(row.bets),
@@ -254,7 +262,20 @@ export const useReports = () => {
         return user ? [] : mockReports;
       }
 
-      return data.map(mapRowToPacket);
+      // De-duplicate: if a personalized packet exists for a given week, hide the generic one
+      const personalizedWeeks = new Set(
+        data
+          .filter((row: any) => row.user_id && row.is_personalized)
+          .map((row: any) => `${row.week_start}_${row.week_end}`)
+      );
+      const filtered = data.filter((row: any) => {
+        if (row.user_id) return true; // always show personalized packets
+        // Hide generic packet if a personalized one exists for the same week
+        const weekKey = `${row.week_start}_${row.week_end}`;
+        return !personalizedWeeks.has(weekKey);
+      });
+
+      return filtered.map(mapRowToPacket);
     },
   });
 };

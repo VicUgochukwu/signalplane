@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Plug, UserCircle, Palette } from 'lucide-react';
-import { IconCompany } from '@/components/icons';
+import { Plug, UserCircle, Palette, SlidersHorizontal } from 'lucide-react';
+import { IconCompany, IconSignalSocial, IconSettings } from '@/components/icons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DeliveryIntegrations } from '@/components/DeliveryIntegrations';
 import { CompanyProfileSettings } from '@/components/settings/CompanyProfileSettings';
@@ -10,9 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SocialMonitoringSettings } from '@/components/settings/SocialMonitoringSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const VALID_TABS = ['profile', 'integrations', 'account', 'appearance'] as const;
+const VALID_TABS = ['profile', 'integrations', 'social', 'account', 'appearance'] as const;
 type SettingsTab = (typeof VALID_TABS)[number];
 
 const Settings = () => {
@@ -99,10 +100,11 @@ const Settings = () => {
     <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+          <IconSettings className="h-5 w-5 text-muted-foreground" />
           Settings
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm text-muted-foreground mt-1.5">
           Configure your profile, integrations, and account
         </p>
       </div>
@@ -113,7 +115,7 @@ const Settings = () => {
         onValueChange={handleTabChange}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="profile" className="gap-2">
             <IconCompany className="h-4 w-4" />
             <span className="hidden sm:inline">Company Profile</span>
@@ -122,6 +124,11 @@ const Settings = () => {
           <TabsTrigger value="integrations" className="gap-2">
             <Plug className="h-4 w-4" />
             <span>Integrations</span>
+          </TabsTrigger>
+          <TabsTrigger value="social" className="gap-2">
+            <IconSignalSocial className="h-4 w-4" />
+            <span className="hidden sm:inline">Social Intel</span>
+            <span className="sm:hidden">Social</span>
           </TabsTrigger>
           <TabsTrigger value="account" className="gap-2">
             <UserCircle className="h-4 w-4" />
@@ -139,6 +146,10 @@ const Settings = () => {
 
         <TabsContent value="integrations">
           <DeliveryIntegrations />
+        </TabsContent>
+
+        <TabsContent value="social">
+          <SocialMonitoringSettings />
         </TabsContent>
 
         <TabsContent value="account">

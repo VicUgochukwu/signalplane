@@ -21,7 +21,8 @@ export function UserMenu() {
 
   const email = user.email || '';
   const avatarUrl = user.user_metadata?.avatar_url;
-  const initial = email.charAt(0).toUpperCase();
+  const displayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || '';
+  const initial = (displayName || email).charAt(0).toUpperCase();
 
   const handleSignOut = async () => {
     await signOut();
@@ -43,7 +44,9 @@ export function UserMenu() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Account</p>
+            <p className="text-sm font-medium leading-none">
+              {(displayName || email.split('@')[0]).split(' ')[0]}
+            </p>
             <p className="text-xs leading-none text-muted-foreground truncate">
               {email}
             </p>

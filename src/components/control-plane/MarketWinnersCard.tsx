@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Clock } from 'lucide-react';
-import { IconTrophy, IconPersonaRevenue, IconCompany, IconTeam } from '@/components/icons';
-import { MarketWinner, WINNER_CATEGORY_CONFIG } from '@/types/controlPlane';
+import { Button } from '@/components/ui/button';
+import { Clock, TrendingUp, Minus, TrendingDown, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { IconTrophy, IconCompany, IconTeam } from '@/components/icons';
+import { MarketWinner, WINNER_CATEGORY_CONFIG, WinnerTrend } from '@/types/controlPlane';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface MarketWinnersCardProps {
   proven: MarketWinner[];
@@ -18,82 +15,120 @@ interface MarketWinnersCardProps {
 
 const FALLBACK_CATEGORY_CONFIG = { label: 'Other', color: 'text-muted-foreground', bgColor: 'bg-muted-foreground/20' };
 
-const WinnerItem = ({ winner, index }: { winner: MarketWinner; index: number }) => {
+const TREND_CONFIG: Record<WinnerTrend, { icon: typeof TrendingUp; label: string; color: string }> = {
+  accelerating: { icon: TrendingUp, label: 'Accelerating', color: 'text-emerald-400' },
+  stable: { icon: Minus, label: 'Stable', color: 'text-muted-foreground' },
+  fading: { icon: TrendingDown, label: 'Fading', color: 'text-rose-400' },
+};
+
+const WinnerRow = ({ winner, tierLabel }: { winner: MarketWinner; tierLabel: 'proven' | 'emerging' }) => {
+  const [expanded, setExpanded] = useState(false);
   const categoryConfig = WINNER_CATEGORY_CONFIG[winner.category] || FALLBACK_CATEGORY_CONFIG;
+  const trendConfig = winner.trend ? TREND_CONFIG[winner.trend] : null;
+  const TrendIcon = trendConfig?.icon || null;
+  const { toast } = useToast();
+
+  const handleActOnThis = () => {
+    toast({
+      title: 'Sent to Action Board',
+      description: `"${winner.pattern_label}" added to your inbox for triage.`,
+    });
+  };
 
   return (
-    <AccordionItem value={`winner-${index}`} className="border-border/30">
-      <AccordionTrigger className="hover:no-underline py-3">
-        <div className="flex items-start gap-3 text-left w-full pr-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="font-medium text-foreground text-sm">
-                {winner.pattern_label}
+    <div className={cn(
+      "rounded-lg border transition-colors",
+      tierLabel === 'proven'
+        ? 'border-emerald-500/20 bg-emerald-500/[0.03]'
+        : 'border-amber-500/20 bg-amber-500/[0.03]',
+    )}>
+      {/* Compact row — always visible */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left p-3 flex items-start gap-3"
+      >
+        <div className="flex-1 min-w-0">
+          {/* Line 1: label + category + trend */}
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-medium text-sm text-foreground">
+              {winner.pattern_label}
+            </span>
+            <Badge
+              variant="outline"
+              className={`${categoryConfig.bgColor} ${categoryConfig.color} border-transparent text-[10px] px-1.5 py-0`}
+            >
+              {categoryConfig.label}
+            </Badge>
+            {trendConfig && TrendIcon && (
+              <span className={`flex items-center gap-0.5 text-[10px] ${trendConfig.color}`}>
+                <TrendIcon className="h-3 w-3" />
+                {trendConfig.label}
               </span>
-              <Badge
-                variant="outline"
-                className={`${categoryConfig.bgColor} ${categoryConfig.color} border-transparent text-xs`}
-              >
-                {categoryConfig.label}
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <IconCompany className="h-3 w-3" />
-                {winner.where_seen.slice(0, 2).join(', ')}
-                {winner.where_seen.length > 2 && ` +${winner.where_seen.length - 2}`}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {winner.survival_weeks}w
-              </span>
-              <span className="flex items-center gap-1">
-                <IconTeam className="h-3 w-3" />
-                {winner.propagation_count}
-              </span>
-            </div>
+            )}
           </div>
+
+          {/* Line 2: metadata chips */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <IconCompany className="h-3 w-3" />
+              {winner.where_seen.slice(0, 3).join(', ')}
+              {winner.where_seen.length > 3 && ` +${winner.where_seen.length - 3}`}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {winner.survival_weeks}w
+            </span>
+            <span className="flex items-center gap-1">
+              <IconTeam className="h-3 w-3" />
+              {winner.propagation_count} adopted
+            </span>
+          </div>
+
+          {/* Line 3: gap indicator — the punch line */}
+          {winner.your_gap && (
+            <p className="text-xs font-medium text-rose-400 mt-1.5">
+              {winner.your_gap}
+            </p>
+          )}
         </div>
-      </AccordionTrigger>
 
-      <AccordionContent className="pb-4">
-        <div className="space-y-4 pt-2">
-          <div>
-            <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
-              What Changed
-            </h4>
-            <p className="text-sm text-foreground">{winner.what_changed}</p>
-          </div>
+        {/* Expand chevron */}
+        <div className="shrink-0 mt-1 text-muted-foreground/50">
+          {expanded
+            ? <ChevronUp className="h-4 w-4" />
+            : <ChevronDown className="h-4 w-4" />
+          }
+        </div>
+      </button>
 
-          <div>
-            <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
-              Why It Matters
-            </h4>
+      {/* Expanded detail — what changed + why + act */}
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2 border-t border-border/30 pt-2">
+          <p className="text-sm text-foreground">{winner.what_changed}</p>
+          {winner.why_it_matters && (
             <p className="text-sm text-muted-foreground">{winner.why_it_matters}</p>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
-              Implementation Guidance
-            </h4>
-            <p className="text-sm text-muted-foreground">{winner.implementation_guidance}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            {winner.where_seen.map((company) => (
-              <Badge
-                key={company}
-                variant="secondary"
-                className="text-xs"
-              >
-                {company}
-              </Badge>
-            ))}
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); handleActOnThis(); }}
+              className="h-7 text-xs gap-1.5"
+            >
+              <Plus className="h-3 w-3" />
+              Send to Action Board
+            </Button>
+            <div className="flex flex-wrap gap-1 ml-auto">
+              {winner.where_seen.map((company) => (
+                <Badge key={company} variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {company}
+                </Badge>
+              ))}
+            </div>
           </div>
         </div>
-      </AccordionContent>
-    </AccordionItem>
+      )}
+    </div>
   );
 };
 
@@ -105,62 +140,62 @@ export function MarketWinnersCard({ proven, emerging }: MarketWinnersCardProps) 
     return null;
   }
 
+  const totalPatterns = proven.length + emerging.length;
+  const gapCount = [...proven, ...emerging].filter(w => w.your_gap).length;
+
   return (
     <Card className="rounded-xl border border-border/50">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-          <IconTrophy className="h-4 w-4 text-amber-400" />
-          Market Winners
-        </CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
+            <IconTrophy className="h-4 w-4 text-amber-400" />
+            What&apos;s Winning in Your Market
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground border-border/50">
+              {totalPatterns} pattern{totalPatterns !== 1 ? 's' : ''}
+            </Badge>
+            {gapCount > 0 && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-rose-400 border-rose-500/20 bg-rose-500/10">
+                {gapCount} gap{gapCount !== 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+        </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Proven Winners Section */}
+      <CardContent className="space-y-4">
+        {/* Proven Winners */}
         {hasProven && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs">
-                Proven Winners
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0">
+                Proven
               </Badge>
-              <span className="text-xs text-muted-foreground">
-                {proven.length} pattern{proven.length !== 1 ? 's' : ''}
+              <span className="text-[10px] text-muted-foreground">
+                Survived 8+ weeks, adopted by multiple competitors
               </span>
             </div>
-
-            <Accordion type="single" collapsible className="w-full">
-              {proven.map((winner, index) => (
-                <WinnerItem
-                  key={`proven-${index}`}
-                  winner={winner}
-                  index={index}
-                />
-              ))}
-            </Accordion>
+            {proven.map((winner, idx) => (
+              <WinnerRow key={`proven-${idx}`} winner={winner} tierLabel="proven" />
+            ))}
           </div>
         )}
 
-        {/* Emerging Patterns Section */}
+        {/* Emerging Patterns */}
         {hasEmerging && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs flex items-center">
-                <IconPersonaRevenue className="h-3 w-3 mr-1" />
-                Emerging Patterns
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] px-1.5 py-0">
+                Emerging
               </Badge>
-              <span className="text-xs text-muted-foreground">
-                {emerging.length} pattern{emerging.length !== 1 ? 's' : ''}
+              <span className="text-[10px] text-muted-foreground">
+                Early signals — monitor for confirmation
               </span>
             </div>
-
-            <Accordion type="single" collapsible className="w-full">
-              {emerging.map((winner, index) => (
-                <WinnerItem
-                  key={`emerging-${index}`}
-                  winner={winner}
-                  index={index + proven.length}
-                />
-              ))}
-            </Accordion>
+            {emerging.map((winner, idx) => (
+              <WinnerRow key={`emerging-${idx}`} winner={winner} tierLabel="emerging" />
+            ))}
           </div>
         )}
       </CardContent>

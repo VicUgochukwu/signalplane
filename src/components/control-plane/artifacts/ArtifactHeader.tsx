@@ -1,7 +1,8 @@
 import { format, parseISO } from 'date-fns';
-import { Copy, Check, ChevronDown } from 'lucide-react';
+import { Copy, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface Version {
   id: string;
@@ -23,6 +25,10 @@ interface ArtifactHeaderProps {
   selectedVersion: Version | null;
   onVersionSelect: (version: Version) => void;
   markdownContent: string;
+  /** Optional: count of new items in the current version (e.g., "3 new objections") */
+  newItemCount?: number;
+  /** Optional: label for new items (e.g., "objections", "phrases") */
+  newItemLabel?: string;
 }
 
 export function ArtifactHeader({
@@ -31,6 +37,8 @@ export function ArtifactHeader({
   selectedVersion,
   onVersionSelect,
   markdownContent,
+  newItemCount,
+  newItemLabel,
 }: ArtifactHeaderProps) {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -71,18 +79,36 @@ export function ArtifactHeader({
     }
   };
 
+  const isLatest = selectedVersion && versions.length > 0 && selectedVersion.id === versions[0].id;
+
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4 mb-6">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+          {isLatest && (
+            <Badge variant="outline" className="border-primary/50 text-primary text-xs gap-1">
+              <Sparkles className="h-3 w-3" />
+              Latest
+            </Badge>
+          )}
+        </div>
         {selectedVersion && (
           <>
             <p className="text-lg text-muted-foreground">
               {formatWeekRange(selectedVersion.week_start, selectedVersion.week_end)}
             </p>
-            <p className="text-sm text-muted-foreground">
-              Last updated: {formatTimestamp(selectedVersion.created_at)}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm text-muted-foreground">
+                Last updated: {formatTimestamp(selectedVersion.created_at)}
+              </p>
+              {newItemCount !== undefined && newItemCount > 0 && newItemLabel && (
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  {newItemCount} new {newItemLabel} since last week
+                </Badge>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -97,14 +123,22 @@ export function ArtifactHeader({
               <ChevronDown className="h-4 w-4 ml-2" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[220px] bg-popover">
-            {versions.map((version) => (
+          <DropdownMenuContent align="end" className="w-[260px] bg-popover">
+            {versions.map((version, idx) => (
               <DropdownMenuItem
                 key={version.id}
                 onClick={() => onVersionSelect(version)}
-                className="cursor-pointer"
+                className={cn(
+                  "cursor-pointer flex items-center justify-between",
+                  selectedVersion?.id === version.id && "bg-primary/10 text-primary"
+                )}
               >
-                {formatWeekRange(version.week_start, version.week_end)}
+                <span>{formatWeekRange(version.week_start, version.week_end)}</span>
+                {idx === 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-2 border-primary/50 text-primary">
+                    Latest
+                  </Badge>
+                )}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

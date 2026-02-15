@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type {
   ObjectionLibraryVersion,
   SwipeFileVersion,
-  BattlecardVersion
+  BattlecardVersion,
+  MaturityModelVersion
 } from '@/types/artifacts';
 import { useDemo } from '@/contexts/DemoContext';
 
@@ -146,6 +147,57 @@ export const useBattlecards = () => {
         },
         content_md: row.content_md || '',
         included_signal_ids: row.included_signal_ids || [],
+        created_at: row.created_at,
+      }));
+    },
+  });
+};
+
+export const useMaturityModel = () => {
+  const demo = useDemo();
+
+  return useQuery({
+    queryKey: demo?.isDemo
+      ? ['demo-maturity-model', demo.sectorSlug]
+      : ['maturity-model'],
+    queryFn: async (): Promise<MaturityModelVersion[]> => {
+      if (!supabase) {
+        console.warn('Supabase not configured');
+        return [];
+      }
+
+      const schema = demo?.isDemo ? 'demo' : 'gtm_artifacts';
+      let query = supabase
+        .schema(schema as any)
+        .from('maturity_model_versions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (demo?.isDemo) {
+        query = query.eq('sector_slug', demo.sectorSlug);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Failed to fetch maturity model:', error.message);
+        return [];
+      }
+
+      return (data || []).map(row => ({
+        id: row.id,
+        week_start: row.week_start,
+        week_end: row.week_end,
+        packet_id: row.packet_id,
+        content_json: row.content_json || {
+          title: '',
+          dimensions: [],
+          competitor_mapping: [],
+          generation_metadata: { signal_count: 0, objection_count: 0, swipe_phrase_count: 0 }
+        },
+        content_md: row.content_md || '',
+        included_signal_ids: row.included_signal_ids || [],
+        dimension_count: row.dimension_count || 0,
         created_at: row.created_at,
       }));
     },

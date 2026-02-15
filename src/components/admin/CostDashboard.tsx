@@ -16,7 +16,7 @@ import {
   Zap,
   AlertTriangle
 } from 'lucide-react';
-import { format, subDays, startOfWeek } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { CostSummary } from '@/types/controlPlane';
 import { cn } from '@/lib/utils';
 
@@ -49,14 +49,11 @@ export function CostDashboard() {
   const { data: costData, isLoading, error } = useQuery({
     queryKey: ['admin-cost-summary', dateRange],
     queryFn: async () => {
-      // Query from ops.weekly_cost_summary view
-      const { data, error } = await supabase
-        .schema('ops' as any)
-        .from('weekly_cost_summary')
-        .select('*')
-        .gte('week_start', format(dateRange.from, 'yyyy-MM-dd'))
-        .lte('week_start', format(dateRange.to, 'yyyy-MM-dd'))
-        .order('week_start', { ascending: true });
+      // Query via RPC wrapper (ops schema not exposed via PostgREST)
+      const { data, error } = await supabase.rpc('admin_get_weekly_costs', {
+        p_from: format(dateRange.from, 'yyyy-MM-dd'),
+        p_to: format(dateRange.to, 'yyyy-MM-dd'),
+      });
 
       if (error) throw error;
       return data as CostSummary[];

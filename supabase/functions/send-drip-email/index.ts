@@ -61,9 +61,10 @@ Deno.serve(async (req) => {
   const headers = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
 
   try {
-    // Verify request is from n8n
+    // Verify request is from n8n or service role
     const authSecret = req.headers.get('x-n8n-secret');
-    if (authSecret !== Deno.env.get('N8N_WEBHOOK_SECRET')) {
+    const isN8nAuth = authSecret === Deno.env.get('N8N_WEBHOOK_SECRET');
+    if (!isN8nAuth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers,
@@ -306,7 +307,11 @@ function wrapHtml(title: string, bodyContent: string): string {
 <body style="margin:0;padding:0;background:#0a0a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
     <div style="text-align:center;margin-bottom:28px;">
+<<<<<<< Updated upstream
       <img src="https://signalplane.dev/favicon-cropped.png" alt="Control Plane" width="40" height="40" style="display:block;margin:0 auto 12px;border-radius:10px;" />
+=======
+      <img src="https://dnqjzgfunvbofsuibcsk.supabase.co/storage/v1/object/public/email-assets/signal-plane-logo-email.png" alt="Signal Plane" width="40" height="40" style="display:block;margin:0 auto 12px;border-radius:10px;" />
+>>>>>>> Stashed changes
       <h1 style="margin:0;color:#e5e7eb;font-size:20px;font-weight:700;">${esc(title)}</h1>
     </div>
     ${bodyContent}
@@ -672,7 +677,7 @@ function buildPktPreview(ctx: UserContext) {
 function buildPktFirstReady(ctx: UserContext) {
   const body = `
     ${p(`Hi ${esc(ctx.firstName)},`)}
-    ${p('Your first intel packet just shipped. This is the real deal &mdash; personalized competitive intelligence for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>.')}
+    ${p(`Your first intel packet just shipped. This is the real deal &mdash; personalized competitive intelligence for <strong style="color:#e5e7eb;">${esc(ctx.companyName)}</strong>.`)}
 
     ${card(`
       <div style="text-align:center;">

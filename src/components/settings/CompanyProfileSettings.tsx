@@ -7,6 +7,8 @@ import { Building2, Target, Plus, X, Loader2, CheckCircle2, Search } from 'lucid
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useTierGate } from '@/hooks/useTierGate';
+import { friendlyError } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -42,6 +44,7 @@ export function CompanyProfileSettings() {
   const { profile, competitors: existingCompetitors, needsOnboarding, refetch } = useOnboarding();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { maxCompetitors } = useTierGate();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -72,8 +75,8 @@ export function CompanyProfileSettings() {
 
   const addCompetitor = () => {
     if (!newCompetitorName.trim()) return;
-    if (competitors.length >= 10) {
-      toast({ title: 'Maximum 10 competitors allowed', variant: 'destructive' });
+    if (competitors.length >= maxCompetitors) {
+      toast({ title: `Maximum ${maxCompetitors} competitors allowed on your plan`, variant: 'destructive' });
       return;
     }
 
@@ -114,7 +117,7 @@ export function CompanyProfileSettings() {
     setIsSaving(false);
 
     if (error) {
-      toast({ title: 'Error saving profile', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error saving profile', description: friendlyError(error.message), variant: 'destructive' });
       return;
     }
 
@@ -204,7 +207,7 @@ export function CompanyProfileSettings() {
             <div className="pt-4 border-t border-border">
               <Label className="text-muted-foreground text-xs flex items-center gap-1 mb-2">
                 <Target className="h-3 w-3" />
-                Tracked Competitors ({existingCompetitors.length}/5)
+                Tracked Competitors ({existingCompetitors.length}/{maxCompetitors})
               </Label>
               <div className="flex flex-wrap gap-2">
                 {existingCompetitors.map((comp) => (
@@ -296,7 +299,7 @@ export function CompanyProfileSettings() {
         <div className="pt-4 border-t border-border space-y-3">
           <Label className="text-foreground/80 flex items-center gap-1">
             <Target className="h-4 w-4" />
-            Tracked Competitors ({competitors.length}/5)
+            Tracked Competitors ({competitors.length}/{maxCompetitors})
           </Label>
 
           {competitors.length > 0 && (
@@ -321,7 +324,7 @@ export function CompanyProfileSettings() {
             </div>
           )}
 
-          {competitors.length < 5 && (
+          {competitors.length < maxCompetitors && (
             <div className="flex gap-2">
               <Input
                 placeholder="Competitor name"

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -108,6 +109,21 @@ function getExecutionStatusIcon(status: string) {
 }
 
 export default function AdminSystemOverview() {
+  // Fetch hidden workflow IDs to filter overview
+  const { data: hiddenIds } = useQuery({
+    queryKey: ['admin-hidden-workflows'],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('admin_get_hidden_workflows');
+      if (error) {
+        console.warn('Failed to fetch hidden workflows:', error.message);
+        return [] as string[];
+      }
+      return (data || []) as string[];
+    },
+  });
+
+  const hiddenSet = new Set(hiddenIds || []);
+
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['admin-system-summary'],
     queryFn: async () => {
@@ -130,11 +146,11 @@ export default function AdminSystemOverview() {
   const { data: workflows, isLoading: workflowsLoading } = useQuery({
     queryKey: ['admin-n8n-workflows'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-system-monitor', {
-        body: { action: 'n8n_list_workflows' },
+      const result = await invokeEdgeFunction<{ data: any }>('admin-system-monitor', {
+        action: 'n8n_list_workflows',
       });
-      if (error) throw error;
-      return (data?.data || []) as N8nWorkflow[];
+      const inner = result.data;
+      return (Array.isArray(inner) ? inner : inner?.data || []) as N8nWorkflow[];
     },
     refetchInterval: 60000,
   });
@@ -142,11 +158,11 @@ export default function AdminSystemOverview() {
   const { data: executions, isLoading: executionsLoading } = useQuery({
     queryKey: ['admin-n8n-executions'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-system-monitor', {
-        body: { action: 'n8n_list_executions', limit: 10 },
+      const result = await invokeEdgeFunction<{ data: any }>('admin-system-monitor', {
+        action: 'n8n_list_executions', limit: 10,
       });
-      if (error) throw error;
-      return (data?.data || []) as N8nExecution[];
+      const inner = result.data;
+      return (Array.isArray(inner) ? inner : inner?.data || []) as N8nExecution[];
     },
     refetchInterval: 60000,
   });
@@ -264,17 +280,17 @@ export default function AdminSystemOverview() {
                     <Skeleton key={i} className="h-10 bg-muted" />
                   ))}
                 </div>
-              ) : workflows && workflows.length > 0 ? (
+              ) : workflows && workflows.filter(w => !hiddenSet.has(w.id)).length > 0 ? (
                 <div className="space-y-2">
-                  {workflows.slice(0, 5).map((workflow) => (
-                    <div 
-                      key={workflow.id} 
+                  {workflows.filter(w => !hiddenSet.has(w.id)).slice(0, 5).map((workflow) => (
+                    <div
+                      key={workflow.id}
                       className="flex items-center justify-between p-2 rounded-lg bg-card/50"
                     >
                       <span className="font-medium text-sm text-foreground">{workflow.name}</span>
-                      <Badge 
-                        className={workflow.active 
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                      <Badge
+                        className={workflow.active
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                           : 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30'
                         }
                       >
@@ -298,11 +314,11 @@ export default function AdminSystemOverview() {
                       <Skeleton key={i} className="h-6 bg-muted" />
                     ))}
                   </div>
-                ) : executions && executions.length > 0 ? (
+                ) : executions && executions.filter(e => !hiddenSet.has(e.workflowId)).length > 0 ? (
                   <div className="space-y-2">
-                    {executions.slice(0, 5).map((execution) => (
-                      <div 
-                        key={execution.id} 
+                    {executions.filter(e => !hiddenSet.has(e.workflowId)).slice(0, 5).map((execution) => (
+                      <div
+                        key={execution.id}
                         className="flex items-center gap-2 text-xs"
                       >
                         {getExecutionStatusIcon(execution.status)}

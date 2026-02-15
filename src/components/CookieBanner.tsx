@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { updateConsent } from "@/lib/analytics";
 
 type CookiePreferences = {
   essential: boolean;
@@ -48,6 +49,7 @@ export function CookieBanner() {
       personalization: true,
     };
     storeConsent(allAccepted);
+    updateConsent(allAccepted);
     setVisible(false);
   };
 
@@ -59,11 +61,13 @@ export function CookieBanner() {
       personalization: false,
     };
     storeConsent(essentialOnly);
+    updateConsent(essentialOnly);
     setVisible(false);
   };
 
   const handleSavePreferences = () => {
     storeConsent(preferences);
+    updateConsent(preferences);
     setVisible(false);
     setShowCustomize(false);
   };

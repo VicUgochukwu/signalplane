@@ -83,6 +83,8 @@ export interface IntelPacket {
     icp: IntelSection;
     horizon: IntelSection;
     objection: IntelSection;
+    social: IntelSection;
+    enablement: IntelSection;
   };
   key_questions: string[];
   bets: Bet[];

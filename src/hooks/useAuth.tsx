@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
+import { pushEvent } from '@/lib/analytics';
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && session?.user && !syncedRef.current) {
           syncedRef.current = true;
           invokeEdgeFunctionSilent('loops-sync', { action: 'sync_new_user' });
+          pushEvent('login', { method: session.user.app_metadata?.provider ?? 'magic_link' });
+        }
+
+        // Track last active (fire-and-forget, throttled to 5 min in DB)
+        if (session?.user) {
+          supabase.rpc('touch_last_active').then(() => {});
         }
       }
     );
