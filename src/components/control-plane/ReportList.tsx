@@ -3,7 +3,7 @@ import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
 import { PilotStatusBar } from './PilotStatusBar';
 import { IntelligenceOverview } from './IntelligenceOverview';
-import { Target, Brain, AlertTriangle } from 'lucide-react';
+import { Target, Brain, AlertTriangle, Radio } from 'lucide-react';
 import { IconPacket, IconSignalCount, IconSignalRadio } from '@/components/icons';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDemo } from '@/contexts/DemoContext';
@@ -123,17 +123,32 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
       <IntelligenceOverview />
 
       {/* Report Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {reports.map((report) => (
-          <ReportCard
-            key={report.id}
-            report={report}
-            onClick={() => onSelectReport(report)}
-            isPersonalized={!!profile?.company_name}
-            actionBoardCount={boardCounts?.[report.id] || 0}
-          />
-        ))}
-      </div>
+      {reports.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {reports.map((report) => (
+            <ReportCard
+              key={report.id}
+              report={report}
+              onClick={() => onSelectReport(report)}
+              isPersonalized={!!profile?.company_name}
+              actionBoardCount={boardCounts?.[report.id] || 0}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border/50 bg-card p-8 text-center space-y-3">
+          <div className="flex justify-center">
+            <div className="p-3 rounded-xl bg-primary/10">
+              <Radio className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-foreground">No intelligence packets yet</p>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Your first evidence-grade intel packet will be generated on the next scheduled run.
+            All claims will be source-verified against real competitive signals.
+          </p>
+        </div>
+      )}
 
       {/* Demo CTA */}
       <DemoCtaBanner />
