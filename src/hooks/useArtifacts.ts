@@ -7,14 +7,30 @@ import type {
   MaturityModelVersion
 } from '@/types/artifacts';
 import { useDemo } from '@/contexts/DemoContext';
+import { useAuth } from './useAuth';
+
+/** De-duplicate artifacts: prefer personalized over generic for the same week */
+function deduplicateByWeek<T extends { week_start?: string; week_end?: string; user_id?: string | null; is_personalized?: boolean }>(rows: T[]): T[] {
+  const personalizedWeeks = new Set(
+    rows
+      .filter(r => r.user_id && r.is_personalized)
+      .map(r => `${r.week_start}_${r.week_end}`)
+  );
+  return rows.filter(r => {
+    if (r.user_id) return true;
+    const weekKey = `${r.week_start}_${r.week_end}`;
+    return !personalizedWeeks.has(weekKey);
+  });
+}
 
 export const useObjectionLibrary = () => {
   const demo = useDemo();
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: demo?.isDemo
       ? ['demo-objection-library', demo.sectorSlug]
-      : ['objection-library'],
+      : ['objection-library', user?.id],
     queryFn: async (): Promise<ObjectionLibraryVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
@@ -30,6 +46,10 @@ export const useObjectionLibrary = () => {
 
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
+      } else if (user?.id) {
+        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+      } else {
+        query = query.is('user_id', null);
       }
 
       const { data, error } = await query;
@@ -39,7 +59,9 @@ export const useObjectionLibrary = () => {
         return [];
       }
 
-      return (data || []).map(row => ({
+      const filtered = deduplicateByWeek(data || []);
+
+      return filtered.map(row => ({
         id: row.id,
         week_start: row.week_start,
         week_end: row.week_end,
@@ -56,11 +78,12 @@ export const useObjectionLibrary = () => {
 
 export const useSwipeFile = () => {
   const demo = useDemo();
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: demo?.isDemo
       ? ['demo-swipe-file', demo.sectorSlug]
-      : ['swipe-file'],
+      : ['swipe-file', user?.id],
     queryFn: async (): Promise<SwipeFileVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
@@ -76,6 +99,10 @@ export const useSwipeFile = () => {
 
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
+      } else if (user?.id) {
+        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+      } else {
+        query = query.is('user_id', null);
       }
 
       const { data, error } = await query;
@@ -85,7 +112,9 @@ export const useSwipeFile = () => {
         return [];
       }
 
-      return (data || []).map(row => ({
+      const filtered = deduplicateByWeek(data || []);
+
+      return filtered.map(row => ({
         id: row.id,
         week_start: row.week_start,
         week_end: row.week_end,
@@ -102,11 +131,12 @@ export const useSwipeFile = () => {
 
 export const useBattlecards = () => {
   const demo = useDemo();
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: demo?.isDemo
       ? ['demo-battlecards', demo.sectorSlug]
-      : ['battlecards'],
+      : ['battlecards', user?.id],
     queryFn: async (): Promise<BattlecardVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
@@ -122,6 +152,10 @@ export const useBattlecards = () => {
 
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
+      } else if (user?.id) {
+        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+      } else {
+        query = query.is('user_id', null);
       }
 
       const { data, error } = await query;
@@ -131,7 +165,19 @@ export const useBattlecards = () => {
         return [];
       }
 
-      return (data || []).map(row => ({
+      // For battlecards, deduplicate by competitor + week (prefer personalized)
+      const personalizedKeys = new Set(
+        (data || [])
+          .filter((r: any) => r.user_id && r.is_personalized)
+          .map((r: any) => `${r.competitor_name}_${r.week_start}_${r.week_end}`)
+      );
+      const filtered = (data || []).filter((r: any) => {
+        if (r.user_id) return true;
+        const key = `${r.competitor_name}_${r.week_start}_${r.week_end}`;
+        return !personalizedKeys.has(key);
+      });
+
+      return filtered.map((row: any) => ({
         id: row.id,
         competitor_name: row.competitor_name,
         week_start: row.week_start,
