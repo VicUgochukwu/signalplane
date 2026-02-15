@@ -201,6 +201,7 @@ const mapRowToPacket = (row: Record<string, any>): IntelPacket => {
     metrics: parseMetrics(sections.metrics),
     is_personalized: row.is_personalized || false,
     user_company_name: row.user_company_name || null,
+    verification_status: row.verification_status || 'verified',
   };
 };
 

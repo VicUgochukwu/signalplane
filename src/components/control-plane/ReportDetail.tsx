@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft, HelpCircle,
-  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2, Eye, Brain
+  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2, Eye, Brain, ShieldAlert
 } from 'lucide-react';
 import {
   IconSignalRadio, IconSignalCount, IconConfidence,
@@ -264,6 +264,24 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
                 <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${status.dotClass} ${report.status === 'live' ? 'animate-pulse' : ''}`} />
                 {status.label}
               </Badge>
+              {report.verification_status === 'verified' && (
+                <Badge variant="outline" className="text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Evidence-Grade
+                </Badge>
+              )}
+              {report.verification_status === 'unverified' && (
+                <Badge variant="outline" className="text-[10px] font-medium bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1">
+                  <ShieldAlert className="h-3 w-3" />
+                  Unverified
+                </Badge>
+              )}
+              {(report.verification_status === 'flagged' || report.verification_status === 'retracted') && (
+                <Badge variant="outline" className="text-[10px] font-medium bg-rose-500/10 text-rose-400 border-rose-500/20 gap-1">
+                  <ShieldAlert className="h-3 w-3" />
+                  {report.verification_status === 'flagged' ? 'Flagged' : 'Retracted'}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-sm text-muted-foreground">{formattedStartDate} – {formattedEndDate}</p>
@@ -303,6 +321,48 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           </div>
         </div>
       </div>
+
+      {/* ─── Unverified Intelligence Banner ─── */}
+      {report.verification_status === 'unverified' && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-amber-300">Unverified Intelligence</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This packet was generated before our evidence-grade pipeline was active.
+              Some claims may not be backed by source signals. Treat all intelligence
+              in this packet as directional only — verify critical claims before acting.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Flagged / Retracted Banner ─── */}
+      {report.verification_status === 'flagged' && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-rose-300">Flagged for Review</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This packet has been flagged — one or more claims could not be verified
+              against source signals. Do not use this intelligence for decision-making.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {report.verification_status === 'retracted' && (
+        <div className="rounded-xl border border-rose-500/40 bg-rose-500/[0.08] p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-rose-400">Retracted</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This packet has been retracted due to verified inaccuracies.
+              It is retained for audit purposes only.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ─── View Switcher ─── */}
       {roleViewsEnabled && (
