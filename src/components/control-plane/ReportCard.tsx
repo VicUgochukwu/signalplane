@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { IntelPacket, PacketStatus } from '@/types/report';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, Sparkles, HelpCircle, AlertTriangle, Brain, LayoutList } from 'lucide-react';
+import { ChevronRight, Sparkles, HelpCircle, AlertTriangle, Brain, LayoutList, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { IconSignalRadio, IconSignalHorizon } from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 import { mergedPredictions, computeAccuracy, countMarketGaps } from '@/lib/packetUtils';
@@ -81,10 +81,30 @@ export const ReportCard = ({ report, onClick, isPersonalized = false, actionBoar
               </p>
             </div>
           </div>
-          <Badge variant="outline" className={`shrink-0 text-xs font-medium ${status.badgeClass}`}>
-            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${status.dotClass} ${report.status === 'live' ? 'animate-pulse' : ''}`} />
-            {status.label}
-          </Badge>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant="outline" className={`text-xs font-medium ${status.badgeClass}`}>
+              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${status.dotClass} ${report.status === 'live' ? 'animate-pulse' : ''}`} />
+              {status.label}
+            </Badge>
+            {report.verification_status === 'verified' && (
+              <Badge variant="outline" className="text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Evidence-Grade
+              </Badge>
+            )}
+            {report.verification_status === 'unverified' && (
+              <Badge variant="outline" className="text-[10px] font-medium bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1">
+                <ShieldAlert className="h-2.5 w-2.5" />
+                Unverified
+              </Badge>
+            )}
+            {(report.verification_status === 'flagged' || report.verification_status === 'retracted') && (
+              <Badge variant="outline" className="text-[10px] font-medium bg-rose-500/10 text-rose-400 border-rose-500/20 gap-1">
+                <ShieldAlert className="h-2.5 w-2.5" />
+                {report.verification_status === 'flagged' ? 'Flagged' : 'Retracted'}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
