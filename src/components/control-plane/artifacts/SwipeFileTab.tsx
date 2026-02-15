@@ -172,9 +172,9 @@ export function SwipeFileTab() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(p =>
-        p.phrase.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.persona.toLowerCase().includes(q)
+        (p.phrase || p.text || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.persona || '').toLowerCase().includes(q)
       );
     }
 

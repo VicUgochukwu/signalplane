@@ -207,7 +207,7 @@ export function ObjectionLibraryTab() {
     }
 
     const objections = currentVersion.content_json.objections;
-    const allPersonas = [...new Set(objections.flatMap(o => o.personas))].sort();
+    const allPersonas = [...new Set(objections.flatMap(o => o.personas || []))].sort();
     const allCategories = [...new Set(objections.map(o => o.category || 'Uncategorized'))].sort();
 
     let filtered = objections;
@@ -216,16 +216,16 @@ export function ObjectionLibraryTab() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(o =>
-        o.objection_text.toLowerCase().includes(q) ||
-        o.rebuttal.talk_track.toLowerCase().includes(q) ||
-        o.rebuttal.reframe.toLowerCase().includes(q) ||
-        o.category.toLowerCase().includes(q)
+        o.objection_text?.toLowerCase().includes(q) ||
+        o.rebuttal?.talk_track?.toLowerCase().includes(q) ||
+        o.rebuttal?.reframe?.toLowerCase().includes(q) ||
+        o.category?.toLowerCase().includes(q)
       );
     }
 
     // Filters
     if (personaFilter !== 'all') {
-      filtered = filtered.filter(o => o.personas.includes(personaFilter));
+      filtered = filtered.filter(o => o.personas?.includes(personaFilter));
     }
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(o => o.category === categoryFilter);
@@ -348,7 +348,7 @@ export function ObjectionLibraryTab() {
                 <SelectContent className="bg-popover">
                   <SelectItem value="all">All Personas</SelectItem>
                   {personas.map(p => {
-                    const count = currentVersion.content_json.objections.filter(o => o.personas.includes(p)).length;
+                    const count = currentVersion.content_json.objections.filter(o => o.personas?.includes(p)).length;
                     return <SelectItem key={p} value={p}>{p} ({count})</SelectItem>;
                   })}
                 </SelectContent>

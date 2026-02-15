@@ -61,17 +61,28 @@ export const useObjectionLibrary = () => {
 
       const filtered = deduplicateByWeek(data || []);
 
-      return filtered.map(row => ({
-        id: row.id,
-        week_start: row.week_start,
-        week_end: row.week_end,
-        packet_id: row.packet_id,
-        content_json: row.content_json || { objections: [], total_count: 0, new_this_week_count: 0, categories: [] },
-        content_md: row.content_md || '',
-        included_signal_ids: row.included_signal_ids || [],
-        objection_count: row.objection_count || 0,
-        created_at: row.created_at,
-      }));
+      return filtered.map(row => {
+        const raw = row.content_json || { objections: [], total_count: 0, new_this_week_count: 0, categories: [] };
+        // Normalize objections: ensure personas array exists on each objection
+        if (Array.isArray(raw.objections)) {
+          raw.objections = raw.objections.map((o: any) => ({
+            ...o,
+            personas: o.personas || [],
+            is_new_this_week: o.is_new_this_week ?? false,
+          }));
+        }
+        return {
+          id: row.id,
+          week_start: row.week_start,
+          week_end: row.week_end,
+          packet_id: row.packet_id,
+          content_json: raw,
+          content_md: row.content_md || '',
+          included_signal_ids: row.included_signal_ids || [],
+          objection_count: row.objection_count || 0,
+          created_at: row.created_at,
+        };
+      });
     },
   });
 };
@@ -114,17 +125,31 @@ export const useSwipeFile = () => {
 
       const filtered = deduplicateByWeek(data || []);
 
-      return filtered.map(row => ({
-        id: row.id,
-        week_start: row.week_start,
-        week_end: row.week_end,
-        packet_id: row.packet_id,
-        content_json: row.content_json || { phrases: [], total_count: 0, by_persona: {}, by_category: {} },
-        content_md: row.content_md || '',
-        included_signal_ids: row.included_signal_ids || [],
-        phrase_count: row.phrase_count || 0,
-        created_at: row.created_at,
-      }));
+      return filtered.map(row => {
+        const raw = row.content_json || { phrases: [], total_count: 0, by_persona: {}, by_category: {} };
+        // Normalize phrases: map 'text' → 'phrase' and ensure optional fields
+        if (Array.isArray(raw.phrases)) {
+          raw.phrases = raw.phrases.map((p: any) => ({
+            ...p,
+            phrase: p.phrase || p.text || '',
+            persona: p.persona || 'General',
+            category: p.category || 'Uncategorized',
+            trend: p.trend || 'stable',
+            is_new_this_week: p.is_new_this_week ?? false,
+          }));
+        }
+        return {
+          id: row.id,
+          week_start: row.week_start,
+          week_end: row.week_end,
+          packet_id: row.packet_id,
+          content_json: raw,
+          content_md: row.content_md || '',
+          included_signal_ids: row.included_signal_ids || [],
+          phrase_count: row.phrase_count || 0,
+          created_at: row.created_at,
+        };
+      });
     },
   });
 };
