@@ -1,6 +1,10 @@
 const ALLOWED_ORIGINS = [
   'https://signalplane.dev',
   'https://www.signalplane.dev',
+  'https://diligence.security',
+  'https://www.diligence.security',
+  'https://controlplane.dev',
+  'https://www.controlplane.dev',
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:8081',

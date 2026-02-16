@@ -74,7 +74,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\nconst userList = [\n  { user_id: \"00000000-0000-0000-0000-000000000000\", is_generic: true },\n  ...users.map(u => ({ user_id: u.user_id, is_generic: false }))\n];\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
+        "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n// No generic packets — every packet must belong to a specific user\nconst userList = users.map(u => ({ user_id: u.user_id, is_generic: false }));\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
       },
       "id": "4e8093ed-77a5-443b-814d-8b321fbd1060",
       "name": "Prepare User List",
@@ -1032,7 +1032,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\nconst userList = [\n  { user_id: \"00000000-0000-0000-0000-000000000000\", is_generic: true },\n  ...users.map(u => ({ user_id: u.user_id, is_generic: false }))\n];\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
+          "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n// No generic packets — every packet must belong to a specific user\nconst userList = users.map(u => ({ user_id: u.user_id, is_generic: false }));\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
         },
         "id": "4e8093ed-77a5-443b-814d-8b321fbd1060",
         "name": "Prepare User List",

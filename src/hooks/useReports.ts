@@ -244,39 +244,26 @@ export const useReports = () => {
         .limit(50);
 
       if (user?.id) {
-        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+        // Only show packets belonging to this user — never show generic/other users' packets
+        query = query.eq('user_id', user.id);
       } else {
-        query = query.is('user_id', null);
+        // Unauthenticated visitors see mock demo data
+        return mockReports;
       }
 
       const { data, error } = await query;
 
       if (error) {
         console.warn('Failed to fetch from Supabase:', error.message);
-        // Only fall back to mock data for unauthenticated visitors (marketing demo)
-        return user ? [] : mockReports;
+        return [];
       }
 
       if (!data || data.length === 0) {
-        console.info('No packets in Supabase');
-        // Authenticated users see empty state; visitors see mock demo
-        return user ? [] : mockReports;
+        console.info('No packets for this user yet');
+        return [];
       }
 
-      // De-duplicate: if a personalized packet exists for a given week, hide the generic one
-      const personalizedWeeks = new Set(
-        data
-          .filter((row: any) => row.user_id && row.is_personalized)
-          .map((row: any) => `${row.week_start}_${row.week_end}`)
-      );
-      const filtered = data.filter((row: any) => {
-        if (row.user_id) return true; // always show personalized packets
-        // Hide generic packet if a personalized one exists for the same week
-        const weekKey = `${row.week_start}_${row.week_end}`;
-        return !personalizedWeeks.has(weekKey);
-      });
-
-      return filtered.map(mapRowToPacket);
+      return data.map(mapRowToPacket);
     },
   });
 };

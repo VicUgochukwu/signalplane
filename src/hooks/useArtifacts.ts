@@ -9,19 +9,7 @@ import type {
 import { useDemo } from '@/contexts/DemoContext';
 import { useAuth } from './useAuth';
 
-/** De-duplicate artifacts: prefer personalized over generic for the same week */
-function deduplicateByWeek<T extends { week_start?: string; week_end?: string; user_id?: string | null; is_personalized?: boolean }>(rows: T[]): T[] {
-  const personalizedWeeks = new Set(
-    rows
-      .filter(r => r.user_id && r.is_personalized)
-      .map(r => `${r.week_start}_${r.week_end}`)
-  );
-  return rows.filter(r => {
-    if (r.user_id) return true;
-    const weekKey = `${r.week_start}_${r.week_end}`;
-    return !personalizedWeeks.has(weekKey);
-  });
-}
+/* No generic/public artifacts allowed — every authenticated user only sees their own data */
 
 export const useObjectionLibrary = () => {
   const demo = useDemo();
@@ -47,9 +35,10 @@ export const useObjectionLibrary = () => {
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
       } else if (user?.id) {
-        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+        // Only show this user's artifacts — never show generic/other users' data
+        query = query.eq('user_id', user.id);
       } else {
-        query = query.is('user_id', null);
+        return [];
       }
 
       const { data, error } = await query;
@@ -59,7 +48,7 @@ export const useObjectionLibrary = () => {
         return [];
       }
 
-      const filtered = deduplicateByWeek(data || []);
+      const filtered = data || [];
 
       return filtered.map(row => {
         const raw = row.content_json || { objections: [], total_count: 0, new_this_week_count: 0, categories: [] };
@@ -122,9 +111,10 @@ export const useSwipeFile = () => {
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
       } else if (user?.id) {
-        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+        // Only show this user's artifacts — never show generic/other users' data
+        query = query.eq('user_id', user.id);
       } else {
-        query = query.is('user_id', null);
+        return [];
       }
 
       const { data, error } = await query;
@@ -134,7 +124,7 @@ export const useSwipeFile = () => {
         return [];
       }
 
-      const filtered = deduplicateByWeek(data || []);
+      const filtered = data || [];
 
       return filtered.map(row => {
         const raw = row.content_json || { phrases: [], total_count: 0, by_persona: {}, by_category: {} };
@@ -180,17 +170,6 @@ export const useBattlecards = () => {
         return [];
       }
 
-      // Fetch user's tracked competitor names to filter generic battlecards
-      let trackedCompetitorNames: string[] = [];
-      if (!demo?.isDemo && user?.id) {
-        const { data: trackedComps } = await supabase
-          .from('user_tracked_competitors')
-          .select('competitor_name')
-          .eq('user_id', user.id)
-          .eq('is_active', true);
-        trackedCompetitorNames = (trackedComps || []).map((c: any) => c.competitor_name?.toLowerCase());
-      }
-
       const schema = demo?.isDemo ? 'demo' : 'gtm_artifacts';
       let query = supabase
         .schema(schema as any)
@@ -201,9 +180,10 @@ export const useBattlecards = () => {
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
       } else if (user?.id) {
-        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+        // Only show this user's battlecards — never show generic/other users' data
+        query = query.eq('user_id', user.id);
       } else {
-        query = query.is('user_id', null);
+        return [];
       }
 
       const { data, error } = await query;
@@ -213,22 +193,7 @@ export const useBattlecards = () => {
         return [];
       }
 
-      // For battlecards, deduplicate by competitor + week (prefer personalized)
-      // AND filter generic battlecards to only show competitors the user tracks
-      const personalizedKeys = new Set(
-        (data || [])
-          .filter((r: any) => r.user_id && r.is_personalized)
-          .map((r: any) => `${r.competitor_name}_${r.week_start}_${r.week_end}`)
-      );
-      const filtered = (data || []).filter((r: any) => {
-        if (r.user_id) return true;
-        // Generic battlecard — only show if the competitor is one the user tracks
-        if (trackedCompetitorNames.length > 0 && !trackedCompetitorNames.includes(r.competitor_name?.toLowerCase())) {
-          return false;
-        }
-        const key = `${r.competitor_name}_${r.week_start}_${r.week_end}`;
-        return !personalizedKeys.has(key);
-      });
+      const filtered = data || [];
 
       return filtered.map((row: any) => ({
         id: row.id,
