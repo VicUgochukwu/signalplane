@@ -23,7 +23,7 @@ const artifacts = [
 
 export function ArtifactsSection() {
   return (
-    <section aria-label="Competitive intelligence artifacts and action board" className="py-20 md:py-28 px-6 bg-[hsl(var(--section-alt))] dark:bg-transparent">
+    <section aria-label="Competitive intelligence artifacts and action board" className="py-20 md:py-28 px-6 bg-surface-elevated dark:bg-surface-base">
       <div className="max-w-6xl mx-auto">
         {/* Artifacts — left-aligned header */}
         <div className="max-w-xl mb-16">
@@ -39,11 +39,11 @@ export function ArtifactsSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {artifacts.map((artifact) => (
             <div
               key={artifact.title}
-              className="card-intel p-6 border border-border/60 dark:border-border/40"
+              className="animate-on-scroll card-intel p-6 border border-border/60 dark:border-border/40 hover:translate-y-[-2px] transition-transform duration-200"
               style={{ borderRadius: '6px' }}
             >
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-card bg-accent-signal/10 mb-5">

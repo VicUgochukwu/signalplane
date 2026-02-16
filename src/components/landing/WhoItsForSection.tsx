@@ -60,11 +60,11 @@ export function WhoItsForSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6">
           {personas.map((persona) => (
             <article
               key={persona.role}
-              className="card-intel p-6 flex flex-col"
+              className="animate-on-scroll card-intel p-6 flex flex-col hover:translate-y-[-2px] transition-transform duration-200"
               style={{ borderLeftColor: `hsl(${persona.accent})` }}
             >
               <div

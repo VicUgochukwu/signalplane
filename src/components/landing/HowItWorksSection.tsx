@@ -45,11 +45,11 @@ export function HowItWorksSection() {
         </div>
 
         {/* Steps as card-intel cards with semantic accent borders */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6">
           {steps.map((step) => (
             <div
               key={step.number}
-              className="card-intel relative p-6"
+              className="animate-on-scroll card-intel relative p-6 hover:translate-y-[-2px] transition-transform duration-200"
               style={{ borderLeftColor: `hsl(${step.accent})` }}
             >
               {/* Step number watermark */}

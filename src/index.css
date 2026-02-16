@@ -415,17 +415,39 @@
   animation: revealScale 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Staggered cascade for card groups */
+/* Staggered cascade for card groups — up to 15 children */
 .stagger-children.visible > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children.visible > *:nth-child(2) { animation-delay: 80ms; }
-.stagger-children.visible > *:nth-child(3) { animation-delay: 160ms; }
-.stagger-children.visible > *:nth-child(4) { animation-delay: 240ms; }
-.stagger-children.visible > *:nth-child(5) { animation-delay: 320ms; }
-.stagger-children.visible > *:nth-child(6) { animation-delay: 400ms; }
+.stagger-children.visible > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children.visible > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children.visible > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children.visible > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children.visible > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children.visible > *:nth-child(7) { animation-delay: 360ms; }
+.stagger-children.visible > *:nth-child(8) { animation-delay: 420ms; }
+.stagger-children.visible > *:nth-child(9) { animation-delay: 480ms; }
+.stagger-children.visible > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-children.visible > *:nth-child(n+11) { animation-delay: 580ms; }
 
 .animate-fade-in-up {
   animation: revealUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* Hero entrance — auto-plays on page load */
+@keyframes heroEntrance {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-animate > * {
+  opacity: 0;
+  animation: heroEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero-animate > *:nth-child(1) { animation-delay: 100ms; }
+.hero-animate > *:nth-child(2) { animation-delay: 200ms; }
+.hero-animate > *:nth-child(3) { animation-delay: 300ms; }
+.hero-animate > *:nth-child(4) { animation-delay: 400ms; }
+.hero-animate > *:nth-child(5) { animation-delay: 500ms; }
+.hero-animate > *:nth-child(6) { animation-delay: 600ms; }
+.hero-animate > *:nth-child(7) { animation-delay: 700ms; }
 
 /* Blinking cursor */
 .cursor-blink::after {

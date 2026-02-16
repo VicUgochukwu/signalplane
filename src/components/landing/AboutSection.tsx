@@ -57,11 +57,11 @@ export function AboutSection() {
               How we think about intelligence
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="stagger-children grid grid-cols-1 md:grid-cols-2 gap-4">
             {principles.map((p) => (
               <div
                 key={p.title}
-                className="card-intel p-5"
+                className="animate-on-scroll card-intel p-5 hover:translate-y-[-1px] transition-transform duration-200"
                 style={{ borderLeftColor: `hsl(${p.accent})` }}
               >
                 <h4 className="font-semibold text-foreground mb-2">{p.title}</h4>

@@ -46,11 +46,11 @@ export function IntelligenceEngineSection() {
         </div>
 
         {/* Monitor grid — card-intel tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-24">
+        <div className="stagger-children grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-24">
           {monitors.map((monitor) => (
             <div
               key={monitor.title}
-              className="card-intel p-5 group"
+              className="animate-on-scroll card-intel p-5 group hover:translate-y-[-2px] transition-transform duration-200"
             >
               <monitor.icon className="w-5 h-5 text-accent-signal mb-3 group-hover:text-accent-signal transition-colors" />
               <h4 className="font-semibold text-foreground text-sm mb-1.5">

@@ -5,6 +5,9 @@ export function ContactSection() {
   return (
     <section id="contact" aria-label="Get started with Control Plane" className="py-20 md:py-28 px-6">
       <div className="max-w-6xl mx-auto text-center">
+        <div className="font-mono text-[11px] font-medium text-accent-signal mb-3 tracking-widest uppercase">
+          Get Started
+        </div>
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
           Stop finding out about competitor moves from your prospects
         </h2>
@@ -28,23 +31,23 @@ export function ContactSection() {
           Questions?{" "}
           <a
             href="mailto:hello@signalplane.dev"
-            className="text-primary hover:text-primary/80 transition-colors"
+            className="text-accent-signal hover:text-accent-signal/80 transition-colors"
           >
             hello@signalplane.dev
           </a>
         </p>
 
-        <p className="text-xs text-muted-foreground mb-6">
+        <p className="font-mono text-[10px] text-muted-foreground mb-6 uppercase tracking-wider">
           Works alongside Clay, HubSpot, Salesforce, Gong, and your existing GTM stack.
         </p>
 
-        <div className="pt-6 border-t border-border dark:border-border/30">
+        <div className="pt-6 border-t border-border/40 dark:border-border/20">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Enterprise teams:</span>{" "}
             Custom signal sources, dedicated integrations, or white-label?{" "}
             <a
               href="mailto:hello@signalplane.dev?subject=Enterprise%20inquiry"
-              className="text-primary hover:text-primary/80 transition-colors"
+              className="text-accent-signal hover:text-accent-signal/80 transition-colors"
             >
               Let's talk
             </a>

@@ -29,11 +29,11 @@ export function MetricsBanner() {
   return (
     <div className="py-12 px-6 bg-surface-elevated dark:bg-surface-base">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4">
+        <div className="stagger-children grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4">
           {metrics.map((metric) => (
             <div
               key={metric.label}
-              className="relative text-center p-5 rounded-card border border-border/40 dark:border-border/20 bg-surface dark:bg-surface-elevated/50"
+              className="animate-on-scroll relative text-center p-5 rounded-card border border-border/40 dark:border-border/20 bg-surface dark:bg-surface-elevated/50 hover:scale-[1.02] transition-transform duration-200"
             >
               {/* Top accent line */}
               <div

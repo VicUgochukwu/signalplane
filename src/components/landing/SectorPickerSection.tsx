@@ -47,14 +47,14 @@ export function SectorPickerSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="stagger-children grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {sectors.map((sector) => {
             const Icon = sector.icon;
             return (
               <Link
                 key={sector.slug}
                 to={`/demo/${sector.slug}`}
-                className="group card-intel p-4 text-center space-y-2 hover:border-l-[hsl(var(--accent-signal))]"
+                className="animate-on-scroll group card-intel p-4 text-center space-y-2 hover:border-l-[hsl(var(--accent-signal))] hover:scale-[1.03] transition-transform duration-200"
               >
                 <div className="mx-auto w-10 h-10 rounded-badge bg-[hsl(var(--accent-signal)/0.08)] flex items-center justify-center group-hover:bg-[hsl(var(--accent-signal)/0.15)] transition-colors">
                   <Icon className="h-5 w-5 text-accent-signal" />

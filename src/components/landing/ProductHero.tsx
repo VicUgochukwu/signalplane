@@ -7,7 +7,7 @@ export function ProductHero() {
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[55%_45%] gap-10 lg:gap-12 items-center">
           {/* Left — headline + CTAs (55% column) */}
-          <div className="max-w-xl">
+          <div className="hero-animate max-w-xl">
             {/* Category badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-badge bg-accent-signal/10 border border-accent-signal/20 mb-8">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-signal animate-glow-pulse" />
@@ -25,7 +25,7 @@ export function ProductHero() {
             </h1>
 
             {/* Value prop — second line */}
-            <p className="text-xl md:text-2xl font-semibold text-primary mb-6">
+            <p className="text-xl md:text-2xl font-semibold text-accent-signal mb-6">
               Control Plane replaces hearsay with evidence.
             </p>
 
@@ -53,7 +53,7 @@ export function ProductHero() {
           </div>
 
           {/* Right — packet preview card (45% column) with perspective tilt */}
-          <div className="hidden lg:block" style={{ perspective: '1200px' }}>
+          <div className="hidden lg:block" style={{ perspective: '1200px', opacity: 0, animation: 'heroEntrance 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards' }}>
             <div
               className="card-intel p-6 border border-border/60 dark:border-border/40"
               style={{

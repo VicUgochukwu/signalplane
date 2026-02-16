@@ -13,13 +13,19 @@ export function useScrollAnimation() {
         });
       },
       {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px",
+        threshold: 0.08,
+        rootMargin: "0px 0px -40px 0px",
       }
     );
 
-    const elements = ref.current?.querySelectorAll(".animate-on-scroll");
-    elements?.forEach((el) => observer.observe(el));
+    const container = ref.current;
+    if (!container) return;
+
+    // Observe animate-on-scroll and stagger-children elements
+    const elements = container.querySelectorAll(
+      ".animate-on-scroll, .stagger-children"
+    );
+    elements.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
   }, []);
