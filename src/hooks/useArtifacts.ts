@@ -219,11 +219,12 @@ export const useBattlecards = () => {
 
 export const useMaturityModel = () => {
   const demo = useDemo();
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: demo?.isDemo
       ? ['demo-maturity-model', demo.sectorSlug]
-      : ['maturity-model'],
+      : ['maturity-model', user?.id],
     queryFn: async (): Promise<MaturityModelVersion[]> => {
       if (!supabase) {
         console.warn('Supabase not configured');
@@ -239,6 +240,11 @@ export const useMaturityModel = () => {
 
       if (demo?.isDemo) {
         query = query.eq('sector_slug', demo.sectorSlug);
+      } else if (user?.id) {
+        // Only show this user's maturity models — never show other users' data
+        query = query.eq('user_id', user.id);
+      } else {
+        return [];
       }
 
       const { data, error } = await query;
