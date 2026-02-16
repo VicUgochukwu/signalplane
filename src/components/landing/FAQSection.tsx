@@ -42,7 +42,7 @@ const faqs = [
   {
     question: "What is the Action Board?",
     answer:
-      "The Action Board is a Kanban-style decision pipeline that turns weekly intelligence into team actions. Cards are auto-populated from each packet. Your team triages decisions from Inbox → Triaged → This Week → Done. Each card can generate an execution kit — a step-by-step playbook tailored to the specific decision type (reposition, defend, equip, respond, etc.). Intelligence without execution is just trivia. The Action Board closes the gap.",
+      "The Action Board is a Kanban-style decision pipeline that turns weekly intelligence into team actions. Cards are auto-populated from each packet. Your team triages decisions from Inbox \u2192 Triaged \u2192 This Week \u2192 Done. Each card can generate an execution kit — a step-by-step playbook tailored to the specific decision type (reposition, defend, equip, respond, etc.). Intelligence without execution is just trivia. The Action Board closes the gap.",
   },
   {
     question: "Is AI involved?",
@@ -68,10 +68,13 @@ const faqs = [
 
 export function FAQSection() {
   return (
-    <section id="faq" aria-label="Frequently asked questions" className="py-20 md:py-28 px-6 bg-[hsl(var(--section-alt))] dark:bg-transparent">
+    <section id="faq" aria-label="Frequently asked questions" className="py-20 md:py-28 px-6 bg-surface-elevated dark:bg-surface-base">
       <div className="max-w-6xl mx-auto">
-        {/* Centered header — visual rhythm break from left-aligned sections */}
+        {/* Centered header */}
         <div className="text-center mb-16">
+          <div className="font-mono text-[11px] font-medium text-accent-signal mb-3 tracking-widest uppercase">
+            FAQ
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
             Frequently asked questions
           </h2>
@@ -83,8 +86,12 @@ export function FAQSection() {
         <div className="max-w-3xl mx-auto">
           <Accordion type="single" collapsible>
             {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-border dark:border-border/50">
-                <AccordionTrigger className="text-left text-[15px] font-medium text-foreground hover:no-underline py-5">
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border-border/40 dark:border-border/20"
+              >
+                <AccordionTrigger className="text-left text-[15px] font-medium text-foreground hover:no-underline hover:text-accent-signal py-5 transition-colors">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
