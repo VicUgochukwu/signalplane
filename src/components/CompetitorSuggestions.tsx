@@ -19,14 +19,15 @@ export function CompetitorSuggestions({ onAddSuggestion }: CompetitorSuggestions
   const [hasLoaded, setHasLoaded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [error, setError] = useState(false);
+  const [addedDomains, setAddedDomains] = useState<Set<string>>(new Set());
 
   const trackedDomains = new Set(
     (competitors || []).map((c) => c.competitor_domain?.toLowerCase()).filter(Boolean),
   );
 
-  // Filter out already-tracked
+  // Filter out already-tracked and already-added (clicked +)
   const filtered = suggestions.filter(
-    (s) => !trackedDomains.has(s.domain.toLowerCase()),
+    (s) => !trackedDomains.has(s.domain.toLowerCase()) && !addedDomains.has(s.domain.toLowerCase()),
   );
 
   if (!profile?.company_name) return null;
@@ -122,7 +123,10 @@ export function CompetitorSuggestions({ onAddSuggestion }: CompetitorSuggestions
           <SuggestionPill
             key={s.domain}
             suggestion={s}
-            onAdd={() => onAddSuggestion({ name: s.name, domain: s.domain })}
+            onAdd={() => {
+              setAddedDomains((prev) => new Set(prev).add(s.domain.toLowerCase()));
+              onAddSuggestion({ name: s.name, domain: s.domain });
+            }}
           />
         ))}
 
