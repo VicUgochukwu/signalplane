@@ -74,7 +74,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n// No generic packets — every packet must belong to a specific user\nconst userList = users.map(u => ({ user_id: u.user_id, is_generic: false }));\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
+        "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n// No generic packets \u2014 every packet must belong to a specific user\nconst userList = users.map(u => ({ user_id: u.user_id, is_generic: false }));\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
       },
       "id": "4e8093ed-77a5-443b-814d-8b321fbd1060",
       "name": "Prepare User List",
@@ -579,6 +579,29 @@
         500
       ],
       "webhookId": "trigger-packet-gen"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Create action board cards from the packet's action_mapping\n-- Delete existing cards for this user+packet to avoid duplicates\nDELETE FROM learning.action_board_cards \nWHERE packet_id = '{{ $('Upsert Packet').first().json.id }}'::uuid;\n\n-- Insert 'this_week' actions\nINSERT INTO learning.action_board_cards (user_id, packet_id, action_text, owner_team, priority, signal_ids, column_status, column_order, moved_to_this_week_at, decision_type)\nSELECT \n  '{{ $('Format User Context').first().json.user_id }}'::uuid,\n  '{{ $('Upsert Packet').first().json.id }}'::uuid,\n  tw->>'action',\n  tw->>'owner',\n  LOWER(COALESCE(tw->>'priority', 'medium')),\n  CASE WHEN tw->'signal_ids' IS NOT NULL \n    THEN ARRAY(SELECT jsonb_array_elements_text(tw->'signal_ids'))::uuid[]\n    ELSE ARRAY[]::uuid[]\n  END,\n  'this_week',\n  ROW_NUMBER() OVER (ORDER BY CASE LOWER(COALESCE(tw->>'priority','medium')) WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END)::int,\n  NOW(),\n  'act_now'\nFROM jsonb_array_elements('{{ JSON.stringify($('Parse Packet JSON').first().json.packet.action_mapping.this_week || []).replace(/'/g, \"''\") }}'::jsonb) AS tw;\n\n-- Insert 'monitor' actions\nINSERT INTO learning.action_board_cards (user_id, packet_id, action_text, signal_headline, owner_team, priority, signal_ids, column_status, column_order, decision_type)\nSELECT \n  '{{ $('Format User Context').first().json.user_id }}'::uuid,\n  '{{ $('Upsert Packet').first().json.id }}'::uuid,\n  m->>'action',\n  m->>'signal',\n  'Intelligence',\n  'low',\n  CASE WHEN m->'signal_ids' IS NOT NULL \n    THEN ARRAY(SELECT jsonb_array_elements_text(m->'signal_ids'))::uuid[]\n    ELSE ARRAY[]::uuid[]\n  END,\n  'inbox',\n  ROW_NUMBER() OVER (ORDER BY (m->>'signal')::text)::int + 100,\n  'monitor'\nFROM jsonb_array_elements('{{ JSON.stringify($('Parse Packet JSON').first().json.packet.action_mapping.monitor || []).replace(/'/g, \"''\") }}'::jsonb) AS m;",
+        "options": {}
+      },
+      "id": "cc1e9a00-action-board-cards-0001",
+      "name": "Create Action Board Cards",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2758,
+        460
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NXUM3TVSIAhaVaEL",
+          "name": "Supabase Postgres (Shared Pooler)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
     }
   ],
   "connections": {
@@ -720,6 +743,11 @@
         [
           {
             "node": "Insert Audit Trail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Action Board Cards",
             "type": "main",
             "index": 0
           }
@@ -1032,7 +1060,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n// No generic packets — every packet must belong to a specific user\nconst userList = users.map(u => ({ user_id: u.user_id, is_generic: false }));\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
+          "jsCode": "const users = $input.all().map(item => item.json);\nconst weekRange = $('Compute Week Range').first().json;\n// No generic packets \u2014 every packet must belong to a specific user\nconst userList = users.map(u => ({ user_id: u.user_id, is_generic: false }));\nreturn userList.map(u => ({ json: { ...u, ...weekRange } }));"
         },
         "id": "4e8093ed-77a5-443b-814d-8b321fbd1060",
         "name": "Prepare User List",
