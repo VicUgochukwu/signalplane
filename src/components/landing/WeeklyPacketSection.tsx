@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 
 export function WeeklyPacketSection() {
@@ -8,7 +8,7 @@ export function WeeklyPacketSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Left — copy */}
           <div>
-            <div className="text-xs font-medium text-primary mb-3 tracking-wider uppercase">
+            <div className="text-[11px] font-mono font-medium text-accent-signal mb-3 tracking-widest uppercase">
               Core Deliverable
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
@@ -28,28 +28,28 @@ export function WeeklyPacketSection() {
                 "Ships to Slack, Notion, or email — wherever your team works",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-signal mt-1.5 shrink-0" />
                   {item}
                 </li>
               ))}
             </ul>
             <Link
               to="/demo/developer-tools"
-              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
+              className="evidence-link text-sm font-medium hover:opacity-80 transition-opacity"
             >
               View a sample packet
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight size={14} weight="bold" />
             </Link>
           </div>
 
           {/* Right — packet preview */}
-          <div className="p-6 rounded-xl border border-border bg-card shadow-[var(--shadow-card)] dark:bg-card/50 dark:shadow-none">
+          <div className="card-intel p-6 border border-border/60 dark:border-border/40" style={{ borderRadius: '6px' }}>
             <div className="flex items-center gap-2 mb-5">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-sm font-medium text-foreground">
+              <span className="w-2 h-2 rounded-full bg-accent-signal" />
+              <span className="text-sm font-semibold text-foreground">
                 Weekly Decision Packet
               </span>
-              <span className="ml-auto text-xs text-muted-foreground">Sample</span>
+              <span className="ml-auto text-[10px] font-mono text-muted-foreground">Sample</span>
             </div>
             <div className="space-y-4 text-sm">
               {[
@@ -60,9 +60,9 @@ export function WeeklyPacketSection() {
                 { label: "ACTION MAP", desc: "Who should do what, by when — with decision type" },
               ].map((item) => (
                 <div key={item.label} className="flex items-start gap-3">
-                  <span className="w-1 h-1 rounded-full bg-primary mt-2 shrink-0" />
+                  <span className="w-1 h-1 rounded-full bg-accent-signal mt-2 shrink-0" />
                   <div>
-                    <span className="text-xs font-medium text-primary tracking-wider">
+                    <span className="text-[10px] font-mono font-semibold text-accent-signal tracking-widest uppercase">
                       {item.label}
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>

@@ -1,28 +1,30 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Play, Lightning, Target, ChartLineUp, UsersFour } from "@phosphor-icons/react";
 
 export function ProductHero() {
   return (
-    <section aria-label="Product overview" className="pt-28 pb-8 md:pt-36 md:pb-10 px-6">
+    <section aria-label="Product overview" className="pt-24 pb-8 md:pt-32 md:pb-10 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left — headline + CTAs */}
+        <div className="grid grid-cols-1 lg:grid-cols-[55%_45%] gap-10 lg:gap-12 items-center">
+          {/* Left — headline + CTAs (55% column) */}
           <div className="max-w-xl">
             {/* Category badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-8">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-glow-pulse" />
-              <span className="text-xs font-medium text-primary tracking-wide">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-badge bg-accent-signal/10 border border-accent-signal/20 mb-8">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-signal animate-glow-pulse" />
+              <span className="text-[11px] font-mono font-medium text-accent-signal tracking-widest uppercase">
                 GTM Decision Infrastructure
               </span>
             </div>
 
-            {/* Headline — canonical from all positioning docs */}
-            <h1 className="text-4xl md:text-[3.25rem] font-bold text-foreground leading-[1.1] tracking-tight mb-5">
+            {/* Headline */}
+            <h1
+              className="font-bold text-foreground leading-[1.08] tracking-tight mb-5"
+              style={{ fontSize: 'var(--text-display)' }}
+            >
               Every week, your GTM team makes decisions based on what they heard last.
             </h1>
 
-            {/* Value prop — product voice, second line */}
+            {/* Value prop — second line */}
             <p className="text-xl md:text-2xl font-semibold text-primary mb-6">
               Control Plane replaces hearsay with evidence.
             </p>
@@ -33,72 +35,110 @@ export function ProductHero() {
               ships every Monday — evidence-linked, severity-ranked, mapped to owners.
             </p>
 
-            {/* CTAs */}
+            {/* CTAs — btn-primary (custom) + btn-secondary */}
             <div className="flex flex-col sm:flex-row items-start gap-4 mb-6">
-              <Link to="/login">
-                <Button
-                  size="lg"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-7 h-12 text-sm font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
-                >
-                  Start Free
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+              <Link to="/login" className="btn-primary text-sm px-7 py-3">
+                Start Free
+                <ArrowRight size={16} weight="bold" className="ml-2" />
               </Link>
-              <a href="#demo-sectors">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full px-7 h-12 text-sm font-semibold border-border dark:border-border/60 hover:bg-muted dark:hover:bg-muted/50 transition-all"
-                >
-                  <Play className="w-4 h-4 mr-2 fill-current" />
-                  See Live Demo
-                </Button>
+              <a href="#demo-sectors" className="btn-secondary text-sm px-7 py-3">
+                <Play size={16} weight="duotone" className="mr-2" />
+                See Live Demo
               </a>
             </div>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[12px] font-mono text-muted-foreground tracking-wide">
               No credit card required. First packet ships next Monday.
             </p>
           </div>
 
-          {/* Right — visual: mini packet preview card */}
-          <div className="hidden lg:block">
-            <div className="p-6 rounded-2xl border border-border bg-card shadow-[var(--shadow-elevated)] dark:bg-card/40 dark:border-border/60 dark:shadow-xl dark:shadow-black/5">
+          {/* Right — packet preview card (45% column) with perspective tilt */}
+          <div className="hidden lg:block" style={{ perspective: '1200px' }}>
+            <div
+              className="card-intel p-6 border border-border/60 dark:border-border/40"
+              style={{
+                transform: 'rotateY(-3deg) rotateX(1deg)',
+                borderLeft: '3px solid hsl(var(--accent-signal))',
+                borderRadius: '6px',
+              }}
+            >
+              {/* Packet header */}
               <div className="flex items-center gap-2 mb-5">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-sm font-medium text-foreground">
+                <span className="w-2 h-2 rounded-full bg-accent-signal animate-pulse" />
+                <span className="text-sm font-semibold text-foreground">
                   Weekly Decision Packet
                 </span>
-                <span className="ml-auto text-xs text-muted-foreground bg-muted dark:bg-muted/50 px-2 py-0.5 rounded-full">
+                <span className="ml-auto badge-severity badge-severity--medium text-[10px] px-2 py-0.5">
                   Ships Monday
                 </span>
               </div>
-              <div className="space-y-3 text-sm">
+
+              {/* Packet sections */}
+              <div className="space-y-2.5 text-sm">
                 {[
-                  { label: "EXECUTIVE SUMMARY", desc: "3-7 key competitive shifts from this week", severity: "high" },
-                  { label: "KEY SHIFTS", desc: "Messaging, pricing, and ICP changes ranked by impact", severity: "high" },
-                  { label: "90-DAY HYPOTHESES", desc: "Testable predictions with confidence levels", severity: "medium" },
-                  { label: "ACTION MAP", desc: "Owner-assigned decisions with execution playbooks", severity: "medium" },
+                  {
+                    icon: Lightning,
+                    label: "EXECUTIVE SUMMARY",
+                    desc: "3-7 key competitive shifts from this week",
+                    severity: "high",
+                  },
+                  {
+                    icon: Target,
+                    label: "KEY SHIFTS",
+                    desc: "Messaging, pricing, and ICP changes ranked by impact",
+                    severity: "high",
+                  },
+                  {
+                    icon: ChartLineUp,
+                    label: "90-DAY HYPOTHESES",
+                    desc: "Testable predictions with confidence levels",
+                    severity: "medium",
+                  },
+                  {
+                    icon: UsersFour,
+                    label: "ACTION MAP",
+                    desc: "Owner-assigned decisions with execution playbooks",
+                    severity: "medium",
+                  },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 dark:bg-background/50 border border-border/60 dark:border-border/30">
-                    <div className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${
-                      item.severity === "high" ? "bg-primary" : "bg-primary/50"
-                    }`} />
+                  <div
+                    key={item.label}
+                    className="flex items-start gap-3 p-3 rounded-card bg-surface/50 dark:bg-background/50 border border-border/40 dark:border-border/20"
+                  >
+                    <item.icon
+                      size={16}
+                      weight="duotone"
+                      className={`mt-0.5 shrink-0 ${
+                        item.severity === "high"
+                          ? "text-accent-severity"
+                          : "text-accent-signal"
+                      }`}
+                    />
                     <div className="min-w-0">
-                      <span className="text-[10px] font-semibold text-primary tracking-wider uppercase">
+                      <span className="text-[10px] font-mono font-semibold tracking-widest uppercase text-accent-signal">
                         {item.label}
                       </span>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.desc}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {item.desc}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t border-border/60 dark:border-border/30 flex items-center justify-between">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span><strong className="text-foreground">25+</strong> signals scored</span>
-                  <span><strong className="text-foreground">100%</strong> sourced</span>
+
+              {/* Packet footer */}
+              <div className="mt-4 pt-4 border-t border-border/40 dark:border-border/20 flex items-center justify-between">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
+                  <span>
+                    <strong className="text-foreground">25+</strong> signals
+                  </span>
+                  <span>
+                    <strong className="text-foreground">100%</strong> sourced
+                  </span>
                 </div>
-                <span className="text-[10px] text-primary font-medium">Evidence-grade</span>
+                <span className="evidence-link text-[10px]">
+                  Evidence-grade
+                </span>
               </div>
             </div>
           </div>
