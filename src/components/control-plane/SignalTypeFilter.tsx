@@ -51,7 +51,7 @@ export function SignalTypeFilter({
               'cursor-pointer transition-all duration-200 flex items-center gap-1.5 py-1.5 px-3',
               isSelected
                 ? `${config.bgColor} ${config.color} ${config.borderColor} border`
-                : 'bg-muted/50 text-muted-foreground border-border hover:border-primary/30'
+                : 'bg-muted/50 text-muted-foreground border-border hover:border-[hsl(var(--accent-signal)/0.3)]'
             )}
             onClick={() => onToggle(type)}
           >

@@ -153,7 +153,7 @@ const VIEW_TAB_KEYS: Record<ViewMode, MergedTabKey[] | 'all'> = {
 };
 
 const VIEW_MODE_LABELS: Record<ViewMode, { label: string; color: string }> = {
-  full: { label: 'Full View', color: 'bg-primary/10 text-primary border-primary/20' },
+  full: { label: 'Full View', color: 'bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)]' },
   executive: { label: 'Exec View', color: 'bg-violet-500/10 text-violet-400 border-violet-500/20' },
   sales: { label: 'Sales View', color: 'bg-sky-500/10 text-sky-400 border-sky-500/20' },
 };
@@ -252,7 +252,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Button>
 
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-primary/10 shrink-0 text-primary">
+          <div className="p-3 rounded-xl bg-[hsl(var(--accent-signal)/0.1)] shrink-0 text-accent-signal">
             <IconSignalRadio className="h-8 w-8" />
           </div>
           <div className="flex-1">
@@ -485,7 +485,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             <ul className="space-y-2">
               {report.exec_summary.map((item, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 shrink-0">›</span>
+                  <span className="text-accent-signal mt-0.5 shrink-0">›</span>
                   <span>{item}</span>
                 </li>
               ))}

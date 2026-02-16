@@ -28,7 +28,7 @@ export function AccountSettings() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
-            <UserCircle className="h-5 w-5 text-primary" />
+            <UserCircle className="h-5 w-5 text-accent-signal" />
             Account Information
           </CardTitle>
           <CardDescription className="text-muted-foreground">

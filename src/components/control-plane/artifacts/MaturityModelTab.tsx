@@ -153,7 +153,7 @@ ${stage.talk_track}${
               <div key={idx} className="text-sm">
                 <span className="font-medium text-foreground">&ldquo;{reframe.original_objection}&rdquo;</span>
                 <span className="text-muted-foreground"> → </span>
-                <span className="text-primary">{reframe.readiness_reframe}</span>
+                <span className="text-accent-signal">{reframe.readiness_reframe}</span>
               </div>
             ))}
           </div>
@@ -234,7 +234,7 @@ ${stage.talk_track}${
               <ul className="space-y-1.5">
                 {stage.discovery_questions.map((q, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm">
-                    <span className="text-primary font-bold mt-0.5 shrink-0">{idx + 1}.</span>
+                    <span className="text-accent-signal font-bold mt-0.5 shrink-0">{idx + 1}.</span>
                     <span className="text-muted-foreground italic">&ldquo;{q}&rdquo;</span>
                   </li>
                 ))}
@@ -264,7 +264,7 @@ ${stage.talk_track}${
                   <textarea
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-full min-h-[80px] rounded-md border border-primary/50 bg-muted/10 p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 leading-relaxed"
+                    className="w-full min-h-[80px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)] leading-relaxed"
                     autoFocus
                   />
                   <div className="flex gap-1.5 mt-1.5">
@@ -305,7 +305,7 @@ ${stage.talk_track}${
                         <textarea
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full min-h-[60px] rounded-md border border-primary/50 bg-muted/10 p-2.5 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 leading-relaxed"
+                          className="w-full min-h-[60px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-2.5 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)] leading-relaxed"
                           autoFocus
                         />
                         <div className="flex gap-1.5 mt-1.5">
@@ -320,7 +320,7 @@ ${stage.talk_track}${
                     ) : (
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm text-muted-foreground flex-1">
-                          <span className="font-medium text-primary">Reframe: </span>
+                          <span className="font-medium text-accent-signal">Reframe: </span>
                           {reframe.readiness_reframe}
                         </p>
                         {!editingField && (
@@ -365,7 +365,7 @@ function DimensionView({ dimension, versionId, callMode = false }: { dimension: 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 border-b border-border pb-2">
-        <Layers className="h-5 w-5 text-primary" />
+        <Layers className="h-5 w-5 text-accent-signal" />
         <h3 className={cn("font-bold text-foreground", callMode ? "text-base" : "text-lg")}>{dimension.label}</h3>
         {!callMode && (
           <Badge variant="outline" className="text-xs ml-auto">
@@ -479,7 +479,7 @@ export function MaturityModelTab() {
           onClick={() => setCallMode(!callMode)}
           className={cn(
             "gap-2 shrink-0",
-            callMode && "bg-primary text-primary-foreground"
+            callMode && "bg-accent-signal text-white"
           )}
         >
           {callMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
@@ -504,7 +504,7 @@ export function MaturityModelTab() {
       {callMode && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-primary" />
+            <Phone className="h-5 w-5 text-accent-signal" />
             <h3 className="text-lg font-bold text-foreground">Quick Reference: {content?.title || 'Maturity Model'}</h3>
           </div>
           <Button variant="outline" size="sm" onClick={handleCopyModel} className="gap-2">
@@ -527,7 +527,7 @@ export function MaturityModelTab() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-primary">4</div>
+              <div className="text-3xl font-bold text-accent-signal">4</div>
               <p className="text-sm text-muted-foreground">Stages per Dimension</p>
               <p className="text-xs text-muted-foreground/60 mt-0.5">
                 Ad Hoc &rarr; Functional &rarr; Systematic &rarr; Predictive
@@ -574,7 +574,7 @@ export function MaturityModelTab() {
                   placeholder="Search dimensions, stages, talk tracks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
                 />
               </div>
 

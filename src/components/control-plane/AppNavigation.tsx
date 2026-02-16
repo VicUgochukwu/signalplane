@@ -80,7 +80,7 @@ export function AppNavigation() {
                   className={cn(
                     'flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
                     location.pathname.startsWith('/admin')
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
                 >

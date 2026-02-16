@@ -91,7 +91,7 @@ export function PredictionCard({ prediction, onScored }: PredictionCardProps) {
           </span>
         )}
         {prediction.company_name && (
-          <span className="text-primary">{prediction.company_name}</span>
+          <span className="text-accent-signal">{prediction.company_name}</span>
         )}
       </div>
 
@@ -100,7 +100,7 @@ export function PredictionCard({ prediction, onScored }: PredictionCardProps) {
         <div className="mt-3 pt-3 border-t border-border/30">
           {!canScore ? (
             <p className="text-xs text-muted-foreground">
-              <span className="text-primary cursor-pointer hover:underline">Upgrade to Growth</span> to score predictions and build your accuracy record.
+              <span className="text-accent-signal cursor-pointer hover:underline">Upgrade to Growth</span> to score predictions and build your accuracy record.
             </p>
           ) : !showScoring ? (
             <Button

@@ -224,7 +224,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {quickLinks.map((link) => (
             <Link key={link.to} to={link.to}>
-              <Card className="bg-muted/50 border-border hover:border-primary/50 transition-colors cursor-pointer">
+              <Card className="bg-muted/50 border-border hover:border-[hsl(var(--accent-signal)/0.5)] transition-colors cursor-pointer">
                 <CardContent className="flex items-center justify-between p-4">
                   <span className="font-medium text-foreground">{link.label}</span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />

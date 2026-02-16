@@ -93,7 +93,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={this.handleRetry}
-                  className="rounded-full px-5 bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="rounded-full px-5 bg-accent-signal text-white hover:bg-[hsl(var(--accent-signal)/0.9)]"
                 >
                   Try Again
                 </Button>

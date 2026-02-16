@@ -95,7 +95,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
   return (
     <Card className="relative">
       {objection.is_new_this_week && (
-        <Badge className="absolute -top-2 -right-2 bg-primary text-primary-foreground gap-1">
+        <Badge className="absolute -top-2 -right-2 bg-accent-signal text-white gap-1">
           <Sparkles className="h-3 w-3" />
           New
         </Badge>
@@ -122,7 +122,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
         {/* Collapsible rebuttal toggle */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors w-full text-left"
+          className="flex items-center gap-1.5 text-sm font-medium text-accent-signal hover:text-accent-signal/80 transition-colors w-full text-left"
         >
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           {expanded ? 'Hide' : 'Show'} rebuttal framework
@@ -140,7 +140,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
                         <textarea
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full min-h-[60px] rounded-md border border-primary/50 bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          className="w-full min-h-[60px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
                           autoFocus
                         />
                         <div className="flex gap-1.5 mt-1">
@@ -308,7 +308,7 @@ export function ObjectionLibraryTab() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-primary">{content.new_this_week_count || 0}</div>
+            <div className="text-3xl font-bold text-accent-signal">{content.new_this_week_count || 0}</div>
             <p className="text-sm text-muted-foreground">New This Week</p>
           </CardContent>
         </Card>
@@ -332,7 +332,7 @@ export function ObjectionLibraryTab() {
                 placeholder="Search objections, rebuttals, categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
               />
             </div>
 

@@ -205,7 +205,7 @@ export default function BulkUpload() {
 
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-              <Upload className="h-5 w-5 text-primary" />
+              <Upload className="h-5 w-5 text-accent-signal" />
               Bulk Upload
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5">
@@ -231,8 +231,8 @@ export default function BulkUpload() {
                   className={`
                     relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
                     ${isDragging
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/50'
+                      ? 'border-accent-signal bg-[hsl(var(--accent-signal)/0.05)]'
+                      : 'border-border hover:border-[hsl(var(--accent-signal)/0.5)]'
                     }
                   `}
                   onClick={() => document.getElementById('csv-file-input')?.click()}
@@ -246,7 +246,7 @@ export default function BulkUpload() {
                   />
                   {file ? (
                     <div className="flex items-center justify-center gap-3">
-                      <FileText className="h-8 w-8 text-primary" />
+                      <FileText className="h-8 w-8 text-accent-signal" />
                       <div className="text-left">
                         <p className="font-medium text-foreground">{file.name}</p>
                         <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>

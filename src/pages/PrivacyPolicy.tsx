@@ -58,7 +58,7 @@ const PrivacyPolicy = () => {
                 similar technologies as described in our{" "}
                 <Link
                   to="/cookie-policy"
-                  className="text-primary hover:underline"
+                  className="text-accent-signal hover:underline"
                 >
                   Cookie Policy
                 </Link>
@@ -215,7 +215,7 @@ const PrivacyPolicy = () => {
               To exercise any of these rights, please contact us at{" "}
               <a
                 href="mailto:hello@signalplane.dev"
-                className="text-primary hover:underline"
+                className="text-accent-signal hover:underline"
               >
                 hello@signalplane.dev
               </a>
@@ -268,7 +268,7 @@ const PrivacyPolicy = () => {
               data practices, please contact us at{" "}
               <a
                 href="mailto:hello@signalplane.dev"
-                className="text-primary hover:underline"
+                className="text-accent-signal hover:underline"
               >
                 hello@signalplane.dev
               </a>

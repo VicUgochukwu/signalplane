@@ -63,13 +63,13 @@ export const ReportCard = ({ report, onClick, isPersonalized = false, actionBoar
 
   return (
     <Card
-      className="group cursor-pointer rounded-xl border border-border/50 bg-card hover:border-primary/20 hover:shadow-md transition-all duration-200"
+      className="group cursor-pointer rounded-xl border border-border/50 bg-card hover:border-[hsl(var(--accent-signal)/0.2)] hover:shadow-md transition-all duration-200"
       onClick={onClick}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 rounded-lg bg-primary/10 shrink-0 text-primary">
+            <div className="p-2 rounded-lg bg-[hsl(var(--accent-signal)/0.1)] shrink-0 text-accent-signal">
               <IconSignalRadio className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -111,7 +111,7 @@ export const ReportCard = ({ report, onClick, isPersonalized = false, actionBoar
         <ul className="text-sm text-muted-foreground space-y-1.5 mb-3">
           {report.exec_summary.slice(0, 2).map((item, index) => (
             <li key={index} className="flex items-start gap-2">
-              <span className="text-primary mt-0.5 shrink-0">›</span>
+              <span className="text-accent-signal mt-0.5 shrink-0">›</span>
               <span className="line-clamp-1">{item}</span>
             </li>
           ))}
@@ -166,7 +166,7 @@ export const ReportCard = ({ report, onClick, isPersonalized = false, actionBoar
             {isPersonalized && (
               <Badge
                 variant="outline"
-                className="text-[10px] px-1.5 py-0 h-4 border-primary/20 text-primary/80 bg-primary/5"
+                className="text-[10px] px-1.5 py-0 h-4 border-[hsl(var(--accent-signal)/0.2)] text-accent-signal/80 bg-[hsl(var(--accent-signal)/0.05)]"
               >
                 <Sparkles className="h-2.5 w-2.5 mr-0.5" />
                 Personalized

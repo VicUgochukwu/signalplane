@@ -21,9 +21,9 @@ export default function DemoLayout() {
           </header>
 
           {/* Demo banner */}
-          <div className="bg-primary/5 border-b border-primary/10 py-1.5 px-4">
+          <div className="bg-[hsl(var(--accent-signal)/0.05)] border-b border-[hsl(var(--accent-signal)/0.1)] py-1.5 px-4">
             <p className="text-center text-xs text-muted-foreground">
-              You're viewing sample data. <a href="/login" className="text-primary hover:text-primary/80 transition-colors font-medium">Track your actual competitors →</a>
+              You're viewing sample data. <a href="/login" className="text-accent-signal hover:text-[hsl(var(--accent-signal)/0.8)] transition-colors font-medium">Track your actual competitors →</a>
             </p>
           </div>
 

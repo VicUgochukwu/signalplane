@@ -101,7 +101,7 @@ export default function SubmitSignal() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                <IconSubmitSignal className="h-5 w-5 text-primary" />
+                <IconSubmitSignal className="h-5 w-5 text-accent-signal" />
                 Submit a Signal
               </h1>
               <p className="text-sm text-muted-foreground mt-1.5">
@@ -226,7 +226,7 @@ export default function SubmitSignal() {
             <div className="text-center">
               <Link
                 to="/control-plane/upload"
-                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
+                className="inline-flex items-center gap-2 text-accent-signal hover:text-[hsl(var(--accent-signal)/0.8)] transition-colors text-sm font-medium"
               >
                 Have a CSV file? Upload in bulk
                 <ArrowRight className="w-3.5 h-3.5" />

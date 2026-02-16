@@ -51,7 +51,7 @@ export function CompoundingDashboard() {
     <div className="rounded-xl border border-border/50 bg-card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <IconCompounding className="h-4 w-4 text-primary" />
+          <IconCompounding className="h-4 w-4 text-accent-signal" />
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
             Compounding Intelligence
           </h3>
@@ -79,7 +79,7 @@ export function CompoundingDashboard() {
         {/* Compounding Score */}
         <div className="p-3 rounded-lg bg-muted/20">
           <div className="flex items-center gap-2 mb-1.5">
-            <Gauge className="h-3.5 w-3.5 text-primary" />
+            <Gauge className="h-3.5 w-3.5 text-accent-signal" />
           </div>
           <div className={`text-xl font-bold tabular-nums ${scoreColor}`}>
             {metrics.compounding_score.toFixed(0)}
@@ -88,7 +88,7 @@ export function CompoundingDashboard() {
           {/* Mini progress bar */}
           <div className="mt-1.5 h-1 rounded-full bg-muted/50 overflow-hidden">
             <div
-              className="h-full rounded-full bg-primary transition-all"
+              className="h-full rounded-full bg-accent-signal transition-all"
               style={{ width: `${Math.min(100, metrics.compounding_score)}%` }}
             />
           </div>

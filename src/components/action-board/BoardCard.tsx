@@ -41,7 +41,7 @@ export function BoardCard({ card, onClick, onArchive, isOverlay = false }: Board
       className={cn(
         'group rounded-lg border border-border/40 bg-card p-3 transition-all hover:border-border/80 hover:shadow-sm touch-none',
         isDragging && 'opacity-30 scale-[0.98]',
-        isOverlay && 'shadow-lg border-primary/30 rotate-[2deg]',
+        isOverlay && 'shadow-lg border-[hsl(var(--accent-signal)/0.30)] rotate-[2deg]',
         isStale && 'opacity-60',
         !isDragging && !isOverlay && 'cursor-grab active:cursor-grabbing'
       )}
@@ -100,7 +100,7 @@ export function BoardCard({ card, onClick, onArchive, isOverlay = false }: Board
           {/* Status indicators */}
           <div className="flex items-center gap-2 mt-1.5">
             {hasKit && (
-              <span className="flex items-center gap-0.5 text-[10px] text-primary">
+              <span className="flex items-center gap-0.5 text-[10px] text-accent-signal">
                 <Sparkles className="h-3 w-3" />
                 Kit ready
               </span>

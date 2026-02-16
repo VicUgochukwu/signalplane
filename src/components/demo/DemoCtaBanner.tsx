@@ -8,7 +8,7 @@ export function DemoCtaBanner() {
   if (!demo?.showCta) return null;
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 my-6">
+    <div className="rounded-xl border border-[hsl(var(--accent-signal)/0.2)] bg-[hsl(var(--accent-signal)/0.05)] p-6 my-6">
       <div className="text-center space-y-3">
         <h3 className="text-lg font-semibold text-foreground">
           Like what you see?

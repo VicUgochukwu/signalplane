@@ -17,7 +17,7 @@ export function ApproachSection() {
           {principles.map((principle, index) => (
             <div
               key={index}
-              className="pl-6 border-l-2 border-primary/40"
+              className="pl-6 border-l-2 border-[hsl(var(--accent-signal)/0.4)]"
             >
               <p className="text-muted-foreground leading-relaxed">
                 {principle}

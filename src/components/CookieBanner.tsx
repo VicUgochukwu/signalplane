@@ -137,7 +137,7 @@ export function CookieBanner() {
                   checked={preferences[item.key]}
                   disabled={item.key === "essential"}
                   onChange={() => togglePreference(item.key)}
-                  className="mt-1 h-4 w-4 rounded border-border bg-secondary accent-primary cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="mt-1 h-4 w-4 rounded border-border bg-secondary accent-[hsl(var(--accent-signal))] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <div>
                   <span className="text-sm font-medium text-foreground">
@@ -160,7 +160,7 @@ export function CookieBanner() {
         {!showCustomize && (
           <button
             onClick={() => setShowCustomize(true)}
-            className="w-full mb-3 text-sm font-medium text-foreground underline underline-offset-2 hover:text-primary transition-colors text-center"
+            className="w-full mb-3 text-sm font-medium text-foreground underline underline-offset-2 hover:text-accent-signal transition-colors text-center"
           >
             Customize Cookie Settings
           </button>

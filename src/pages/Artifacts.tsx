@@ -42,7 +42,7 @@ export function ArtifactsContent() {
           </Button>
         </Link>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-          <IconArtifacts className="h-5 w-5 text-primary" />
+          <IconArtifacts className="h-5 w-5 text-accent-signal" />
           GTM Artifacts
         </h1>
         <p className="text-sm text-muted-foreground mt-1.5">

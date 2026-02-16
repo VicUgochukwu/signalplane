@@ -208,7 +208,7 @@ export function AppSidebar() {
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
                       {avatarUrl && <AvatarImage src={avatarUrl} alt={email} />}
-                      <AvatarFallback className="rounded-lg bg-primary/20 text-primary text-sm font-mono">
+                      <AvatarFallback className="rounded-lg bg-[hsl(var(--accent-signal)/0.15)] text-accent-signal text-sm font-mono">
                         {initial}
                       </AvatarFallback>
                     </Avatar>

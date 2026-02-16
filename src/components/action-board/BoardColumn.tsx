@@ -37,7 +37,7 @@ export function BoardColumn({ columnKey, label, color, cards, onCardClick, onArc
       className={cn(
         'rounded-xl border border-border/50 flex flex-col min-h-[400px] transition-colors',
         COLUMN_BG[columnKey],
-        isOver && 'border-primary/50 bg-primary/5 ring-2 ring-primary/20'
+        isOver && 'border-[hsl(var(--accent-signal)/0.50)] bg-[hsl(var(--accent-signal)/0.05)] ring-2 ring-[hsl(var(--accent-signal)/0.20)]'
       )}
     >
       {/* Column Header */}

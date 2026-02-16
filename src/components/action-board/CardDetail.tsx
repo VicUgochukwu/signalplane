@@ -110,7 +110,7 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Evidence</p>
               {card.evidence_urls.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-accent-signal hover:underline">
                   <ExternalLink className="h-3 w-3" />
                   {url.length > 60 ? url.slice(0, 60) + '...' : url}
                 </a>
@@ -122,15 +122,15 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
           {card.execution_kit ? (
             <ExecutionKitPanel kit={card.execution_kit} />
           ) : isGenerating ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="rounded-lg border border-[hsl(var(--accent-signal)/0.20)] bg-[hsl(var(--accent-signal)/0.05)] p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                <p className="text-sm font-medium text-primary">Generating execution kit...</p>
+                <Loader2 className="h-4 w-4 text-accent-signal animate-spin" />
+                <p className="text-sm font-medium text-accent-signal">Generating execution kit...</p>
               </div>
               <div className="space-y-2">
-                <Skeleton className="h-4 w-full bg-primary/10" />
-                <Skeleton className="h-4 w-3/4 bg-primary/10" />
-                <Skeleton className="h-4 w-5/6 bg-primary/10" />
+                <Skeleton className="h-4 w-full bg-[hsl(var(--accent-signal)/0.10)]" />
+                <Skeleton className="h-4 w-3/4 bg-[hsl(var(--accent-signal)/0.10)]" />
+                <Skeleton className="h-4 w-5/6 bg-[hsl(var(--accent-signal)/0.10)]" />
               </div>
               <p className="text-xs text-muted-foreground">
                 Analyzing signals, artifacts, and context to build tailored {card.decision_type || 'execution'} materials...
@@ -138,7 +138,7 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
             </div>
           ) : card.column_status !== 'inbox' && !demo?.isDemo ? (
             <div className="rounded-lg border border-dashed border-border/50 p-4 text-center space-y-3">
-              <Sparkles className="h-5 w-5 text-primary/40 mx-auto" />
+              <Sparkles className="h-5 w-5 text-[hsl(var(--accent-signal)/0.40)] mx-auto" />
               <p className="text-xs text-muted-foreground">
                 {card.decision_type
                   ? `Generate a ${card.decision_type} execution kit with tailored materials`
@@ -173,7 +173,7 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
                 }
               }}
               placeholder="Add notes..."
-              className="w-full min-h-[80px] rounded-lg border border-border/50 bg-muted/10 p-3 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full min-h-[80px] rounded-lg border border-border/50 bg-muted/10 p-3 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.50)]"
             />
           </div>
 

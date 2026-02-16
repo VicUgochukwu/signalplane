@@ -53,7 +53,7 @@ export function KnowledgeLedgerCard() {
     <div className="rounded-xl border border-border/50 bg-card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <IconKnowledgeLedger className="h-4 w-4 text-primary" />
+          <IconKnowledgeLedger className="h-4 w-4 text-accent-signal" />
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
             Knowledge Ledger
           </h3>
@@ -120,7 +120,7 @@ export function KnowledgeLedgerCard() {
         {/* Competitors */}
         <div className="p-3 rounded-lg bg-muted/20">
           <div className="flex items-center gap-2 mb-1.5">
-            <IconCompany className="h-3.5 w-3.5 text-primary" />
+            <IconCompany className="h-3.5 w-3.5 text-accent-signal" />
           </div>
           <div className="text-xl font-bold text-foreground tabular-nums">
             {metrics.competitors_monitored}
@@ -132,7 +132,7 @@ export function KnowledgeLedgerCard() {
         {isPilot && (
           <div className="p-3 rounded-lg bg-muted/20">
             <div className="flex items-center gap-2 mb-1.5">
-              <IconPilotTimer className="h-3.5 w-3.5 text-primary" />
+              <IconPilotTimer className="h-3.5 w-3.5 text-accent-signal" />
             </div>
             <div className="text-xl font-bold text-foreground tabular-nums">
               Day {daysElapsed}
@@ -143,7 +143,7 @@ export function KnowledgeLedgerCard() {
             {/* Mini progress bar */}
             <div className="mt-1.5 h-1 rounded-full bg-muted/50 overflow-hidden">
               <div
-                className="h-full rounded-full bg-primary transition-all"
+                className="h-full rounded-full bg-accent-signal transition-all"
                 style={{ width: `${Math.min(100, (daysElapsed / 60) * 100)}%` }}
               />
             </div>

@@ -101,8 +101,8 @@ export function IntelligenceOverview() {
           </div>
         ) : (
           <div className="flex items-center gap-3 p-4 md:pr-0 md:border-r border-border/30 shrink-0">
-            <div className="p-2.5 rounded-lg bg-primary/10">
-              <Activity className="h-5 w-5 text-primary" />
+            <div className="p-2.5 rounded-lg bg-[hsl(var(--accent-signal)/0.1)]">
+              <Activity className="h-5 w-5 text-accent-signal" />
             </div>
             <div className="min-w-0">
               <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Intelligence</div>
@@ -124,7 +124,7 @@ export function IntelligenceOverview() {
             label="Signals"
           />
           <MetricCell
-            icon={<Target className="h-3 w-3 text-primary" />}
+            icon={<Target className="h-3 w-3 text-accent-signal" />}
             value={knowledge.competitors_monitored}
             label="Competitors"
           />
@@ -185,7 +185,7 @@ export function IntelligenceOverview() {
           </div>
           <div className="h-1 rounded-full bg-muted/30 overflow-hidden">
             <div
-              className="h-full rounded-full bg-primary/60 transition-all"
+              className="h-full rounded-full bg-accent-signal/60 transition-all"
               style={{ width: `${Math.min(100, (daysElapsed / 60) * 100)}%` }}
             />
           </div>

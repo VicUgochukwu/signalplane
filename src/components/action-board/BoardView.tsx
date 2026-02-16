@@ -137,7 +137,7 @@ export function BoardView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Kanban className="h-5 w-5 text-primary" />
+          <Kanban className="h-5 w-5 text-accent-signal" />
           <h2 className="text-lg font-semibold text-foreground">Action Board</h2>
         </div>
       </div>

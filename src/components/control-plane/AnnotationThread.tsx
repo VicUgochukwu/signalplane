@@ -115,7 +115,7 @@ export function AnnotationThread({ targetType, targetId }: AnnotationThreadProps
           size="sm"
           onClick={() => newComment.trim() && addAnnotation.mutate(newComment.trim())}
           disabled={!newComment.trim() || addAnnotation.isPending}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs rounded-lg shrink-0"
+          className="bg-accent-signal hover:bg-accent-signal/90 text-white text-xs rounded-lg shrink-0"
         >
           {addAnnotation.isPending ? (
             <Loader2 className="h-3 w-3 animate-spin" />
