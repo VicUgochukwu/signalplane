@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, ArrowRight } from 'lucide-react';
 import { z } from 'zod';
 import { Logo } from '@/components/Logo';
 
@@ -86,58 +84,61 @@ const Login = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-accent-signal" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
-        <Link to="/" className="flex items-center justify-center gap-3">
-          <Logo className="w-14 h-14" />
-          <span className="text-xl font-semibold text-foreground">Signal Plane</span>
+      <div className="w-full max-w-sm space-y-8">
+        {/* Logo + wordmark */}
+        <Link to="/" className="flex items-center justify-center gap-3 group">
+          <Logo className="w-12 h-12" />
+          <span className="font-mono text-lg font-semibold text-foreground tracking-tight">
+            CONTROL PLANE
+          </span>
         </Link>
 
         {/* Title */}
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-foreground">Log in</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Log in</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Evidence-grade competitive intelligence, every Monday.
+          </p>
         </div>
 
           {emailSent ? (
             <div className="space-y-6 text-center py-8">
               <div className="flex justify-center">
-                <div className="p-4 rounded-full bg-primary/20 border border-primary/40">
-                  <CheckCircle className="h-10 w-10 text-primary" />
+                <div className="p-4 rounded-card bg-[hsl(var(--accent-evidence)/0.1)] border border-[hsl(var(--accent-evidence)/0.2)]">
+                  <CheckCircle className="h-10 w-10 text-accent-evidence" />
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-xl font-medium text-foreground">Check your email</p>
+                <p className="text-lg font-semibold text-foreground">Check your email</p>
                 <p className="text-muted-foreground">
-                  We sent a magic link to <span className="text-primary font-medium">{email}</span>
+                  We sent a magic link to <span className="text-accent-signal font-medium">{email}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Click the link in the email to sign in
                 </p>
               </div>
-              <Button
-                variant="outline"
+              <button
                 onClick={() => {
                   setEmailSent(false);
                   setEmail('');
                 }}
-                className="mt-4"
+                className="btn-secondary text-xs px-5 py-2"
               >
                 Try a different email
-              </Button>
+              </button>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* OAuth buttons */}
-              <Button
-                variant="outline"
-                className="w-full h-12 text-base font-medium border-border hover:bg-muted"
+            <div className="space-y-5">
+              {/* OAuth — Google */}
+              <button
+                className="btn-secondary w-full py-3 text-sm justify-center"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading}
               >
@@ -146,62 +147,65 @@ const Login = () => {
                 ) : (
                   <GoogleIcon />
                 )}
-                <span className="ml-3">Continue with Google</span>
-              </Button>
+                <span className="ml-3 normal-case tracking-normal">Continue with Google</span>
+              </button>
 
               {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
+                  <span className="w-full border-t border-border/40 dark:border-border/20" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                <div className="relative flex justify-center">
+                  <span className="bg-background px-3 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">or</span>
                 </div>
               </div>
 
               {/* Email form */}
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground">
+                  <label htmlFor="email" className="font-mono text-[11px] font-medium text-muted-foreground uppercase tracking-widest">
                     Email
-                  </Label>
+                  </label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Email"
+                    placeholder="you@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 bg-background border-border text-foreground placeholder:text-muted-foreground"
+                    className="h-11 bg-background border-border/60 dark:border-border/30 text-foreground placeholder:text-muted-foreground/50 rounded-button focus-visible:ring-[hsl(var(--accent-signal))] focus-visible:border-[hsl(var(--accent-signal))]"
                     disabled={isLoading}
                   />
                 </div>
 
                 {error && (
-                  <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
-                    <p className="text-sm text-destructive">{error}</p>
+                  <div className="rounded-badge bg-[hsl(var(--accent-drift)/0.1)] border border-[hsl(var(--accent-drift)/0.2)] p-3">
+                    <p className="text-sm text-[hsl(var(--accent-drift))]">{error}</p>
                   </div>
                 )}
 
-                <Button
+                <button
                   type="submit"
-                  className="w-full h-12 text-base font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="btn-primary w-full py-3 text-sm justify-center"
                   disabled={isLoading}
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Sending...
                     </>
                   ) : (
-                    'Continue'
+                    <>
+                      Continue
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
                   )}
-                </Button>
+                </button>
               </form>
 
               {/* Sign up link */}
-              <p className="text-sm text-center text-muted-foreground">
+              <p className="text-xs text-center text-muted-foreground">
                 Don't have an account?{' '}
-                <Link to="/login" className="text-primary hover:underline font-medium">
+                <Link to="/login" className="text-accent-signal hover:text-accent-signal/80 transition-colors font-medium">
                   Create your account
                 </Link>
               </p>
