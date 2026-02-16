@@ -17,7 +17,7 @@ export function ControlPlaneLayout() {
           <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-4 md:hidden">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <span className="text-sm font-medium text-muted-foreground">Signal Plane</span>
+            <span className="text-sm font-medium text-muted-foreground">Control Plane</span>
           </header>
 
           {/* Page content */}

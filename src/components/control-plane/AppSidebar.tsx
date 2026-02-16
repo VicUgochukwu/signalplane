@@ -29,7 +29,8 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Kanban, LogOut, FileStack } from 'lucide-react';
+import { Kanban, LogOut, FileStack, MessageCircleQuestion } from 'lucide-react';
+import { SupportModal } from './SupportModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,14 +119,14 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Signal Plane">
+            <SidebarMenuButton size="lg" asChild tooltip="Control Plane">
               <Link to="/control-plane">
                 <div className="flex aspect-square size-8 items-center justify-center">
                   <Logo className="w-8 h-8" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Signal Plane</span>
-                  <span className="text-xs text-muted-foreground">Control Plane</span>
+                  <span className="font-semibold">Control Plane</span>
+                  <span className="text-xs text-muted-foreground">Competitive Intelligence</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -165,9 +166,19 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* Footer — User + Theme */}
+      {/* Footer — Support, links, theme, user */}
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SupportModal />
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 py-1.5 group-data-[collapsible=icon]:hidden">
+              <Link to="/privacy-policy" className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors">Privacy</Link>
+              <Link to="/cookie-policy" className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors">Cookies</Link>
+              <a href="mailto:hello@signalplane.dev" className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors">Contact</a>
+            </div>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <div className="flex items-center justify-center group-data-[collapsible=icon]:hidden px-2 pb-1">
               <ThemeToggle />

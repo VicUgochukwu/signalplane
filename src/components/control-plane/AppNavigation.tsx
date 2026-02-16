@@ -41,7 +41,7 @@ export function AppNavigation() {
           {/* Logo */}
           <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 font-semibold text-foreground hover:opacity-80 transition-opacity">
             <Logo className="w-9 h-9" />
-            <span className="hidden sm:inline text-sm">Signal Plane</span>
+            <span className="hidden sm:inline text-sm">Control Plane</span>
           </Link>
 
           {/* Navigation tabs */}
