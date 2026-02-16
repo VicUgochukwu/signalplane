@@ -31,7 +31,7 @@ export function useExecutionKit() {
         throw error;
       }
 
-      return data?.kit ?? data;
+      return data?.execution_kit ?? data?.kit ?? data;
     },
     onSuccess: (_kit, _cardId) => {
       // Invalidate board cards query so the card refreshes with the new kit
