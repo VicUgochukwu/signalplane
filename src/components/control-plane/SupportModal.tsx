@@ -69,7 +69,7 @@ export function SupportModal() {
               onClick={() => setOpen(false)}
               className="flex items-start gap-3 rounded-lg border border-border/40 px-3.5 py-3 transition-colors hover:bg-muted/50 hover:border-border group"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-badge bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal mt-0.5">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -86,7 +86,7 @@ export function SupportModal() {
         </div>
         <div className="pt-3 border-t border-border/30">
           <p className="text-[11px] text-muted-foreground/50 text-center">
-            You can also ask <span className="text-primary/70 font-medium">Control Plane AI</span> for help using the app — press <kbd className="px-1 py-0.5 rounded border border-border/40 text-[10px] font-mono">⌘K</kbd>
+            You can also ask <span className="text-accent-signal/70 font-medium">Control Plane AI</span> for help using the app — press <kbd className="px-1 py-0.5 rounded-badge border border-border/40 text-[10px] font-mono">⌘K</kbd>
           </p>
         </div>
       </DialogContent>

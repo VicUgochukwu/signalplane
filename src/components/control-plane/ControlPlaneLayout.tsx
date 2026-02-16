@@ -13,10 +13,10 @@ export function ControlPlaneLayout() {
         <AppSidebar />
         <SidebarInset>
           {/* Mobile-only header with sidebar trigger */}
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-4 md:hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/40 dark:border-border/20 px-4 md:hidden">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <span className="text-sm font-medium text-muted-foreground">Control Plane</span>
+            <span className="font-mono text-xs font-medium text-muted-foreground uppercase tracking-widest">Control Plane</span>
           </header>
 
           {/* Page content */}

@@ -35,13 +35,13 @@ export function AppNavigation() {
   const { isEnabled } = useFeatureFlag();
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-border/40 dark:border-border/20 bg-background/80 backdrop-blur-xl">
       <div className="container max-w-6xl mx-auto px-4">
-        <div className="flex h-16 items-center gap-6">
-          {/* Logo */}
-          <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 font-semibold text-foreground hover:opacity-80 transition-opacity">
-            <Logo className="w-9 h-9" />
-            <span className="hidden sm:inline text-sm">Control Plane</span>
+        <div className="flex h-14 items-center gap-6">
+          {/* Logo + wordmark */}
+          <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+            <Logo className="w-8 h-8" />
+            <span className="hidden sm:inline font-mono text-sm font-medium text-foreground tracking-tight">CONTROL PLANE</span>
           </Link>
 
           {/* Navigation tabs */}
@@ -60,9 +60,9 @@ export function AppNavigation() {
                       key={item.to}
                       to={item.to}
                       className={cn(
-                        'flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
+                        'flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-badge transition-all whitespace-nowrap uppercase tracking-wide',
                         isActive
-                          ? 'bg-primary/10 text-primary'
+                          ? 'bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal'
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       )}
                     >

@@ -35,7 +35,7 @@ export function UserMenu() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             {avatarUrl && <AvatarImage src={avatarUrl} alt={email} />}
-            <AvatarFallback className="bg-primary/20 text-primary text-sm font-mono">
+            <AvatarFallback className="bg-[hsl(var(--accent-signal)/0.15)] text-accent-signal text-sm font-mono">
               {initial}
             </AvatarFallback>
           </Avatar>

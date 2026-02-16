@@ -90,7 +90,7 @@ export function AppSidebar() {
 
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>{label}</SidebarGroupLabel>
+        <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-widest">{label}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {visible.map((item) => (
@@ -125,8 +125,8 @@ export function AppSidebar() {
                   <Logo className="w-8 h-8" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Control Plane</span>
-                  <span className="text-xs text-muted-foreground">Competitive Intelligence</span>
+                  <span className="font-mono text-sm font-medium tracking-tight">CONTROL PLANE</span>
+                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Intelligence</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -145,7 +145,7 @@ export function AppSidebar() {
         {/* Admin */}
         {isAdmin && isEnabled('admin_panel') && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-widest">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -187,7 +187,7 @@ export function AppSidebar() {
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     {avatarUrl && <AvatarImage src={avatarUrl} alt={email} />}
-                    <AvatarFallback className="rounded-lg bg-primary/20 text-primary text-sm font-mono">
+                    <AvatarFallback className="rounded-lg bg-[hsl(var(--accent-signal)/0.15)] text-accent-signal text-sm font-mono">
                       {initial}
                     </AvatarFallback>
                   </Avatar>

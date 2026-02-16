@@ -82,12 +82,12 @@ export function ArtifactHeader({
   const isLatest = selectedVersion && versions.length > 0 && selectedVersion.id === versions[0].id;
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4 mb-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 dark:border-border/20 pb-4 mb-6">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">{title}</h2>
           {isLatest && (
-            <Badge variant="outline" className="border-primary/50 text-primary text-xs gap-1">
+            <Badge variant="outline" className="border-[hsl(var(--accent-signal)/0.4)] text-accent-signal text-[10px] font-mono uppercase tracking-wider gap-1 rounded-badge">
               <Sparkles className="h-3 w-3" />
               Latest
             </Badge>
@@ -103,7 +103,7 @@ export function ArtifactHeader({
                 Last updated: {formatTimestamp(selectedVersion.created_at)}
               </p>
               {newItemCount !== undefined && newItemCount > 0 && newItemLabel && (
-                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1">
+                <Badge className="bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)] text-[10px] font-mono uppercase tracking-wider gap-1 rounded-badge">
                   <Sparkles className="h-3 w-3" />
                   {newItemCount} new {newItemLabel} since last week
                 </Badge>
@@ -130,12 +130,12 @@ export function ArtifactHeader({
                 onClick={() => onVersionSelect(version)}
                 className={cn(
                   "cursor-pointer flex items-center justify-between",
-                  selectedVersion?.id === version.id && "bg-primary/10 text-primary"
+                  selectedVersion?.id === version.id && "bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal"
                 )}
               >
                 <span>{formatWeekRange(version.week_start, version.week_end)}</span>
                 {idx === 0 && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-2 border-primary/50 text-primary">
+                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 ml-2 border-[hsl(var(--accent-signal)/0.4)] text-accent-signal rounded-badge">
                     Latest
                   </Badge>
                 )}
