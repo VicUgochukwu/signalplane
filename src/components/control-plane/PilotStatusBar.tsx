@@ -119,7 +119,7 @@ export function PilotStatusBar() {
                 Free Plan — 2 competitors
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Upgrade to Growth for 5 competitors, team seats, Judgment Loop scoring, and more.
+                Upgrade to Growth for 5 competitors, team seats, Judgment Loop scoring, and more. Or Enterprise for 10.
               </p>
             </div>
           </div>

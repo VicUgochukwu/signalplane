@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.pilot_accounts (
     CHECK (status IN ('pilot', 'grace', 'active', 'free', 'churned')),
   tier TEXT NOT NULL DEFAULT 'pilot'
     CHECK (tier IN ('pilot', 'free', 'growth', 'enterprise')),
-  max_competitors INT NOT NULL DEFAULT 99,
+  max_competitors INT NOT NULL DEFAULT 10,
   competitor_fingerprint TEXT,
   conversion_nudges_sent JSONB DEFAULT '[]'::jsonb,
   converted_at TIMESTAMPTZ,

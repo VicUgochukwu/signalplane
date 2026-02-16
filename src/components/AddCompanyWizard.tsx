@@ -200,7 +200,12 @@ export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyCo
   };
 
   const handleSelectAll = () => {
-    setPages((prev) => prev.map((p) => ({ ...p, selected: true })));
+    let count = 0;
+    setPages((prev) => prev.map((p) => {
+      if (count >= 10) return { ...p, selected: false };
+      count++;
+      return { ...p, selected: true };
+    }));
   };
 
   const handleDeselectAll = () => {
