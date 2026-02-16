@@ -1,7 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, House, MagnifyingGlass } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Home, Search } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 const NotFound = () => {
@@ -42,21 +41,21 @@ const NotFound = () => {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Link to="/" className="btn-primary text-[12px] px-5 py-2.5">
-              <House size={16} weight="duotone" className="mr-2" />
+              <Home className="w-4 h-4 mr-2" />
               Go Home
             </Link>
             <button
               onClick={() => window.history.back()}
               className="btn-secondary text-[12px] px-5 py-2.5"
             >
-              <ArrowLeft size={16} weight="bold" className="mr-2" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </button>
             <Link
               to="/demo/developer-tools"
               className="inline-flex items-center justify-center font-mono text-[12px] font-medium uppercase tracking-wide px-5 py-2.5 text-muted-foreground hover:text-foreground transition-colors"
             >
-              <MagnifyingGlass size={16} weight="duotone" className="mr-2" />
+              <Search className="w-4 h-4 mr-2" />
               Try a Demo
             </Link>
           </div>

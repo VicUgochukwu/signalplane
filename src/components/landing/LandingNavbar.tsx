@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { List, X, ArrowRight } from "@phosphor-icons/react";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 
@@ -74,7 +74,7 @@ export function LandingNavbar() {
             className="btn-primary text-[12px] px-5 py-2"
           >
             Start Free
-            <ArrowRight size={14} weight="bold" className="ml-1.5" />
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Link>
         </div>
 
@@ -85,9 +85,9 @@ export function LandingNavbar() {
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? (
-            <X size={20} weight="bold" />
+            <X className="w-5 h-5" />
           ) : (
-            <List size={20} weight="bold" />
+            <Menu className="w-5 h-5" />
           )}
         </button>
       </div>
@@ -127,7 +127,7 @@ export function LandingNavbar() {
                 className="btn-primary w-full text-center text-[12px]"
               >
                 Start Free
-                <ArrowRight size={14} weight="bold" className="ml-1.5" />
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Link>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Play, Lightning, Target, ChartLineUp, UsersFour } from "@phosphor-icons/react";
+import { ArrowRight, Play, Zap, Target, TrendingUp, Users } from "lucide-react";
 
 export function ProductHero() {
   return (
@@ -39,10 +39,10 @@ export function ProductHero() {
             <div className="flex flex-col sm:flex-row items-start gap-4 mb-6">
               <Link to="/login" className="btn-primary text-sm px-7 py-3">
                 Start Free
-                <ArrowRight size={16} weight="bold" className="ml-2" />
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
               <a href="#demo-sectors" className="btn-secondary text-sm px-7 py-3">
-                <Play size={16} weight="duotone" className="mr-2" />
+                <Play className="w-4 h-4 mr-2 fill-current" />
                 See Live Demo
               </a>
             </div>
@@ -77,7 +77,7 @@ export function ProductHero() {
               <div className="space-y-2.5 text-sm">
                 {[
                   {
-                    icon: Lightning,
+                    icon: Zap,
                     label: "EXECUTIVE SUMMARY",
                     desc: "3-7 key competitive shifts from this week",
                     severity: "high",
@@ -89,13 +89,13 @@ export function ProductHero() {
                     severity: "high",
                   },
                   {
-                    icon: ChartLineUp,
+                    icon: TrendingUp,
                     label: "90-DAY HYPOTHESES",
                     desc: "Testable predictions with confidence levels",
                     severity: "medium",
                   },
                   {
-                    icon: UsersFour,
+                    icon: Users,
                     label: "ACTION MAP",
                     desc: "Owner-assigned decisions with execution playbooks",
                     severity: "medium",
@@ -106,9 +106,7 @@ export function ProductHero() {
                     className="flex items-start gap-3 p-3 rounded-card bg-surface/50 dark:bg-background/50 border border-border/40 dark:border-border/20"
                   >
                     <item.icon
-                      size={16}
-                      weight="duotone"
-                      className={`mt-0.5 shrink-0 ${
+                      className={`w-4 h-4 mt-0.5 shrink-0 ${
                         item.severity === "high"
                           ? "text-accent-severity"
                           : "text-accent-signal"

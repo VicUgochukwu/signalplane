@@ -1,6 +1,6 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Sun, Moon, Desktop } from "@phosphor-icons/react";
+import { Sun, Moon, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ export function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "full" })
   if (!mounted) {
     return (
       <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
-        <Sun size={16} weight="duotone" />
+        <Sun className="h-4 w-4" />
       </Button>
     );
   }
@@ -30,7 +30,7 @@ export function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "full" })
         {[
           { value: "light", icon: Sun, label: "Light" },
           { value: "dark", icon: Moon, label: "Dark" },
-          { value: "system", icon: Desktop, label: "System" },
+          { value: "system", icon: Monitor, label: "System" },
         ].map(({ value, icon: Icon, label }) => (
           <button
             key={value}
@@ -41,7 +41,7 @@ export function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "full" })
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Icon size={16} weight="duotone" />
+            <Icon className="h-4 w-4" />
             {label}
           </button>
         ))}
@@ -58,22 +58,22 @@ export function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "full" })
           className="h-9 w-9 text-muted-foreground hover:text-foreground"
         >
           {resolvedTheme === "dark" ? (
-            <Moon size={16} weight="duotone" />
+            <Moon className="h-4 w-4" />
           ) : (
-            <Sun size={16} weight="duotone" />
+            <Sun className="h-4 w-4" />
           )}
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[8rem]">
         <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2">
-          <Sun size={16} weight="duotone" /> Light
+          <Sun className="h-4 w-4" /> Light
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")} className="gap-2">
-          <Moon size={16} weight="duotone" /> Dark
+          <Moon className="h-4 w-4" /> Dark
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2">
-          <Desktop size={16} weight="duotone" /> System
+          <Monitor className="h-4 w-4" /> System
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

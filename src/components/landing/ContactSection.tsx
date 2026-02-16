@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Play } from "@phosphor-icons/react";
+import { ArrowRight, Play } from "lucide-react";
 
 export function ContactSection() {
   return (
@@ -16,10 +16,10 @@ export function ContactSection() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <Link to="/login" className="btn-primary text-sm px-7 py-3">
             Start Free
-            <ArrowRight size={16} weight="bold" className="ml-2" />
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Link>
           <a href="#demo-sectors" className="btn-secondary text-sm px-7 py-3">
-            <Play size={16} weight="duotone" className="mr-2" />
+            <Play className="w-4 h-4 mr-2 fill-current" />
             See Live Demo
           </a>
         </div>

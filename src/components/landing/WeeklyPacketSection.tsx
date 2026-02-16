@@ -1,4 +1,4 @@
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function WeeklyPacketSection() {
@@ -38,7 +38,7 @@ export function WeeklyPacketSection() {
               className="evidence-link text-sm font-medium hover:opacity-80 transition-opacity"
             >
               View a sample packet
-              <ArrowRight size={14} weight="bold" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
