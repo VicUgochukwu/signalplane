@@ -180,6 +180,17 @@ export const useBattlecards = () => {
         return [];
       }
 
+      // Fetch user's tracked competitor names to filter generic battlecards
+      let trackedCompetitorNames: string[] = [];
+      if (!demo?.isDemo && user?.id) {
+        const { data: trackedComps } = await supabase
+          .from('user_tracked_competitors')
+          .select('competitor_name')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+        trackedCompetitorNames = (trackedComps || []).map((c: any) => c.competitor_name?.toLowerCase());
+      }
+
       const schema = demo?.isDemo ? 'demo' : 'gtm_artifacts';
       let query = supabase
         .schema(schema as any)
@@ -203,6 +214,7 @@ export const useBattlecards = () => {
       }
 
       // For battlecards, deduplicate by competitor + week (prefer personalized)
+      // AND filter generic battlecards to only show competitors the user tracks
       const personalizedKeys = new Set(
         (data || [])
           .filter((r: any) => r.user_id && r.is_personalized)
@@ -210,6 +222,10 @@ export const useBattlecards = () => {
       );
       const filtered = (data || []).filter((r: any) => {
         if (r.user_id) return true;
+        // Generic battlecard — only show if the competitor is one the user tracks
+        if (trackedCompetitorNames.length > 0 && !trackedCompetitorNames.includes(r.competitor_name?.toLowerCase())) {
+          return false;
+        }
         const key = `${r.competitor_name}_${r.week_start}_${r.week_end}`;
         return !personalizedKeys.has(key);
       });
