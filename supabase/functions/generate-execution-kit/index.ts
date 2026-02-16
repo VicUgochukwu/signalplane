@@ -118,8 +118,8 @@ Deno.serve(async (req) => {
     const serviceClient = createServiceRoleClient();
 
     // 3. Fetch the board card and verify ownership
+    // Uses public.action_board_cards view (learning schema not exposed in PostgREST)
     const { data: card, error: cardError } = await serviceClient
-      .schema('learning')
       .from('action_board_cards')
       .select('*')
       .eq('id', card_id)
@@ -381,9 +381,8 @@ RULES:
       generated_at: new Date().toISOString(),
     };
 
-    // 11. Update the card with the generated kit
+    // 11. Update the card with the generated kit (via public view)
     const { error: updateError } = await serviceClient
-      .schema('learning')
       .from('action_board_cards')
       .update({
         execution_kit: executionKit,

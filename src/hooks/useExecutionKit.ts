@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemo } from '@/contexts/DemoContext';
+import { useToast } from './use-toast';
 import { ExecutionKit } from '@/types/actionBoard';
 
 /**
@@ -12,11 +13,11 @@ export function useExecutionKit() {
   const { user } = useAuth();
   const demo = useDemo();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const generateKitMutation = useMutation({
     mutationFn: async (cardId: string): Promise<ExecutionKit | null> => {
       if (demo?.isDemo) {
-        // Demo kits are pre-populated — nothing to generate
         return null;
       }
 
@@ -28,17 +29,34 @@ export function useExecutionKit() {
 
       if (error) {
         console.error('Error generating execution kit:', error);
-        throw error;
+        throw new Error(typeof error === 'object' && error.message ? error.message : 'Failed to generate execution kit');
       }
 
-      return data?.execution_kit ?? data?.kit ?? data;
+      // Check if the edge function returned an error in the response body
+      if (data?.error) {
+        console.error('Edge function error:', data.error);
+        throw new Error(data.error);
+      }
+
+      const kit = data?.execution_kit ?? data?.kit ?? null;
+      if (!kit || !kit.components) {
+        console.error('Invalid kit response:', data);
+        throw new Error('Received invalid execution kit response');
+      }
+
+      return kit;
     },
     onSuccess: (_kit, _cardId) => {
-      // Invalidate board cards query so the card refreshes with the new kit
       queryClient.invalidateQueries({ queryKey: ['action-board-cards', user?.id] });
+      toast({ title: 'Execution kit generated', description: 'Your tailored materials are ready.' });
     },
     onError: (error) => {
       console.error('Execution kit generation failed:', error);
+      toast({
+        title: 'Failed to generate execution kit',
+        description: (error as Error).message || 'Please try again.',
+        variant: 'destructive',
+      });
     },
   });
 
