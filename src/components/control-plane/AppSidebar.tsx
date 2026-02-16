@@ -173,13 +173,6 @@ export function AppSidebar() {
             <SupportModal />
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 py-1.5 group-data-[collapsible=icon]:hidden">
-              <Link to="/privacy-policy" className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors">Privacy</Link>
-              <Link to="/cookie-policy" className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors">Cookies</Link>
-              <a href="mailto:hello@signalplane.dev" className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors">Contact</a>
-            </div>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <div className="flex items-center justify-center group-data-[collapsible=icon]:hidden px-2 pb-1">
               <ThemeToggle />
             </div>

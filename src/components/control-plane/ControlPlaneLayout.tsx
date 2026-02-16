@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { Footer } from '@/components/Footer';
 import { Separator } from '@/components/ui/separator';
 import { AgentProvider } from '@/contexts/AgentContext';
 import { AgentPanel } from '@/components/agent/AgentPanel';
@@ -25,10 +24,6 @@ export function ControlPlaneLayout() {
             <Outlet />
           </main>
 
-          {/* Footer */}
-          <div className="container max-w-6xl mx-auto px-4">
-            <Footer />
-          </div>
         </SidebarInset>
 
         {/* Control Plane AI */}
