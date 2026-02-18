@@ -69,6 +69,8 @@ export const useObjectionLibrary = () => {
               ...(o.rebuttal || {}),
             },
             is_new_this_week: o.is_new_this_week ?? false,
+            evidence_urls: o.evidence_urls || [],
+            evidence_snippets: o.evidence_snippets || [],
           }));
         }
         return {

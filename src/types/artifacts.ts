@@ -1,4 +1,10 @@
 // Objection Library Types
+export interface EvidenceSnippet {
+  text: string;
+  source: string;
+  date?: string;
+}
+
 export interface Objection {
   id: string;
   objection_text: string;
@@ -13,6 +19,8 @@ export interface Objection {
     talk_track: string;
   };
   is_new_this_week: boolean;
+  evidence_urls?: string[];
+  evidence_snippets?: EvidenceSnippet[];
 }
 
 export interface ObjectionLibraryContent {

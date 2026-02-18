@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   BarChart3,
   TrendingUp,
@@ -12,6 +13,7 @@ import {
   Users,
   Send,
   Loader2,
+  ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -193,9 +195,15 @@ function WeeklyScorecardDetail({ scorecard }: { scorecard: ScorecardType }) {
               </div>
               <ul className="space-y-1">
                 {d.unaddressed_objections.map((obj, i) => (
-                  <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
-                    <span className="text-amber-400 mt-1">â¢</span>
-                    {obj}
+                  <li key={i} className="text-sm text-foreground/80 flex items-start gap-2 group">
+                    <span className="text-amber-400 mt-1 shrink-0">â¢</span>
+                    <Link
+                      to={`/control-plane/artifacts?tab=objections&search=${encodeURIComponent(obj)}`}
+                      className="hover:text-accent-signal transition-colors flex items-center gap-1.5"
+                    >
+                      {obj}
+                      <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-accent-signal" />
+                    </Link>
                   </li>
                 ))}
               </ul>
