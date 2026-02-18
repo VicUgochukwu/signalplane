@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi, Upload, BarChart3, DollarSign, HeartPulse, Globe } from 'lucide-react';
+import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi, Upload, BarChart3, DollarSign, HeartPulse, Globe, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -21,6 +21,7 @@ const navItems = [
   { to: '/admin/usage', label: 'Usage Reports', icon: BarChart3 },
   { to: '/admin/costs', label: 'Cost Dashboard', icon: DollarSign },
   { to: '/admin/tracked-pages', label: 'Tracked Pages', icon: Globe },
+  { to: '/admin/social-intel', label: 'Social Intel', icon: Radio },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -35,11 +36,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
+      <aside className="w-64 bg-card border-r border-border flex flex-col shrink-0 h-full">
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <Shield className="h-5 w-5" />
             <span className="font-semibold">Admin Panel</span>
@@ -47,7 +48,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.to}
@@ -66,7 +67,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         {/* Divider and Back Link */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border shrink-0">
           <Link
             to="/messaging-diff"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -78,13 +79,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Top Bar */}
-        <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6">
+        <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 shrink-0">
           <h1 className="text-lg font-semibold text-foreground">Admin Panel</h1>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
+            <span className="text-sm text-muted-foreground">
+              {(user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '').split(' ')[0]}
+            </span>
           </div>
         </header>
 

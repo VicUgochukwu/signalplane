@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft, HelpCircle,
-  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2, Eye, Brain
+  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2, Eye, Brain, ShieldAlert
 } from 'lucide-react';
 import {
   IconSignalRadio, IconSignalCount, IconConfidence,
-  IconSignalMessaging, IconSignalICP, IconSignalObjection
+  IconSignalMessaging, IconSignalICP, IconSignalObjection,
+  IconSignalSocial, IconSignalEnablement
 } from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
@@ -58,7 +59,7 @@ const statusConfig: Record<PacketStatus, { label: string; dotClass: string; badg
 //   "Market Direction"    = icp + horizon
 //   "Objections"          = objection (standalone)
 // ──────────────────────────────────────────────────────
-type MergedTabKey = 'competitive' | 'market' | 'objections';
+type MergedTabKey = 'competitive' | 'market' | 'objections' | 'social' | 'enablement';
 
 interface MergedTabConfig {
   key: MergedTabKey;
@@ -93,6 +94,22 @@ const mergedTabConfigs: MergedTabConfig[] = [
     icon: IconSignalObjection,
     color: 'text-rose-400',
     sourceKeys: ['objection'],
+  },
+  {
+    key: 'social',
+    title: 'Social Intelligence',
+    shortTitle: 'Social',
+    icon: IconSignalSocial,
+    color: 'text-violet-400',
+    sourceKeys: ['social'],
+  },
+  {
+    key: 'enablement',
+    title: 'Sales Enablement',
+    shortTitle: 'Enablement',
+    icon: IconSignalEnablement,
+    color: 'text-amber-400',
+    sourceKeys: ['enablement'],
   },
 ];
 
@@ -136,7 +153,7 @@ const VIEW_TAB_KEYS: Record<ViewMode, MergedTabKey[] | 'all'> = {
 };
 
 const VIEW_MODE_LABELS: Record<ViewMode, { label: string; color: string }> = {
-  full: { label: 'Full View', color: 'bg-primary/10 text-primary border-primary/20' },
+  full: { label: 'Full View', color: 'bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)]' },
   executive: { label: 'Exec View', color: 'bg-violet-500/10 text-violet-400 border-violet-500/20' },
   sales: { label: 'Sales View', color: 'bg-sky-500/10 text-sky-400 border-sky-500/20' },
 };
@@ -235,7 +252,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Button>
 
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-primary/10 shrink-0 text-primary">
+          <div className="p-3 rounded-xl bg-[hsl(var(--accent-signal)/0.1)] shrink-0 text-accent-signal">
             <IconSignalRadio className="h-8 w-8" />
           </div>
           <div className="flex-1">
@@ -247,6 +264,24 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
                 <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${status.dotClass} ${report.status === 'live' ? 'animate-pulse' : ''}`} />
                 {status.label}
               </Badge>
+              {report.verification_status === 'verified' && (
+                <Badge variant="outline" className="text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Evidence-Grade
+                </Badge>
+              )}
+              {report.verification_status === 'unverified' && (
+                <Badge variant="outline" className="text-[10px] font-medium bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1">
+                  <ShieldAlert className="h-3 w-3" />
+                  Unverified
+                </Badge>
+              )}
+              {(report.verification_status === 'flagged' || report.verification_status === 'retracted') && (
+                <Badge variant="outline" className="text-[10px] font-medium bg-rose-500/10 text-rose-400 border-rose-500/20 gap-1">
+                  <ShieldAlert className="h-3 w-3" />
+                  {report.verification_status === 'flagged' ? 'Flagged' : 'Retracted'}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-sm text-muted-foreground">{formattedStartDate} – {formattedEndDate}</p>
@@ -286,6 +321,48 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
           </div>
         </div>
       </div>
+
+      {/* ─── Unverified Intelligence Banner ─── */}
+      {report.verification_status === 'unverified' && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-amber-300">Unverified Intelligence</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This packet was generated before our evidence-grade pipeline was active.
+              Some claims may not be backed by source signals. Treat all intelligence
+              in this packet as directional only — verify critical claims before acting.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Flagged / Retracted Banner ─── */}
+      {report.verification_status === 'flagged' && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-rose-300">Flagged for Review</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This packet has been flagged — one or more claims could not be verified
+              against source signals. Do not use this intelligence for decision-making.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {report.verification_status === 'retracted' && (
+        <div className="rounded-xl border border-rose-500/40 bg-rose-500/[0.08] p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-rose-400">Retracted</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This packet has been retracted due to verified inaccuracies.
+              It is retained for audit purposes only.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ─── View Switcher ─── */}
       {roleViewsEnabled && (
@@ -408,7 +485,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             <ul className="space-y-2">
               {report.exec_summary.map((item, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5 shrink-0">›</span>
+                  <span className="text-accent-signal mt-0.5 shrink-0">›</span>
                   <span>{item}</span>
                 </li>
               ))}

@@ -4,7 +4,8 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { Users, UserCheck, UserPlus, Shield, ArrowRight, Activity } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Users, UserCheck, UserPlus, Shield, ArrowRight, Activity, Crown, Rocket, FlaskConical, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -30,6 +31,11 @@ interface SystemSummary {
   degraded_apis: number;
   down_apis: number;
   avg_response_time_ms: number;
+}
+
+interface TierCount {
+  tier: string;
+  user_count: number;
 }
 
 export default function AdminDashboard() {
@@ -62,6 +68,26 @@ export default function AdminDashboard() {
       return data as SystemSummary;
     },
   });
+
+  const { data: tierCounts, isLoading: tiersLoading } = useQuery({
+    queryKey: ['admin-tier-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_tier_summary');
+      if (error) throw error;
+      return data as TierCount[];
+    },
+  });
+
+  const tierConfig: Record<string, { label: string; icon: typeof Crown; color: string; badgeClass: string }> = {
+    enterprise: { label: 'Enterprise', icon: Crown, color: 'text-purple-400', badgeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    growth: { label: 'Growth', icon: Rocket, color: 'text-blue-400', badgeClass: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    pilot: { label: 'Pilot', icon: FlaskConical, color: 'text-amber-400', badgeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    free: { label: 'Free', icon: User, color: 'text-muted-foreground', badgeClass: 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30' },
+  };
+
+  const getTierCount = (tier: string) => {
+    return tierCounts?.find(t => t.tier === tier)?.user_count ?? 0;
+  };
 
   const statCards = [
     { label: 'Total Users', value: stats?.total_users ?? 0, icon: Users, color: 'text-blue-400' },
@@ -106,6 +132,48 @@ export default function AdminDashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Subscription Tiers */}
+        <Card className="bg-muted/50 border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-foreground">Subscription Tiers</CardTitle>
+            <Link
+              to="/admin/users"
+              className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+            >
+              View all users <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {tiersLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full bg-muted" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {['enterprise', 'growth', 'pilot', 'free'].map((tier) => {
+                  const config = tierConfig[tier];
+                  const Icon = config.icon;
+                  const count = getTierCount(tier);
+                  return (
+                    <div
+                      key={tier}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border"
+                    >
+                      <Icon className={`h-5 w-5 ${config.color}`} />
+                      <div>
+                        <div className="text-xl font-bold text-foreground">{count}</div>
+                        <Badge className={config.badgeClass}>{config.label}</Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Daily Signups Chart */}
         <Card className="bg-muted/50 border-border">
@@ -156,7 +224,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {quickLinks.map((link) => (
             <Link key={link.to} to={link.to}>
-              <Card className="bg-muted/50 border-border hover:border-primary/50 transition-colors cursor-pointer">
+              <Card className="bg-muted/50 border-border hover:border-[hsl(var(--accent-signal)/0.5)] transition-colors cursor-pointer">
                 <CardContent className="flex items-center justify-between p-4">
                   <span className="font-medium text-foreground">{link.label}</span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />

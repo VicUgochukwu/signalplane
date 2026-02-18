@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Globe } from 'lucide-react';
 import { AddCompanyWizard } from '@/components/AddCompanyWizard';
 import { CompetitorSuggestions } from '@/components/CompetitorSuggestions';
 import { TrackedPagesList } from '@/components/TrackedPagesList';
@@ -16,12 +17,13 @@ const MyPages = () => {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1 space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-bold text-foreground font-mono">
-          My Pages
+      <header>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+          <Globe className="h-5 w-5 text-accent-signal" />
+          Tracked Pages
         </h1>
-        <p className="text-muted-foreground">
-          Manage your tracked company pages
+        <p className="text-sm text-muted-foreground mt-1.5">
+          Manage competitor pages monitored by your intelligence engine
         </p>
       </header>
 

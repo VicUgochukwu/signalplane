@@ -33,6 +33,12 @@ import { useAuth } from "@/hooks/useAuth";
  * 10. About — origin story + principles
  * 11. FAQ — objection handling + "What Control Plane Is Not"
  * 12. CTA — final conversion
+ *
+ * Animation strategy:
+ * - Above-the-fold (Hero, Metrics, Differentiator): instant or CSS-only
+ * - Section reveals: IntersectionObserver → .visible triggers keyframe
+ * - data-animate variants: slide-left, slide-right, scale (default: revealUp)
+ * - stagger-children: card grids cascade with 80ms delay per child
  */
 const Landing = () => {
   const containerRef = useScrollAnimation();
@@ -51,31 +57,37 @@ const Landing = () => {
       <StructuredData />
       <LandingNavbar />
       <main>
-        {/* Above the fold: Hero + Metrics + Differentiator */}
+        {/* Above the fold: Hero + Metrics + Differentiator — no scroll animation */}
         <ProductHero />
-        <MetricsBanner />
-        <DifferentiatorStrip />
 
-        {/* Who it's for — address ICPs with canonical leads, implicit CEO angle */}
+        <div className="animate-on-scroll" data-animate="scale">
+          <MetricsBanner />
+        </div>
+
         <div className="animate-on-scroll">
+          <DifferentiatorStrip />
+        </div>
+
+        {/* Who it's for — slide from left */}
+        <div className="animate-on-scroll" data-animate="slide-left">
           <WhoItsForSection />
         </div>
 
-        {/* How it works — Collect → Score → Deliver & Act */}
+        {/* How it works — standard reveal up */}
         <div className="animate-on-scroll">
           <HowItWorksSection />
         </div>
 
         {/* Product deep-dives: Packet → Artifacts + Action Board */}
-        <div className="animate-on-scroll">
+        <div className="animate-on-scroll" data-animate="slide-right">
           <WeeklyPacketSection />
         </div>
         <div className="animate-on-scroll">
           <ArtifactsSection />
         </div>
 
-        {/* Social proof: live demos by sector */}
-        <div className="animate-on-scroll">
+        {/* Social proof: live demos by sector — scale */}
+        <div className="animate-on-scroll" data-animate="scale">
           <SectorPickerSection />
         </div>
 
@@ -85,13 +97,13 @@ const Landing = () => {
         </div>
 
         {/* Trust + FAQ + CTA */}
-        <div className="animate-on-scroll">
+        <div className="animate-on-scroll" data-animate="slide-left">
           <AboutSection />
         </div>
         <div className="animate-on-scroll">
           <FAQSection />
         </div>
-        <div className="animate-on-scroll">
+        <div className="animate-on-scroll" data-animate="scale">
           <ContactSection />
         </div>
       </main>

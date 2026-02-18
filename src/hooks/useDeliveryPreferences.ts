@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { useAuth } from './useAuth';
 
 interface DeliveryPreference {
   id: string;
@@ -24,27 +25,34 @@ export interface NotionDatabase {
 export function useDeliveryPreferences() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
 
   const { data: preferences, isLoading } = useQuery({
-    queryKey: ['delivery-preferences'],
+    queryKey: ['delivery-preferences', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+
       const { data, error } = await supabase
         .from('delivery_preferences')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as DeliveryPreference[];
     },
+    enabled: !!user,
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ channelType, enabled }: { channelType: string; enabled: boolean }) => {
+      if (!user?.id) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('delivery_preferences')
         .update({ enabled })
-        .eq('channel_type', channelType);
+        .eq('channel_type', channelType)
+        .eq('user_id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -57,10 +65,12 @@ export function useDeliveryPreferences() {
 
   const disconnectMutation = useMutation({
     mutationFn: async (channelType: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('delivery_preferences')
         .delete()
-        .eq('channel_type', channelType);
+        .eq('channel_type', channelType)
+        .eq('user_id', user.id);
       if (error) throw error;
     },
     onSuccess: (_data, channelType) => {

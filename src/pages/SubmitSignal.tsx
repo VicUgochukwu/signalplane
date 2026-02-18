@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Loader2, ArrowRight, SendHorizonal } from 'lucide-react';
+import { IconSubmitSignal } from '@/components/icons';
 import { Link } from 'react-router-dom';
 import { useSubmitSignal } from '@/hooks/useSubmitSignal';
 
@@ -73,7 +74,7 @@ export default function SubmitSignal() {
   };
 
   return (
-    <main className="flex-1 container max-w-2xl mx-auto px-4 py-8">
+    <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 md:py-8">
         {isSuccess ? (
           <Card className="bg-emerald-500/10 border-emerald-500/30">
             <CardContent className="p-8 text-center">
@@ -99,13 +100,13 @@ export default function SubmitSignal() {
         ) : (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                <IconSubmitSignal className="h-5 w-5 text-accent-signal" />
                 Submit a Signal
               </h1>
-              <p className="text-muted-foreground">
-                Paste internal competitive intelligence — a Gong snippet, support ticket,
-                win/loss note, or any insight. It will be processed through the scoring
-                engine and included in your next weekly packet.
+              <p className="text-sm text-muted-foreground mt-1.5">
+                Paste competitive intelligence — Gong snippets, support tickets,
+                win/loss notes, or any insight. Processed and included in your next weekly packet.
               </p>
             </div>
 
@@ -225,7 +226,7 @@ export default function SubmitSignal() {
             <div className="text-center">
               <Link
                 to="/control-plane/upload"
-                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
+                className="inline-flex items-center gap-2 text-accent-signal hover:text-[hsl(var(--accent-signal)/0.8)] transition-colors text-sm font-medium"
               >
                 Have a CSV file? Upload in bulk
                 <ArrowRight className="w-3.5 h-3.5" />

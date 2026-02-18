@@ -32,9 +32,9 @@ export function CompoundingSection() {
           {compoundingFeatures.map((feature) => (
             <div
               key={feature.title}
-              className="p-6 rounded-lg border border-border bg-card border-l-4 border-l-primary/20"
+              className="p-6 rounded-lg border border-border bg-card border-l-4 border-l-[hsl(var(--accent-signal)/0.2)]"
             >
-              <feature.icon className="w-5 h-5 text-primary mb-3" />
+              <feature.icon className="w-5 h-5 text-accent-signal mb-3" />
               <h4 className="font-bold text-foreground mb-3">
                 {feature.title}
               </h4>

@@ -1,11 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* ═══════════════════════════════════════════════════════════════
+   Control Plane Design System — Phase 1
+   Fonts: Plus Jakarta Sans (display+body) · JetBrains Mono (system/data)
+   No Inter. No Lucide. No shadcn defaults.
+   ═══════════════════════════════════════════════════════════════ */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Typographic Scale (modular, not linear) ───────────────── */
+:root {
+  --text-display: clamp(3rem, 5vw, 4.5rem);
+  --text-h1: clamp(2rem, 3.5vw, 2.75rem);
+  --text-h2: clamp(1.5rem, 2.5vw, 1.875rem);
+  --text-h3: 1.25rem;
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-micro: 0.75rem;
+}
+
 @layer base {
-  /* ── Light mode (default) ──────────────────────────────────────── */
+  /* ── Light mode ──────────────────────────────────────────── */
   :root {
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
@@ -35,12 +50,34 @@
     --input: 220 13% 87%;
     --ring: 190 50% 32%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
-    /* Section alternation for visual rhythm in light mode */
+    /* Semantic accent colors — each has a purpose */
+    --accent-signal: 217 91% 60%;     /* Interactive elements, links, primary CTAs */
+    --accent-severity: 38 92% 50%;    /* Severity indicators, warnings */
+    --accent-evidence: 160 84% 39%;   /* Evidence-linked items, verified, success */
+    --accent-predict: 263 70% 50%;    /* Predictions, hypotheses */
+    --accent-drift: 330 81% 60%;      /* Drift detection, change indicators */
+
+    /* Background depth layers */
+    --bg-base: 0 0% 100%;
+    --bg-elevated: 220 20% 98%;
+    --bg-surface: 220 14% 96%;
+    --bg-overlay: 220 14% 93%;
+
+    /* Text hierarchy */
+    --text-primary: 222 47% 11%;
+    --text-secondary: 220 9% 46%;
+    --text-tertiary: 220 9% 64%;
+
+    /* Borders */
+    --border-subtle: 220 13% 91%;
+    --border-visible: 220 13% 87%;
+
+    /* Section alternation */
     --section-alt: 220 20% 98%;
 
-    /* Status colors — light mode */
+    /* Status colors */
     --status-live: 142 52% 34%;
     --status-live-bg: 142 40% 94%;
     --status-progress: 38 80% 38%;
@@ -57,79 +94,90 @@
     --sidebar-border: 220 13% 87%;
     --sidebar-ring: 190 50% 32%;
 
-    /* Terminal / utility colors — light mode */
-    --terminal-green: 142 70% 28%;
-    --terminal-cyan: 190 80% 28%;
-    --terminal-purple: 270 70% 38%;
-    --terminal-amber: 38 90% 35%;
-    --terminal-red: 0 70% 38%;
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-soft: 0 4px 6px -1px hsl(0 0% 0% / 0.07), 0 2px 4px -2px hsl(0 0% 0% / 0.07);
-    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.08), 0 4px 6px -4px hsl(0 0% 0% / 0.08);
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.06), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
+    --shadow-soft: 0 4px 6px -1px hsl(0 0% 0% / 0.05), 0 2px 4px -2px hsl(0 0% 0% / 0.05);
+    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.06), 0 4px 6px -4px hsl(0 0% 0% / 0.06);
   }
 
-  /* ── Dark mode ─────────────────────────────────────────────────── */
+  /* ── Dark mode ───────────────────────────────────────────── */
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 240 6% 93%;
+    --background: 228 12% 4%;
+    --foreground: 228 6% 91%;
 
-    --card: 240 10% 7%;
-    --card-foreground: 240 6% 93%;
+    --card: 228 12% 6%;
+    --card-foreground: 228 6% 91%;
 
-    --popover: 240 10% 7%;
-    --popover-foreground: 240 6% 93%;
+    --popover: 228 12% 6%;
+    --popover-foreground: 228 6% 91%;
 
     --primary: 190 50% 50%;
-    --primary-foreground: 240 10% 4%;
+    --primary-foreground: 228 12% 4%;
 
-    --secondary: 240 10% 12%;
-    --secondary-foreground: 240 6% 93%;
+    --secondary: 228 12% 10%;
+    --secondary-foreground: 228 6% 91%;
 
-    --muted: 240 10% 12%;
-    --muted-foreground: 240 6% 60%;
+    --muted: 228 12% 10%;
+    --muted-foreground: 228 6% 55%;
 
     --accent: 190 50% 50%;
-    --accent-foreground: 240 10% 4%;
+    --accent-foreground: 228 12% 4%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 18%;
-    --input: 240 10% 18%;
+    --border: 228 10% 15%;
+    --input: 228 10% 15%;
     --ring: 190 50% 50%;
 
-    /* Status colors — dark mode */
-    --status-live: 142 52% 50%;
-    --status-live-bg: 142 30% 15%;
-    --status-progress: 38 80% 50%;
-    --status-progress-bg: 38 40% 15%;
-    --status-planned: 240 6% 60%;
-    --status-planned-bg: 240 10% 15%;
+    /* Semantic accent colors — dark mode */
+    --accent-signal: 217 91% 60%;
+    --accent-severity: 38 92% 50%;
+    --accent-evidence: 160 84% 39%;
+    --accent-predict: 263 70% 58%;
+    --accent-drift: 330 81% 60%;
 
-    --sidebar-background: 240 10% 4%;
-    --sidebar-foreground: 240 6% 93%;
+    /* Background depth layers — dark mode */
+    --bg-base: 228 12% 4%;
+    --bg-elevated: 228 12% 7%;
+    --bg-surface: 228 12% 10%;
+    --bg-overlay: 228 12% 14%;
+
+    /* Text hierarchy — dark mode */
+    --text-primary: 228 6% 91%;
+    --text-secondary: 228 6% 58%;
+    --text-tertiary: 228 6% 38%;
+
+    /* Borders — dark mode */
+    --border-subtle: 228 10% 12%;
+    --border-visible: 228 10% 18%;
+
+    /* Section alternation */
+    --section-alt: 228 12% 5%;
+
+    /* Status colors */
+    --status-live: 142 52% 50%;
+    --status-live-bg: 142 30% 12%;
+    --status-progress: 38 80% 50%;
+    --status-progress-bg: 38 40% 12%;
+    --status-planned: 228 6% 55%;
+    --status-planned-bg: 228 10% 12%;
+
+    --sidebar-background: 228 12% 4%;
+    --sidebar-foreground: 228 6% 91%;
     --sidebar-primary: 190 50% 50%;
-    --sidebar-primary-foreground: 240 10% 4%;
-    --sidebar-accent: 240 10% 12%;
-    --sidebar-accent-foreground: 240 6% 93%;
-    --sidebar-border: 240 10% 18%;
+    --sidebar-primary-foreground: 228 12% 4%;
+    --sidebar-accent: 228 12% 10%;
+    --sidebar-accent-foreground: 228 6% 91%;
+    --sidebar-border: 228 10% 15%;
     --sidebar-ring: 190 50% 50%;
 
-    /* Section alternation — dark mode */
-    --section-alt: 240 10% 6%;
-
-    /* Terminal / utility colors — dark mode */
-    --terminal-green: 142 70% 45%;
-    --terminal-cyan: 190 80% 50%;
-    --terminal-purple: 270 70% 60%;
-    --terminal-amber: 38 90% 55%;
-    --terminal-red: 0 70% 55%;
     --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.3);
     --shadow-soft: 0 2px 12px -2px hsl(0 0% 0% / 0.2);
     --shadow-elevated: 0 10px 30px -5px hsl(0 0% 0% / 0.4), 0 4px 10px -4px hsl(0 0% 0% / 0.3);
   }
 }
 
+/* ── Base Styles ───────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border;
@@ -141,39 +189,126 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .font-mono {
+  /* Display / Headline treatment */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Monospace layer — product nomenclature, data, system labels */
+  .font-mono, code, pre, [data-mono] {
     font-family: 'JetBrains Mono', monospace;
+    font-feature-settings: 'liga' 0;
+  }
+
+  /* Body text readability */
+  p {
+    line-height: 1.65;
   }
 }
 
-/* Fade in animation for sections */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+/* ── Custom Card Surfaces ──────────────────────────────────── */
+@layer components {
+  /* Intelligence card — left-border accent, noise texture, tight radius */
+  .card-intel {
+    background-color: hsl(var(--bg-elevated));
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    border-left: 3px solid hsl(var(--accent-signal));
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .card-intel:hover {
+    background-color: hsl(var(--bg-surface));
+    border-left-color: hsl(var(--accent-signal));
+    box-shadow: 4px 0 0 hsl(var(--accent-signal) / 0.15);
+  }
+
+  /* Severity-coded left border variants */
+  .card-intel--severity { border-left-color: hsl(var(--accent-severity)); }
+  .card-intel--severity:hover { box-shadow: 4px 0 0 hsl(var(--accent-severity) / 0.15); }
+  .card-intel--evidence { border-left-color: hsl(var(--accent-evidence)); }
+  .card-intel--evidence:hover { box-shadow: 4px 0 0 hsl(var(--accent-evidence) / 0.15); }
+  .card-intel--predict { border-left-color: hsl(var(--accent-predict)); }
+  .card-intel--predict:hover { box-shadow: 4px 0 0 hsl(var(--accent-predict) / 0.15); }
+  .card-intel--drift { border-left-color: hsl(var(--accent-drift)); }
+  .card-intel--drift:hover { box-shadow: 4px 0 0 hsl(var(--accent-drift) / 0.15); }
+
+  /* Primary CTA — command-like, tight radius, monospace label */
+  .btn-primary {
+    @apply inline-flex items-center justify-center font-mono text-sm font-medium uppercase tracking-wide;
+    padding: 12px 24px;
+    border-radius: 3px;
+    background-color: hsl(var(--accent-signal));
+    color: #fff;
+    transition: all 0.15s ease;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 2px 8px hsl(var(--accent-signal) / 0.3);
+  }
+
+  /* Secondary CTA — outlined, tight radius */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center font-mono text-sm font-medium uppercase tracking-wide;
+    padding: 12px 24px;
+    border-radius: 3px;
+    border: 1px solid hsl(var(--border-visible));
+    color: hsl(var(--text-primary));
+    background: transparent;
+    transition: all 0.15s ease;
+  }
+  .btn-secondary:hover {
+    border-color: hsl(var(--accent-signal));
+    color: hsl(var(--accent-signal));
+    background: hsl(var(--accent-signal) / 0.05);
+  }
+
+  /* Data badge — severity score */
+  .badge-severity {
+    @apply inline-flex items-center font-mono text-xs font-medium;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .badge-severity--high {
+    background: hsl(var(--accent-severity) / 0.15);
+    color: hsl(var(--accent-severity));
+  }
+  .badge-severity--medium {
+    background: hsl(var(--accent-signal) / 0.15);
+    color: hsl(var(--accent-signal));
+  }
+  .badge-severity--low {
+    background: hsl(var(--accent-evidence) / 0.15);
+    color: hsl(var(--accent-evidence));
+  }
+
+  /* Evidence link indicator */
+  .evidence-link {
+    @apply inline-flex items-center gap-1 font-mono text-xs;
+    color: hsl(var(--accent-evidence));
+  }
+
+  /* Prediction confidence bar */
+  .confidence-bar {
+    height: 5px;
+    border-radius: 2px;
+    background: hsl(var(--border-subtle));
+    overflow: hidden;
+  }
+  .confidence-bar__fill {
+    height: 100%;
+    border-radius: 2px;
+    background: hsl(var(--accent-predict));
+    transition: width 0.3s ease;
   }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-.animate-on-scroll {
-  opacity: 0;
-}
-
-.animate-on-scroll.visible {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-/* Terminal card styling */
+/* ── Preserved legacy classes (for existing product UI) ──── */
 .card-terminal {
   @apply bg-card border border-border;
 }
@@ -187,7 +322,6 @@
   box-shadow: 0 8px 32px -8px hsl(var(--primary) / 0.2);
 }
 
-/* Terminal metric values */
 .metric-value {
   @apply text-2xl font-bold font-mono text-foreground;
 }
@@ -196,131 +330,149 @@
   @apply text-xs text-muted-foreground font-mono uppercase tracking-wider;
 }
 
-/* Terminal colors */
-.text-terminal-green {
-  color: hsl(var(--terminal-green));
-}
-.text-terminal-cyan {
-  color: hsl(var(--terminal-cyan));
-}
-.text-terminal-purple {
-  color: hsl(var(--terminal-purple));
-}
-.text-terminal-amber {
-  color: hsl(var(--terminal-amber));
-}
-.text-terminal-red {
-  color: hsl(var(--terminal-red));
-}
+/* Terminal / semantic colors */
+.text-terminal-green { color: hsl(var(--accent-evidence)); }
+.text-terminal-cyan { color: hsl(var(--accent-signal)); }
+.text-terminal-purple { color: hsl(var(--accent-predict)); }
+.text-terminal-amber { color: hsl(var(--accent-severity)); }
+.text-terminal-red { color: hsl(var(--accent-drift)); }
 
-.bg-terminal-green\/20 {
-  background-color: hsl(var(--terminal-green) / 0.2);
-}
-.bg-terminal-amber\/20 {
-  background-color: hsl(var(--terminal-amber) / 0.2);
-}
-.bg-terminal-red\/20 {
-  background-color: hsl(var(--terminal-red) / 0.2);
-}
+.bg-terminal-green\/20 { background-color: hsl(var(--accent-evidence) / 0.2); }
+.bg-terminal-amber\/20 { background-color: hsl(var(--accent-severity) / 0.2); }
+.bg-terminal-red\/20 { background-color: hsl(var(--accent-drift) / 0.2); }
 
-.border-terminal-green\/40 {
-  border-color: hsl(var(--terminal-green) / 0.4);
-}
-.border-terminal-amber\/40 {
-  border-color: hsl(var(--terminal-amber) / 0.4);
-}
-.border-terminal-red\/40 {
-  border-color: hsl(var(--terminal-red) / 0.4);
-}
+.border-terminal-green\/40 { border-color: hsl(var(--accent-evidence) / 0.4); }
+.border-terminal-amber\/40 { border-color: hsl(var(--accent-severity) / 0.4); }
+.border-terminal-red\/40 { border-color: hsl(var(--accent-drift) / 0.4); }
 
-/* Status badges — dual-mode safe */
+/* Status badges */
 .badge-status {
-  @apply px-2 py-0.5 text-xs font-mono font-medium rounded-sm uppercase;
+  @apply px-2 py-0.5 text-xs font-mono font-medium uppercase;
+  border-radius: 3px;
 }
 .badge-success {
   @apply bg-green-500/20 text-green-700 border border-green-500/30;
 }
-.dark .badge-success {
-  @apply text-green-400;
-}
+.dark .badge-success { @apply text-green-400; }
 .badge-info {
   @apply bg-cyan-500/20 text-cyan-700 border border-cyan-500/30;
 }
-.dark .badge-info {
-  @apply text-cyan-400;
-}
+.dark .badge-info { @apply text-cyan-400; }
 .badge-warning {
   @apply bg-amber-500/20 text-amber-700 border border-amber-500/30;
 }
-.dark .badge-warning {
-  @apply text-amber-400;
-}
+.dark .badge-warning { @apply text-amber-400; }
 .badge-error {
   @apply bg-red-500/20 text-red-700 border border-red-500/30;
 }
-.dark .badge-error {
-  @apply text-red-400;
-}
+.dark .badge-error { @apply text-red-400; }
 
 .badge-range {
-  @apply px-2 py-1 text-xs font-mono bg-muted text-muted-foreground rounded-md;
+  @apply px-2 py-1 text-xs font-mono bg-muted text-muted-foreground;
+  border-radius: 3px;
 }
 
-/* Summary list styling */
-.summary-list {
-  @apply space-y-2;
-}
-.summary-list li {
-  @apply flex items-start gap-2 text-sm text-muted-foreground;
-}
+/* Summary list */
+.summary-list { @apply space-y-2; }
+.summary-list li { @apply flex items-start gap-2 text-sm text-muted-foreground; }
 .summary-list li::before {
   content: '>';
   @apply text-primary mt-0;
 }
+
+/* ── Animations ────────────────────────────────────────────── */
+
+/* Orchestrated scroll reveal — each variant has distinct motion */
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes revealLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes revealRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes revealScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-on-scroll { opacity: 0; }
+
+.animate-on-scroll.visible {
+  animation: revealUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.animate-on-scroll[data-animate="slide-left"].visible {
+  animation: revealLeft 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.animate-on-scroll[data-animate="slide-right"].visible {
+  animation: revealRight 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.animate-on-scroll[data-animate="scale"].visible {
+  animation: revealScale 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Staggered cascade for card groups — up to 15 children */
+.stagger-children.visible > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children.visible > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children.visible > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children.visible > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children.visible > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children.visible > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children.visible > *:nth-child(7) { animation-delay: 360ms; }
+.stagger-children.visible > *:nth-child(8) { animation-delay: 420ms; }
+.stagger-children.visible > *:nth-child(9) { animation-delay: 480ms; }
+.stagger-children.visible > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-children.visible > *:nth-child(n+11) { animation-delay: 580ms; }
+
+.animate-fade-in-up {
+  animation: revealUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Hero entrance — auto-plays on page load */
+@keyframes heroEntrance {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-animate > * {
+  opacity: 0;
+  animation: heroEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero-animate > *:nth-child(1) { animation-delay: 100ms; }
+.hero-animate > *:nth-child(2) { animation-delay: 200ms; }
+.hero-animate > *:nth-child(3) { animation-delay: 300ms; }
+.hero-animate > *:nth-child(4) { animation-delay: 400ms; }
+.hero-animate > *:nth-child(5) { animation-delay: 500ms; }
+.hero-animate > *:nth-child(6) { animation-delay: 600ms; }
+.hero-animate > *:nth-child(7) { animation-delay: 700ms; }
 
 /* Blinking cursor */
 .cursor-blink::after {
   content: '_';
   animation: blink 1s step-end infinite;
 }
-
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
 
-/* Glow pulse animation */
+/* Glow pulse — for live indicators */
 @keyframes glow-pulse {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 4px 1px currentColor;
-  }
-  50% {
-    opacity: 0.6;
-    box-shadow: 0 0 8px 2px currentColor;
-  }
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px 1px currentColor; }
+  50% { opacity: 0.6; box-shadow: 0 0 8px 2px currentColor; }
 }
-.animate-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
 
-/* Radar pulse animation — concentric rings emitting from signal icon */
+/* Radar pulse */
 @keyframes radar-ping {
-  0% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
-
-.radar-pulse {
-  position: relative;
-}
-.radar-pulse::before,
-.radar-pulse::after {
+.radar-pulse { position: relative; }
+.radar-pulse::before, .radar-pulse::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -328,24 +480,12 @@
   border: 1.5px solid currentColor;
   opacity: 0;
 }
-.radar-pulse::before {
-  animation: radar-ping 2.4s ease-out infinite;
-}
-.radar-pulse::after {
-  animation: radar-ping 2.4s ease-out infinite 1.2s;
-}
+.radar-pulse::before { animation: radar-ping 2.4s ease-out infinite; }
+.radar-pulse::after { animation: radar-ping 2.4s ease-out infinite 1.2s; }
 
-/* Slide up animation */
+/* Slide up for mobile menu */
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-up {
-  animation: slideUp 0.4s ease-out forwards;
-}
+.animate-slide-up { animation: slideUp 0.4s ease-out forwards; }

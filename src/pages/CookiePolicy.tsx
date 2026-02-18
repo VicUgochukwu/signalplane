@@ -178,7 +178,7 @@ const CookiePolicy = () => {
               at{" "}
               <a
                 href="mailto:hello@signalplane.dev"
-                className="text-primary hover:underline"
+                className="text-accent-signal hover:underline"
               >
                 hello@signalplane.dev
               </a>

@@ -74,7 +74,7 @@ function PhraseCard({ phrase, versionId }: { phrase: SwipePhrase; versionId: str
   return (
     <Card className="relative group">
       {phrase.is_new_this_week && (
-        <Badge className="absolute -top-2 -right-2 bg-primary text-primary-foreground gap-1">
+        <Badge className="absolute -top-2 -right-2 bg-accent-signal text-white gap-1">
           <Sparkles className="h-3 w-3" />
           New
         </Badge>
@@ -85,7 +85,7 @@ function PhraseCard({ phrase, versionId }: { phrase: SwipePhrase; versionId: str
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="w-full min-h-[60px] rounded-md border border-primary/50 bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full min-h-[60px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
               autoFocus
             />
             <div className="flex gap-1.5 mt-1">
@@ -98,7 +98,7 @@ function PhraseCard({ phrase, versionId }: { phrase: SwipePhrase; versionId: str
             </div>
           </div>
         ) : (
-          <blockquote className="text-lg font-medium text-foreground italic border-l-4 border-primary pl-4 mb-4">
+          <blockquote className="text-lg font-medium text-foreground italic border-l-4 border-accent-signal pl-4 mb-4">
             &ldquo;{phrase.phrase}&rdquo;
           </blockquote>
         )}
@@ -107,8 +107,8 @@ function PhraseCard({ phrase, versionId }: { phrase: SwipePhrase; versionId: str
             <Badge variant="outline">{phrase.category}</Badge>
             <Badge variant="secondary">{phrase.persona}</Badge>
             <Badge variant="outline" className="gap-1">
-              {TREND_ICONS[phrase.trend]}
-              {TREND_LABELS[phrase.trend]}
+              {TREND_ICONS[phrase.trend] || TREND_ICONS.stable}
+              {TREND_LABELS[phrase.trend] || 'Stable'}
             </Badge>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -172,9 +172,9 @@ export function SwipeFileTab() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(p =>
-        p.phrase.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.persona.toLowerCase().includes(q)
+        (p.phrase || p.text || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.persona || '').toLowerCase().includes(q)
       );
     }
 
@@ -292,7 +292,7 @@ export function SwipeFileTab() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-primary">
+            <div className="text-3xl font-bold text-accent-signal">
               {content.phrases?.filter(p => p.is_new_this_week).length || 0}
             </div>
             <p className="text-sm text-muted-foreground">New This Week</p>
@@ -312,7 +312,7 @@ export function SwipeFileTab() {
                 placeholder="Search phrases, personas, categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
               />
             </div>
 
@@ -407,7 +407,7 @@ export function SwipeFileTab() {
                     onClick={() => setViewMode('grid')}
                     className={cn(
                       "p-1.5 transition-colors",
-                      viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                      viewMode === 'grid' ? 'bg-accent-signal text-white' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                     )}
                     title="Grid view"
                   >
@@ -417,7 +417,7 @@ export function SwipeFileTab() {
                     onClick={() => setViewMode('grouped')}
                     className={cn(
                       "p-1.5 transition-colors",
-                      viewMode === 'grouped' ? 'bg-primary text-primary-foreground' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                      viewMode === 'grouped' ? 'bg-accent-signal text-white' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                     )}
                     title="Grouped by persona"
                   >
@@ -451,8 +451,8 @@ export function SwipeFileTab() {
       {/* Phrases Display */}
       {viewMode === 'grid' ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {filteredPhrases.map((phrase) => (
-            <PhraseCard key={phrase.id} phrase={phrase} versionId={currentVersion.id} />
+          {filteredPhrases.map((phrase, idx) => (
+            <PhraseCard key={phrase.id || `phrase-${idx}`} phrase={phrase} versionId={currentVersion.id} />
           ))}
         </div>
       ) : (
@@ -465,8 +465,8 @@ export function SwipeFileTab() {
                 <Badge variant="secondary" className="text-xs">{phrases.length}</Badge>
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
-                {phrases.map((phrase) => (
-                  <PhraseCard key={phrase.id} phrase={phrase} versionId={currentVersion.id} />
+                {phrases.map((phrase, idx) => (
+                  <PhraseCard key={phrase.id || `phrase-g-${idx}`} phrase={phrase} versionId={currentVersion.id} />
                 ))}
               </div>
             </div>

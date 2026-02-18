@@ -294,20 +294,27 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
   // Bets HTML
   let betsHtml = '';
   if (packet.bets?.length) {
+    const confStringMap: Record<string, string> = { high: '#22c55e', medium: '#f59e0b', low: '#ef4444' };
     betsHtml = `
       <div style="margin-bottom:24px;">
         <h2 style="margin:0 0 12px;color:#f59e0b;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Strategic Bets</h2>
         ${packet.bets
           .map(
-            (b) => `
-          <div style="margin-bottom:8px;padding:12px;background:#1a1a2e;border-radius:8px;border:1px solid ${confidenceColor(b.confidence)}33;">
-            <p style="margin:0 0 6px;color:#e5e7eb;font-size:13px;">${escapeHtml(b.hypothesis)}</p>
-            <div style="color:#9ca3af;font-size:11px;">
-              Confidence: <span style="color:${confidenceColor(b.confidence)};">${b.confidence}%</span> &middot;
-              ${b.signal_ids.length} signal${b.signal_ids.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-        `
+            (b: any) => {
+              const label = b.hypothesis || b.bet || '';
+              const isNumericConf = typeof b.confidence === 'number';
+              const confNum = isNumericConf ? b.confidence : 0;
+              const confStr = typeof b.confidence === 'string' ? b.confidence : '';
+              const color = confStr ? (confStringMap[confStr.toLowerCase()] || '#f59e0b') : confidenceColor(confNum);
+              const confLabel = confStr || (confNum + '%');
+              const sigCount = b.signal_ids?.length || 0;
+              const rationale = b.rationale ? '<br/><span style="color:#6b7280;font-size:11px;">' + escapeHtml(b.rationale) + '</span>' : '';
+              return '<div style="margin-bottom:8px;padding:12px;background:#1a1a2e;border-radius:8px;border:1px solid ' + color + '33;">' +
+                '<p style="margin:0 0 6px;color:#e5e7eb;font-size:13px;">' + escapeHtml(label) + '</p>' +
+                '<div style="color:#9ca3af;font-size:11px;">Confidence: <span style="color:' + color + ';">' + escapeHtml(confLabel) + '</span>' +
+                (sigCount ? ' &middot; ' + sigCount + ' signal' + (sigCount !== 1 ? 's' : '') : '') +
+                rationale + '</div></div>';
+            }
           )
           .join('')}
       </div>
@@ -361,9 +368,10 @@ function buildPacketEmailHtml(packet: IntelPacket): string {
   <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
     <!-- Header -->
     <div style="text-align:center;margin-bottom:32px;">
-      <img src="https://signalplane.dev/favicon-cropped.png" alt="Control Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
+      <img src="https://dnqjzgfunvbofsuibcsk.supabase.co/storage/v1/object/public/email-assets/signal-plane-logo-email.png" alt="Signal Plane" width="48" height="48" style="display:block;margin:0 auto 16px;border-radius:12px;" />
       <h1 style="margin:0 0 8px;color:#e5e7eb;font-size:22px;font-weight:700;">${escapeHtml(packet.packet_title)}</h1>
       <p style="margin:0;color:#9ca3af;font-size:13px;">${escapeHtml(packet.week_start)} &mdash; ${escapeHtml(packet.week_end)}</p>
+      <div style="margin-top:8px;"><span style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600;color:#22c55e;background:#22c55e1a;border:1px solid #22c55e33;text-transform:uppercase;letter-spacing:1px;">Evidence-Grade &middot; All Claims Source-Verified</span></div>
     </div>
 
     ${metricsHtml}

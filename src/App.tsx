@@ -11,6 +11,7 @@ import { AdminRoute } from "./components/AdminRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CookieBanner } from "./components/CookieBanner";
 import { ControlPlaneLayout } from "./components/control-plane/ControlPlaneLayout";
+import { usePageView } from "./hooks/useAnalytics";
 
 // ---------------------------------------------------------------------------
 // Eagerly loaded pages (critical path — above the fold / first interaction)
@@ -33,6 +34,12 @@ const Artifacts = lazy(() => import("./pages/Artifacts"));
 const SubmitSignal = lazy(() => import("./pages/SubmitSignal"));
 const BulkUpload = lazy(() => import("./pages/BulkUpload"));
 const ActionBoard = lazy(() => import("./pages/ActionBoard"));
+const Enablement = lazy(() => import("./pages/Enablement"));
+const LaunchOps = lazy(() => import("./pages/LaunchOps"));
+const WinLoss = lazy(() => import("./pages/WinLoss"));
+const VocResearch = lazy(() => import("./pages/VocResearch"));
+const PositioningHealth = lazy(() => import("./pages/PositioningHealth"));
+const PackagingIntel = lazy(() => import("./pages/PackagingIntel"));
 const InviteAccept = lazy(() => import("./pages/InviteAccept"));
 
 // Control Plane sub-pages
@@ -45,6 +52,9 @@ const DemoControlPlane = lazy(() => import("./pages/DemoControlPlane"));
 const DemoArtifacts = lazy(() => import("./pages/DemoArtifacts"));
 const DemoActionBoard = lazy(() => import("./pages/DemoActionBoard"));
 const DemoCompetitorMessaging = lazy(() => import("./pages/DemoCompetitorMessaging"));
+const DemoWinLoss = lazy(() => import("./pages/DemoWinLoss"));
+const DemoPositioningHealth = lazy(() => import("./pages/DemoPositioningHealth"));
+const DemoPackagingIntel = lazy(() => import("./pages/DemoPackagingIntel"));
 
 // Legal
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
@@ -63,6 +73,7 @@ const AdminCsvUpload = lazy(() => import("./pages/admin/AdminCsvUpload"));
 const AdminUsageReports = lazy(() => import("./pages/admin/AdminUsageReports"));
 const AdminCostDashboard = lazy(() => import("./pages/admin/AdminCostDashboard"));
 const AdminTrackedPages = lazy(() => import("./pages/admin/AdminTrackedPages"));
+const AdminSocialIntel = lazy(() => import("./pages/admin/AdminSocialIntel"));
 
 // ---------------------------------------------------------------------------
 // Page loader — shown while lazy chunks download
@@ -71,7 +82,7 @@ function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent-signal border-t-transparent" />
         <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     </div>
@@ -79,6 +90,12 @@ function PageLoader() {
 }
 
 const queryClient = new QueryClient();
+
+/** Fires a page_view event on every SPA route change. */
+function PageViewTracker() {
+  usePageView();
+  return null;
+}
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
@@ -89,6 +106,7 @@ const App = () => (
             <Toaster />
             <Sonner />
           <BrowserRouter>
+            <PageViewTracker />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
@@ -106,6 +124,13 @@ const App = () => (
                   <Route path="/control-plane/board" element={<ActionBoard />} />
                   <Route path="/control-plane/team" element={<TeamSettings />} />
                   <Route path="/control-plane/deals" element={<DealLogger />} />
+                  <Route path="/control-plane/enablement" element={<Enablement />} />
+                  <Route path="/control-plane/launches" element={<LaunchOps />} />
+                  <Route path="/control-plane/launches/:launchId" element={<LaunchOps />} />
+                  <Route path="/control-plane/win-loss" element={<WinLoss />} />
+                  <Route path="/control-plane/voc-research" element={<VocResearch />} />
+                  <Route path="/control-plane/positioning" element={<PositioningHealth />} />
+                  <Route path="/control-plane/packaging" element={<PackagingIntel />} />
                   <Route path="/my-pages" element={<MyPages />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
@@ -123,6 +148,7 @@ const App = () => (
                 <Route path="/admin/usage" element={<AdminRoute><AdminUsageReports /></AdminRoute>} />
                 <Route path="/admin/costs" element={<AdminRoute><AdminCostDashboard /></AdminRoute>} />
                 <Route path="/admin/tracked-pages" element={<AdminRoute><AdminTrackedPages /></AdminRoute>} />
+                <Route path="/admin/social-intel" element={<AdminRoute><AdminSocialIntel /></AdminRoute>} />
 
                 {/* Invite accept — public (handles its own auth check) */}
                 <Route path="/invite/:token" element={<InviteAccept />} />
@@ -134,6 +160,9 @@ const App = () => (
                   <Route path="artifacts" element={<DemoArtifacts />} />
                   <Route path="board" element={<DemoActionBoard />} />
                   <Route path="signals" element={<DemoCompetitorMessaging />} />
+                  <Route path="win-loss" element={<DemoWinLoss />} />
+                  <Route path="positioning" element={<DemoPositioningHealth />} />
+                  <Route path="packaging" element={<DemoPackagingIntel />} />
                 </Route>
 
                 <Route path="/cookie-policy" element={<CookiePolicy />} />

@@ -118,8 +118,8 @@ Deno.serve(async (req) => {
     const serviceClient = createServiceRoleClient();
 
     // 3. Fetch the board card and verify ownership
+    // Uses public.action_board_cards view (learning schema not exposed in PostgREST)
     const { data: card, error: cardError } = await serviceClient
-      .schema('learning')
       .from('action_board_cards')
       .select('*')
       .eq('id', card_id)
@@ -140,14 +140,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    const decisionType = card.decision_type || 'positioning';
+    // Map action-level decision types to kit template types
+    // Cards from packet action_mapping use 'act_now'/'monitor', which need mapping
+    const rawDecisionType = card.decision_type || 'positioning';
+    const DECISION_TYPE_MAP: Record<string, string> = {
+      act_now: 'positioning',
+      monitor: 'positioning',
+    };
+    const decisionType = DECISION_TYPE_MAP[rawDecisionType] || rawDecisionType;
     const template = KIT_TEMPLATES[decisionType];
     if (!template) {
-      return new Response(
-        JSON.stringify({ error: `Unknown decision_type: ${decisionType}` }),
-        { status: 400, headers },
-      );
+      // Fallback to positioning if still unknown
+      console.warn(`[generate-execution-kit] Unknown decision_type: ${rawDecisionType}, falling back to positioning`);
     }
+    const finalTemplate = template || KIT_TEMPLATES['positioning'];
 
     console.log(`[generate-execution-kit] decision_type=${decisionType}, competitor=${card.competitor_name}`);
 
@@ -190,7 +196,7 @@ Deno.serve(async (req) => {
     // 6. Fetch relevant artifacts based on decision_type
     const artifactContext: Record<string, any> = {};
 
-    if (template.artifacts.includes('battlecard') && card.competitor_name) {
+    if (finalTemplate.artifacts.includes('battlecard') && card.competitor_name) {
       const { data: battlecard } = await serviceClient
         .schema('gtm_artifacts')
         .from('battlecard_versions')
@@ -206,7 +212,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (template.artifacts.includes('objection_library')) {
+    if (finalTemplate.artifacts.includes('objection_library')) {
       const { data: objectionLib } = await serviceClient
         .schema('gtm_artifacts')
         .from('objection_library_versions')
@@ -221,7 +227,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (template.artifacts.includes('swipe_file')) {
+    if (finalTemplate.artifacts.includes('swipe_file')) {
       const { data: swipeFile } = await serviceClient
         .schema('gtm_artifacts')
         .from('swipe_file_versions')
@@ -236,7 +242,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (template.artifacts.includes('market_winners') && packet?.market_winners) {
+    if (finalTemplate.artifacts.includes('market_winners') && packet?.market_winners) {
       artifactContext.market_winners = packet.market_winners;
       console.log('[generate-execution-kit] Found market winners from packet');
     }
@@ -251,7 +257,7 @@ Deno.serve(async (req) => {
     const companyName = userProfile?.company_name || 'Your Company';
 
     // 8. Build the Anthropic prompt
-    const componentDescriptions = template.components
+    const componentDescriptions = finalTemplate.components
       .map((c, i) => `${i + 1}. "${c}" - A ready-to-use ${c.toLowerCase()} deliverable`)
       .join('\n');
 
@@ -360,7 +366,7 @@ RULES:
     }
 
     // Build the final kit with copyable flags
-    const copyableFlags = COPYABLE_FLAGS[decisionType] || template.components.map(() => true);
+    const copyableFlags = COPYABLE_FLAGS[decisionType] || finalTemplate.components.map(() => true);
     const kitComponents: ExecutionKitComponent[] = parsedComponents.map((comp, index) => ({
       title: comp.title,
       content: comp.content,
@@ -375,9 +381,8 @@ RULES:
       generated_at: new Date().toISOString(),
     };
 
-    // 11. Update the card with the generated kit
+    // 11. Update the card with the generated kit (via public view)
     const { error: updateError } = await serviceClient
-      .schema('learning')
       .from('action_board_cards')
       .update({
         execution_kit: executionKit,

@@ -42,11 +42,14 @@ export function usePredictions(packetId: string | null) {
     queryFn: async (): Promise<NormalizedPrediction[]> => {
       if (!packetId) return [];
 
-      // Fetch predictions with their outcomes
+      if (!user) return [];
+
+      // Fetch predictions scoped to this user's packet
       const { data: preds, error: predError } = await supabase
         .from('predictions')
         .select('*')
         .eq('packet_id', packetId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (predError) {
@@ -116,6 +119,7 @@ export function useScorePrediction() {
           p_prediction_id: predictionId,
           p_outcome: outcome,
           p_notes: notes || null,
+          p_scored_by: user.id,
         });
 
       if (error) throw error;

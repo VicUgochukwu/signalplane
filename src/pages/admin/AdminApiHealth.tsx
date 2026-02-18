@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -172,11 +173,10 @@ export default function AdminApiHealth() {
   const manualCheckMutation = useMutation({
     mutationFn: async (apiSlug: string) => {
       setCheckingApi(apiSlug);
-      const { data, error } = await supabase.functions.invoke('admin-system-monitor', {
-        body: { action: 'manual_health_check', api_slug: apiSlug },
+      const result = await invokeEdgeFunction('admin-system-monitor', {
+        action: 'manual_health_check', api_slug: apiSlug,
       });
-      if (error) throw error;
-      return data;
+      return result;
     },
     onSuccess: () => {
       toast.success('Health check completed');

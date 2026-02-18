@@ -2,43 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ActionBoardCard, KIT_TYPE_COLORS, PRIORITY_COLORS, KitDecisionType } from '@/types/actionBoard';
 import { cn } from '@/lib/utils';
-import { GripVertical, Archive, Sparkles, AlertTriangle, Zap, Clock } from 'lucide-react';
-
-/** Severity → left-border color for instant visual triage */
-const SEVERITY_BORDER: Record<number, string> = {
-  5: 'border-l-rose-500',
-  4: 'border-l-rose-500',
-  3: 'border-l-amber-500',
-  2: 'border-l-amber-500',
-  1: 'border-l-border',
-};
-
-/** Calculate human-readable time-in-column */
-function timeInColumn(card: ActionBoardCard): string | null {
-  let enteredAt: string | null = null;
-  switch (card.column_status) {
-    case 'inbox': enteredAt = card.moved_to_inbox_at; break;
-    case 'this_week': enteredAt = card.moved_to_this_week_at; break;
-    case 'in_progress': enteredAt = card.moved_to_in_progress_at; break;
-    case 'done': enteredAt = card.moved_to_done_at; break;
-    default: return null;
-  }
-  if (!enteredAt) return null;
-  const days = Math.floor((Date.now() - new Date(enteredAt).getTime()) / (1000 * 60 * 60 * 24));
-  if (days < 1) return '<1d';
-  if (days < 7) return `${days}d`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks}w`;
-}
-
-/** Calculate inbox age opacity (progressive dimming) */
-function inboxOpacity(card: ActionBoardCard): string {
-  if (card.column_status !== 'inbox' || !card.moved_to_inbox_at) return '';
-  const days = Math.floor((Date.now() - new Date(card.moved_to_inbox_at).getTime()) / (1000 * 60 * 60 * 24));
-  if (days >= 14) return 'opacity-50';
-  if (days >= 7) return 'opacity-70';
-  return '';
-}
+import { GripVertical, Archive, Sparkles, AlertTriangle } from 'lucide-react';
 
 interface BoardCardProps {
   card: ActionBoardCard;
@@ -67,9 +31,6 @@ export function BoardCard({ card, onClick, onArchive, isOverlay = false }: Board
     (Date.now() - new Date(card.moved_to_inbox_at).getTime()) > 14 * 24 * 60 * 60 * 1000;
 
   const hasKit = !!card.execution_kit;
-  const tic = timeInColumn(card);
-  const ageOpacity = inboxOpacity(card);
-  const severityBorder = SEVERITY_BORDER[card.severity] || 'border-l-border';
 
   return (
     <div
@@ -79,13 +40,9 @@ export function BoardCard({ card, onClick, onArchive, isOverlay = false }: Board
       {...listeners}
       className={cn(
         'group rounded-lg border border-border/40 bg-card p-3 transition-all hover:border-border/80 hover:shadow-sm touch-none',
-        // Severity heat strip — 3px left border
-        'border-l-[3px]',
-        severityBorder,
         isDragging && 'opacity-30 scale-[0.98]',
-        isOverlay && 'shadow-lg border-primary/30 rotate-[2deg]',
-        // Inbox age gradient (progressive dimming)
-        !isDragging && !isOverlay && ageOpacity,
+        isOverlay && 'shadow-lg border-[hsl(var(--accent-signal)/0.30)] rotate-[2deg]',
+        isStale && 'opacity-60',
         !isDragging && !isOverlay && 'cursor-grab active:cursor-grabbing'
       )}
       onClick={(e) => {
@@ -140,27 +97,18 @@ export function BoardCard({ card, onClick, onArchive, isOverlay = false }: Board
             )}
           </div>
 
-          {/* Status indicators row */}
+          {/* Status indicators */}
           <div className="flex items-center gap-2 mt-1.5">
-            {/* Kit indicator badge */}
             {hasKit && (
-              <span className="flex items-center gap-0.5 text-[10px] text-primary">
-                <Zap className="h-3 w-3" />
-                Kit
+              <span className="flex items-center gap-0.5 text-[10px] text-accent-signal">
+                <Sparkles className="h-3 w-3" />
+                Kit ready
               </span>
             )}
-            {/* Stale indicator */}
             {isStale && (
               <span className="flex items-center gap-0.5 text-[10px] text-amber-400">
                 <AlertTriangle className="h-3 w-3" />
                 Stale
-              </span>
-            )}
-            {/* Time-in-column badge */}
-            {tic && (
-              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground/60">
-                <Clock className="h-2.5 w-2.5" />
-                {tic}
               </span>
             )}
           </div>

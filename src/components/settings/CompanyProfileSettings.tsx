@@ -8,6 +8,7 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
 import { usePilot } from '@/hooks/usePilot';
 import { useToast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
@@ -101,7 +102,7 @@ export function CompanyProfileSettings() {
   const addCompetitor = () => {
     if (!newCompetitorName.trim()) return;
     if (competitors.length >= maxCompetitors) {
-      toast({ title: `Maximum ${maxCompetitors} competitors allowed`, variant: 'destructive' });
+      toast({ title: `Maximum ${maxCompetitors} competitors allowed on your plan`, variant: 'destructive' });
       return;
     }
 
@@ -146,7 +147,7 @@ export function CompanyProfileSettings() {
 
     if (error) {
       setIsSaving(false);
-      toast({ title: 'Error saving profile', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error saving profile', description: friendlyError(error.message), variant: 'destructive' });
       return;
     }
 

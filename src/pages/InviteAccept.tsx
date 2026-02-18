@@ -53,21 +53,21 @@ export default function InviteAccept() {
 
           {status === 'loading' && (
             <>
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <Loader2 className="h-8 w-8 animate-spin text-accent-signal mx-auto" />
               <p className="text-foreground font-medium">Accepting invite...</p>
             </>
           )}
 
           {status === 'auth_required' && (
             <>
-              <IconTeam className="h-10 w-10 text-primary mx-auto" />
+              <IconTeam className="h-10 w-10 text-accent-signal mx-auto" />
               <p className="text-foreground font-medium">Sign in to accept invite</p>
               <p className="text-sm text-muted-foreground">
                 You need to be signed in to join the team.
               </p>
               <Button
                 onClick={() => navigate(`/login?redirect=/invite/${token}`)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+                className="bg-accent-signal hover:bg-[hsl(var(--accent-signal)/0.9)] text-white rounded-lg"
               >
                 Sign In
               </Button>
@@ -83,7 +83,7 @@ export default function InviteAccept() {
               </p>
               <Button
                 onClick={() => navigate('/control-plane')}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+                className="bg-accent-signal hover:bg-[hsl(var(--accent-signal)/0.9)] text-white rounded-lg"
               >
                 Go to Control Plane
               </Button>

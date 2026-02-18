@@ -25,11 +25,11 @@ export const OnboardingBanner = () => {
   };
 
   return (
-    <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
+    <div className="mb-6 p-4 rounded-xl bg-[hsl(var(--accent-signal)/0.05)] border border-[hsl(var(--accent-signal)/0.1)]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-            <IconCompany className="h-5 w-5 text-primary" />
+          <div className="p-2 rounded-lg bg-[hsl(var(--accent-signal)/0.1)] shrink-0">
+            <IconCompany className="h-5 w-5 text-accent-signal" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">
@@ -41,7 +41,7 @@ export const OnboardingBanner = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg">
+          <Button asChild size="sm" className="bg-accent-signal hover:bg-accent-signal/90 text-white rounded-lg">
             <Link to="/settings" className="flex items-center gap-1.5">
               Set Up Now
               <ArrowRight className="h-3.5 w-3.5" />

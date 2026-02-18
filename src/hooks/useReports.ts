@@ -22,9 +22,13 @@ const parseBets = (data: unknown): Bet[] => {
   if (!Array.isArray(data)) return [];
   return data.map((bet) => {
     const b = bet as Record<string, unknown>;
+    // Support both { hypothesis, confidence (number), signal_ids } and { bet, confidence (string), rationale }
+    const label = typeof b.hypothesis === 'string' ? b.hypothesis : (typeof b.bet === 'string' ? b.bet : '');
+    const confMap: Record<string, number> = { high: 85, medium: 60, low: 35 };
+    const conf = typeof b.confidence === 'number' ? b.confidence : (typeof b.confidence === 'string' ? (confMap[b.confidence.toLowerCase()] || 50) : 0);
     return {
-      hypothesis: typeof b.hypothesis === 'string' ? b.hypothesis : '',
-      confidence: typeof b.confidence === 'number' ? b.confidence : 0,
+      hypothesis: label,
+      confidence: conf,
       signal_ids: Array.isArray(b.signal_ids) ? b.signal_ids : [],
     };
   });
@@ -183,6 +187,8 @@ const mapRowToPacket = (row: Record<string, any>): IntelPacket => {
       icp: parseIntelSection(sections.icp),
       horizon: parseIntelSection(sections.horizon),
       objection: parseIntelSection(sections.objection || sections.pipeline_intel),
+      social: parseIntelSection(sections.social),
+      enablement: parseIntelSection(sections.enablement),
     },
     key_questions: row.key_questions || [],
     bets: parseBets(row.bets),
@@ -195,6 +201,7 @@ const mapRowToPacket = (row: Record<string, any>): IntelPacket => {
     metrics: parseMetrics(sections.metrics),
     is_personalized: row.is_personalized || false,
     user_company_name: row.user_company_name || null,
+    verification_status: row.verification_status || 'verified',
   };
 };
 
@@ -237,23 +244,23 @@ export const useReports = () => {
         .limit(50);
 
       if (user?.id) {
-        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+        // Only show packets belonging to this user — never show generic/other users' packets
+        query = query.eq('user_id', user.id);
       } else {
-        query = query.is('user_id', null);
+        // Unauthenticated visitors see mock demo data
+        return mockReports;
       }
 
       const { data, error } = await query;
 
       if (error) {
         console.warn('Failed to fetch from Supabase:', error.message);
-        // Only fall back to mock data for unauthenticated visitors (marketing demo)
-        return user ? [] : mockReports;
+        return [];
       }
 
       if (!data || data.length === 0) {
-        console.info('No packets in Supabase');
-        // Authenticated users see empty state; visitors see mock demo
-        return user ? [] : mockReports;
+        console.info('No packets for this user yet');
+        return [];
       }
 
       return data.map(mapRowToPacket);

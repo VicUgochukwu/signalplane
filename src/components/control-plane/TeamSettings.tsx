@@ -23,7 +23,7 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 };
 
 const ROLE_COLORS: Record<TeamRole, string> = {
-  admin: 'bg-primary/10 text-primary border-primary/20',
+  admin: 'bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)]',
   pmm: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   sales: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   executive: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
@@ -77,7 +77,7 @@ export default function TeamSettings() {
         {/* Page header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <IconTeam className="h-6 w-6 text-primary" />
+            <IconTeam className="h-6 w-6 text-accent-signal" />
             Team
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -94,7 +94,7 @@ export default function TeamSettings() {
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
                 Upgrade to Growth to invite team members, assign roles, and collaborate on competitive intelligence.
               </p>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg mt-2">
+              <Button className="bg-accent-signal hover:bg-accent-signal/90 text-white rounded-lg mt-2">
                 Upgrade to Growth
               </Button>
             </CardContent>
@@ -205,7 +205,7 @@ export default function TeamSettings() {
                     <Button
                       onClick={handleInvite}
                       disabled={!inviteEmail.trim() || inviteMember.isPending}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+                      className="bg-accent-signal hover:bg-accent-signal/90 text-white rounded-lg"
                     >
                       {inviteMember.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

@@ -35,7 +35,7 @@ export function BoardFilters({ filters, onFiltersChange, cardsByColumn }: BoardF
           placeholder="Search actions..."
           value={filters.search}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-          className="w-full h-8 pl-9 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full h-8 pl-9 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.50)]"
         />
       </div>
 
@@ -44,7 +44,7 @@ export function BoardFilters({ filters, onFiltersChange, cardsByColumn }: BoardF
         <select
           value={filters.decisionType || ''}
           onChange={(e) => onFiltersChange({ ...filters, decisionType: e.target.value || null })}
-          className="h-8 px-2 rounded-lg border border-border/50 bg-muted/10 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="h-8 px-2 rounded-lg border border-border/50 bg-muted/10 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.50)]"
         >
           <option value="">All types</option>
           {decisionTypes.map(dt => <option key={dt} value={dt}>{dt}</option>)}
@@ -56,7 +56,7 @@ export function BoardFilters({ filters, onFiltersChange, cardsByColumn }: BoardF
         <select
           value={filters.ownerTeam || ''}
           onChange={(e) => onFiltersChange({ ...filters, ownerTeam: e.target.value || null })}
-          className="h-8 px-2 rounded-lg border border-border/50 bg-muted/10 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="h-8 px-2 rounded-lg border border-border/50 bg-muted/10 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.50)]"
         >
           <option value="">All teams</option>
           {ownerTeams.map(t => <option key={t} value={t}>{t}</option>)}
@@ -68,7 +68,7 @@ export function BoardFilters({ filters, onFiltersChange, cardsByColumn }: BoardF
         <select
           value={filters.priority || ''}
           onChange={(e) => onFiltersChange({ ...filters, priority: e.target.value || null })}
-          className="h-8 px-2 rounded-lg border border-border/50 bg-muted/10 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="h-8 px-2 rounded-lg border border-border/50 bg-muted/10 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.50)]"
         >
           <option value="">All priorities</option>
           {priorities.map(p => <option key={p} value={p}>{p}</option>)}

@@ -1,5 +1,4 @@
 import { IconBattlecard, IconObjectionLibrary, IconSwipeFile } from "@/components/icons";
-import { Kanban, Zap } from "lucide-react";
 
 const artifacts = [
   {
@@ -24,11 +23,11 @@ const artifacts = [
 
 export function ArtifactsSection() {
   return (
-    <section aria-label="Competitive intelligence artifacts and action board" className="py-20 md:py-28 px-6 bg-[hsl(var(--section-alt))] dark:bg-transparent">
+    <section aria-label="Competitive intelligence artifacts and action board" className="py-20 md:py-28 px-6 bg-surface-elevated dark:bg-surface-base">
       <div className="max-w-6xl mx-auto">
         {/* Artifacts — left-aligned header */}
         <div className="max-w-xl mb-16">
-          <div className="text-xs font-medium text-primary mb-3 tracking-wider uppercase">
+          <div className="text-[11px] font-mono font-medium text-accent-signal mb-3 tracking-widest uppercase">
             Ready-to-Use Deliverables
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
@@ -40,14 +39,15 @@ export function ArtifactsSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {artifacts.map((artifact) => (
             <div
               key={artifact.title}
-              className="p-6 rounded-xl border border-border bg-card shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] hover:border-primary/30 dark:bg-card/30 dark:border-border/60 dark:shadow-none dark:hover:shadow-none dark:hover:border-primary/20 transition-all duration-200"
+              className="animate-on-scroll card-intel p-6 border border-border/60 dark:border-border/40 hover:translate-y-[-2px] transition-transform duration-200"
+              style={{ borderRadius: '6px' }}
             >
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 mb-5">
-                <artifact.icon className="w-5 h-5 text-primary" />
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-card bg-accent-signal/10 mb-5">
+                <artifact.icon className="w-5 h-5 text-accent-signal" />
               </div>
               <h3 className="font-semibold text-foreground mb-2">
                 {artifact.title}
@@ -60,12 +60,12 @@ export function ArtifactsSection() {
         </div>
 
         {/* Action Board — NEW feature callout */}
-        <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-8 md:p-10">
+        <div className="rounded-card border border-accent-signal/20 bg-accent-signal/[0.03] p-8 md:p-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[11px] font-medium text-primary tracking-wide uppercase">New</span>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-badge bg-accent-signal/10 border border-accent-signal/20 mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-signal" />
+                <span className="text-[11px] font-mono font-medium text-accent-signal tracking-widest uppercase">New</span>
               </div>
               <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4 tracking-tight">
                 Action Board
@@ -84,18 +84,18 @@ export function ArtifactsSection() {
                   "Designed for the weekly GTM cadence, not another project tracker",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-signal mt-1.5 shrink-0" />
                     {item}
                   </div>
                 ))}
               </div>
             </div>
-            <div className="p-5 rounded-xl border border-border bg-card shadow-[var(--shadow-card)] dark:border-border/50 dark:bg-card/50 dark:shadow-none">
+            <div className="card-intel p-5 border border-border/60 dark:border-border/40" style={{ borderRadius: '6px' }}>
               {/* Visual representation of the board */}
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {["Inbox", "Triaged", "This Week", "Done"].map((col) => (
                   <div key={col} className="text-center">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    <span className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-wider">
                       {col}
                     </span>
                   </div>
@@ -139,9 +139,9 @@ function MiniCard({ label, type }: { label: string; type: string }) {
     equip: "bg-violet-400/20 text-violet-400",
   };
   return (
-    <div className="p-2 rounded-lg border border-border/60 bg-card dark:border-border/40 dark:bg-card/80">
+    <div className="p-2 rounded-card border border-border/60 bg-card dark:border-border/40 dark:bg-card/80">
       <p className="text-[10px] font-medium text-foreground leading-tight mb-1">{label}</p>
-      <span className={`inline-block text-[8px] font-medium px-1.5 py-0.5 rounded-full ${colors[type] || "bg-muted text-muted-foreground"}`}>
+      <span className={`inline-block text-[8px] font-mono font-medium px-1.5 py-0.5 rounded-badge ${colors[type] || "bg-muted text-muted-foreground"}`}>
         {type}
       </span>
     </div>

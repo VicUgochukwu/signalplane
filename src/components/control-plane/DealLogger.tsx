@@ -68,7 +68,7 @@ export default function DealLogger() {
         {/* Page header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <IconDeals className="h-6 w-6 text-primary" />
+            <IconDeals className="h-6 w-6 text-accent-signal" />
             Win/Loss Log
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -85,7 +85,7 @@ export default function DealLogger() {
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
                 Upgrade to Growth to log deals, track outcomes, and discover which competitor signals correlate with wins and losses.
               </p>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg mt-2">
+              <Button className="bg-accent-signal hover:bg-accent-signal/90 text-white rounded-lg mt-2">
                 Upgrade to Growth
               </Button>
             </CardContent>
@@ -181,7 +181,7 @@ export default function DealLogger() {
                 <Button
                   onClick={handleSubmit}
                   disabled={!competitorName.trim() || logDeal.isPending}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
+                  className="bg-accent-signal hover:bg-accent-signal/90 text-white rounded-lg"
                 >
                   {logDeal.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />

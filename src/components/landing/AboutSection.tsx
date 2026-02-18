@@ -1,21 +1,25 @@
 const principles = [
   {
     title: "Infrastructure over decks",
+    accent: "var(--accent-signal)",
     description:
       "Competitive intelligence should be infrastructure that ships every week, not a quarterly deck that goes stale the day it lands.",
   },
   {
     title: "Evidence over opinion",
+    accent: "var(--accent-evidence)",
     description:
       "Every claim is a hypothesis. If it cannot be traced to a source, it does not go in the packet. Your board deserves better than gut feel.",
   },
   {
     title: "Execution over insight",
+    accent: "var(--accent-severity)",
     description:
       "Intelligence without a next step is just trivia. Every signal maps to a decision type, an owner, and a timeline.",
   },
   {
     title: "Ship over plan",
+    accent: "var(--accent-predict)",
     description:
       "A working system on Tuesday beats a strategy deck on Friday. Speed of response is a competitive advantage.",
   },
@@ -28,7 +32,7 @@ export function AboutSection() {
         {/* Origin story — asymmetric two-column */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start mb-20">
           <div>
-            <div className="text-xs font-medium text-primary mb-3 tracking-wider uppercase">
+            <div className="font-mono text-[11px] font-medium text-accent-signal mb-3 tracking-widest uppercase">
               Origin
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 tracking-tight">
@@ -46,23 +50,24 @@ export function AboutSection() {
           </div>
         </div>
 
-        {/* Operating principles — left-aligned header + 2x2 grid */}
+        {/* Operating principles — left-aligned header + 2x2 grid of card-intel cards */}
         <div>
           <div className="max-w-md mb-10">
             <h3 className="text-xl font-bold text-foreground tracking-tight">
               How we think about intelligence
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+          <div className="stagger-children grid grid-cols-1 md:grid-cols-2 gap-4">
             {principles.map((p) => (
-              <div key={p.title} className="flex gap-4">
-                <div className="w-1 shrink-0 rounded-full bg-primary/20" />
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">{p.title}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {p.description}
-                  </p>
-                </div>
+              <div
+                key={p.title}
+                className="animate-on-scroll card-intel p-5 hover:translate-y-[-1px] transition-transform duration-200"
+                style={{ borderLeftColor: `hsl(${p.accent})` }}
+              >
+                <h4 className="font-semibold text-foreground mb-2">{p.title}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {p.description}
+                </p>
               </div>
             ))}
           </div>

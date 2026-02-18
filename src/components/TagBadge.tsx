@@ -36,7 +36,7 @@ export function TagBadge({ tag }: TagBadgeProps) {
       <TooltipTrigger asChild>
         <Badge
           variant="outline"
-          className="text-xs border-primary/20 text-primary/80 font-medium cursor-help hover:border-primary/40 hover:bg-primary/5 transition-colors"
+          className="text-xs border-[hsl(var(--accent-signal)/0.2)] text-accent-signal/80 font-medium cursor-help hover:border-[hsl(var(--accent-signal)/0.4)] hover:bg-[hsl(var(--accent-signal)/0.05)] transition-colors"
         >
           {tag.replace(/_/g, ' ')}
         </Badge>

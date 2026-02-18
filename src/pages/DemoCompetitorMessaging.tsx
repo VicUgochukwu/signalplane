@@ -776,8 +776,8 @@ function DemoSignalFeed() {
         <Card className="rounded-xl border border-border/50 bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <IconSignalCount className="h-3.5 w-3.5 text-primary" />
+              <div className="p-1.5 rounded-md bg-[hsl(var(--accent-signal)/0.1)]">
+                <IconSignalCount className="h-3.5 w-3.5 text-accent-signal" />
               </div>
             </div>
             <div className="text-2xl font-bold text-foreground tabular-nums">{totalSignals}</div>
@@ -806,7 +806,7 @@ function DemoSignalFeed() {
             <div className="text-xs text-muted-foreground mt-0.5">Companies</div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border border-border/50 bg-card group hover:border-primary/20 transition-colors">
+        <Card className="rounded-xl border border-border/50 bg-card group hover:border-[hsl(var(--accent-signal)/0.2)] transition-colors">
           <CardContent className="p-4">
             <Link to={`/demo/${sectorSlug}`} className="block">
               <div className="flex items-center gap-2 mb-2">

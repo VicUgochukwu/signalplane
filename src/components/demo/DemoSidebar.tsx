@@ -22,7 +22,6 @@ import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDemo } from '@/contexts/DemoContext';
 import { Kanban, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export function DemoSidebar() {
   const location = useLocation();
@@ -46,14 +45,14 @@ export function DemoSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Signal Plane">
+            <SidebarMenuButton size="lg" asChild tooltip="Control Plane">
               <Link to="/">
                 <div className="flex aspect-square size-8 items-center justify-center">
                   <Logo className="w-8 h-8" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Signal Plane</span>
-                  <span className="text-xs text-muted-foreground">Demo — {sectorName}</span>
+                  <span className="font-mono text-sm font-medium tracking-tight">CONTROL PLANE</span>
+                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Demo — {sectorName}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -66,7 +65,7 @@ export function DemoSidebar() {
       {/* Navigation */}
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Intelligence</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-widest">Intelligence</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -98,14 +97,12 @@ export function DemoSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <div className="group-data-[collapsible=icon]:hidden px-2 pb-2">
-              <p className="text-xs text-muted-foreground mb-2 text-center">
-                You're viewing sample data
+              <p className="font-mono text-[10px] text-muted-foreground mb-2 text-center uppercase tracking-wider">
+                Viewing sample data
               </p>
-              <Link to="/login">
-                <Button size="sm" className="w-full rounded-lg text-xs font-medium">
-                  Sign Up Free
-                  <ArrowRight className="w-3 h-3 ml-1.5" />
-                </Button>
+              <Link to="/login" className="btn-primary w-full text-[11px] px-4 py-2 justify-center">
+                Sign Up Free
+                <ArrowRight className="w-3 h-3 ml-1.5" />
               </Link>
             </div>
           </SidebarMenuItem>

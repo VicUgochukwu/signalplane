@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,13 +27,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { 
-  Check, 
-  X, 
-  Loader2, 
-  Clock, 
+import {
+  Check,
+  X,
+  Loader2,
+  Clock,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Settings2
 } from 'lucide-react';
 import { formatDistanceToNow, format, differenceInSeconds } from 'date-fns';
 
@@ -119,17 +123,48 @@ function getExecutionStatusBadge(status: string) {
 }
 
 export default function AdminWorkflows() {
+  const queryClient = useQueryClient();
   const [selectedWorkflow, setSelectedWorkflow] = useState<N8nWorkflow | null>(null);
   const [selectedExecution, setSelectedExecution] = useState<N8nExecution | null>(null);
+  const [manageMode, setManageMode] = useState(false);
+
+  // Fetch hidden workflow IDs
+  const { data: hiddenIds } = useQuery({
+    queryKey: ['admin-hidden-workflows'],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('admin_get_hidden_workflows');
+      if (error) {
+        console.warn('Failed to fetch hidden workflows:', error.message);
+        return [] as string[];
+      }
+      return (data || []) as string[];
+    },
+  });
+
+  const hiddenSet = new Set(hiddenIds || []);
+
+  // Toggle visibility mutation
+  const toggleMutation = useMutation({
+    mutationFn: async ({ workflowId, hidden }: { workflowId: string; hidden: boolean }) => {
+      const { error } = await (supabase.rpc as any)('admin_toggle_workflow_visibility', {
+        p_workflow_id: workflowId,
+        p_hidden: hidden,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-hidden-workflows'] });
+    },
+  });
 
   const { data: workflows, isLoading: workflowsLoading, error: workflowsError } = useQuery({
     queryKey: ['admin-n8n-workflows'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-system-monitor', {
-        body: { action: 'n8n_list_workflows' },
+      const result = await invokeEdgeFunction<{ data: any }>('admin-system-monitor', {
+        action: 'n8n_list_workflows',
       });
-      if (error) throw error;
-      return (data?.data || []) as N8nWorkflow[];
+      const inner = result.data;
+      return (Array.isArray(inner) ? inner : inner?.data || []) as N8nWorkflow[];
     },
     refetchInterval: 60000,
   });
@@ -137,15 +172,13 @@ export default function AdminWorkflows() {
   const { data: executions, isLoading: executionsLoading } = useQuery({
     queryKey: ['admin-n8n-executions', selectedWorkflow?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-system-monitor', {
-        body: { 
-          action: 'n8n_list_executions', 
-          workflowId: selectedWorkflow?.id,
-          limit: 20 
-        },
+      const result = await invokeEdgeFunction<{ data: any }>('admin-system-monitor', {
+        action: 'n8n_list_executions',
+        workflowId: selectedWorkflow?.id,
+        limit: 20,
       });
-      if (error) throw error;
-      return (data?.data || []) as N8nExecution[];
+      const inner = result.data;
+      return (Array.isArray(inner) ? inner : inner?.data || []) as N8nExecution[];
     },
     enabled: !!selectedWorkflow,
     refetchInterval: 30000,
@@ -154,17 +187,22 @@ export default function AdminWorkflows() {
   const { data: executionDetail } = useQuery({
     queryKey: ['admin-n8n-execution-detail', selectedExecution?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-system-monitor', {
-        body: { 
-          action: 'n8n_get_execution', 
-          executionId: selectedExecution?.id 
-        },
+      const result = await invokeEdgeFunction<{ data: any }>('admin-system-monitor', {
+        action: 'n8n_get_execution',
+        executionId: selectedExecution?.id,
       });
-      if (error) throw error;
-      return data?.data as N8nExecution;
+      const inner = result.data;
+      return (inner?.data || inner) as N8nExecution;
     },
     enabled: !!selectedExecution,
   });
+
+  // Filter workflows based on visibility
+  const visibleWorkflows = manageMode
+    ? workflows
+    : workflows?.filter((w) => !hiddenSet.has(w.id));
+
+  const hiddenCount = workflows ? workflows.filter((w) => hiddenSet.has(w.id)).length : 0;
 
   if (workflowsError) {
     const errorMessage = workflowsError instanceof Error ? workflowsError.message : 'Unknown error';
@@ -181,7 +219,7 @@ export default function AdminWorkflows() {
                 {isConfigError ? 'n8n integration not configured' : 'Error loading workflows'}
               </p>
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                {isConfigError 
+                {isConfigError
                   ? 'Add N8N_BASE_URL and N8N_API_KEY to your edge function secrets to enable workflow monitoring.'
                   : errorMessage
                 }
@@ -199,63 +237,113 @@ export default function AdminWorkflows() {
         <h2 className="text-2xl font-bold text-foreground">Workflows</h2>
 
         <Card className="bg-muted/50 border-border">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-foreground">Workflow Registry</CardTitle>
+            <Button
+              variant={manageMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setManageMode(!manageMode)}
+              className="gap-2"
+            >
+              <Settings2 className="h-4 w-4" />
+              {manageMode ? 'Done' : 'Manage'}
+              {!manageMode && hiddenCount > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                  {hiddenCount} hidden
+                </Badge>
+              )}
+            </Button>
           </CardHeader>
           <CardContent>
+            {manageMode && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Click the eye icon to show or hide workflows. Hidden workflows won't appear in the main view.
+              </p>
+            )}
             {workflowsLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Skeleton key={i} className="h-12 bg-muted" />
                 ))}
               </div>
-            ) : workflows && workflows.length > 0 ? (
+            ) : visibleWorkflows && visibleWorkflows.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
+                    {manageMode && (
+                      <TableHead className="text-muted-foreground w-12">Visible</TableHead>
+                    )}
                     <TableHead className="text-muted-foreground">Name</TableHead>
                     <TableHead className="text-muted-foreground">Status</TableHead>
                     <TableHead className="text-muted-foreground">Created</TableHead>
                     <TableHead className="text-muted-foreground">Updated</TableHead>
-                    <TableHead className="text-muted-foreground w-10"></TableHead>
+                    {!manageMode && (
+                      <TableHead className="text-muted-foreground w-10"></TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {workflows.map((workflow) => (
-                    <TableRow 
-                      key={workflow.id} 
-                      className="border-border hover:bg-muted/50 cursor-pointer"
-                      onClick={() => setSelectedWorkflow(workflow)}
-                    >
-                      <TableCell className="font-medium text-foreground">
-                        {workflow.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          className={workflow.active 
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
-                            : 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30'
-                          }
-                        >
-                          {workflow.active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {format(new Date(workflow.createdAt), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {getRelativeTime(workflow.updatedAt)}
-                      </TableCell>
-                      <TableCell>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {visibleWorkflows.map((workflow) => {
+                    const isHidden = hiddenSet.has(workflow.id);
+                    return (
+                      <TableRow
+                        key={workflow.id}
+                        className={`border-border ${manageMode ? '' : 'hover:bg-muted/50 cursor-pointer'} ${isHidden ? 'opacity-50' : ''}`}
+                        onClick={() => !manageMode && setSelectedWorkflow(workflow)}
+                      >
+                        {manageMode && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => toggleMutation.mutate({
+                                workflowId: workflow.id,
+                                hidden: !isHidden,
+                              })}
+                            >
+                              {isHidden ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-emerald-400" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium text-foreground">
+                          {workflow.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={workflow.active
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : 'bg-muted-foreground/20 text-muted-foreground border-muted-foreground/30'
+                            }
+                          >
+                            {workflow.active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {format(new Date(workflow.createdAt), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {getRelativeTime(workflow.updatedAt)}
+                        </TableCell>
+                        {!manageMode && (
+                          <TableCell>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No workflows found</p>
+                <p className="text-muted-foreground">
+                  {manageMode ? 'No workflows found' : 'No visible workflows. Click Manage to show workflows.'}
+                </p>
               </div>
             )}
           </CardContent>
@@ -288,8 +376,8 @@ export default function AdminWorkflows() {
                   </TableHeader>
                   <TableBody>
                     {executions.map((execution) => (
-                      <TableRow 
-                        key={execution.id} 
+                      <TableRow
+                        key={execution.id}
                         className="border-border hover:bg-muted/50 cursor-pointer"
                         onClick={() => setSelectedExecution(execution)}
                       >
@@ -354,8 +442,8 @@ export default function AdminWorkflows() {
                     <p className="text-xs text-muted-foreground mb-2">Node Execution Timeline</p>
                     <div className="space-y-2">
                       {Object.entries(executionDetail.data.resultData.runData).map(([nodeName, runs]) => (
-                        <div 
-                          key={nodeName} 
+                        <div
+                          key={nodeName}
                           className="flex items-center justify-between p-2 rounded bg-muted"
                         >
                           <span className="text-sm text-foreground">{nodeName}</span>

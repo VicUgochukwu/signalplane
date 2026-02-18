@@ -83,6 +83,8 @@ export interface IntelPacket {
     icp: IntelSection;
     horizon: IntelSection;
     objection: IntelSection;
+    social: IntelSection;
+    enablement: IntelSection;
   };
   key_questions: string[];
   bets: Bet[];
@@ -100,6 +102,8 @@ export interface IntelPacket {
   // Company-aware fields
   is_personalized?: boolean;
   user_company_name?: string | null;
+  // Evidence-grade verification
+  verification_status?: 'verified' | 'unverified' | 'flagged' | 'retracted';
 }
 
 // Section configuration for display

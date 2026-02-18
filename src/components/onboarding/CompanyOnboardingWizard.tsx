@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
+import { pushEvent } from '@/lib/analytics';
 import { detectPages, confidenceDot, confidenceLabel } from '@/lib/pageDetection';
 import type { DetectedPage, DetectionResult } from '@/lib/pageDetection';
 import { getUrlTypeLabel } from '@/lib/urlGenerator';
@@ -28,7 +29,11 @@ import {
 } from 'lucide-react';
 import { IconCompany, IconSignalICP } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useSectorPacks, usePackCompanies } from '@/hooks/useSectorPacks';
+import type { SectorPack } from '@/hooks/useSectorPacks';
+import { Package } from 'lucide-react';
 
 interface Competitor {
   name: string;
@@ -80,8 +85,14 @@ const DEPARTMENTS = [
   { value: 'other', label: 'Other' },
 ];
 
-type Step = 'company' | 'competitors' | 'review_pages' | 'confirm';
-const STEPS: Step[] = ['company', 'competitors', 'review_pages', 'confirm'];
+type Step = 'company' | 'sector_pack' | 'competitors' | 'review_pages' | 'confirm';
+const STEPS: Step[] = ['company', 'sector_pack', 'competitors', 'review_pages', 'confirm'];
+
+const MOTION_LABELS: Record<string, string> = {
+  plg: 'PLG',
+  sales_led: 'Sales-led',
+  hybrid: 'Hybrid',
+};
 
 export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardProps) {
   const { toast } = useToast();
@@ -96,6 +107,11 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
   const [companySize, setCompanySize] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [department, setDepartment] = useState('');
+
+  // Sector pack selection
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const { data: sectorPacks = [], isLoading: isLoadingPacks } = useSectorPacks();
+  const { data: packCompanies = [] } = usePackCompanies(selectedPackId);
 
   // Step 2: Competitors
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -327,7 +343,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
       toast({ title: 'Company name required', variant: 'destructive' });
       return;
     }
-    setStep('competitors');
+    setStep('sector_pack');
   };
 
   const handleStep2Submit = () => {
@@ -387,16 +403,33 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
       console.error('Onboarding error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: friendlyError(error.message),
         variant: 'destructive',
       });
       return;
+    }
+
+    // Subscribe to sector pack if one was selected
+    if (selectedPackId && user) {
+      await (supabase.rpc as any)('subscribe_to_sector_pack', {
+        p_user_id: user.id,
+        p_pack_id: selectedPackId,
+        p_is_primary: true,
+      }).catch((err: any) => console.warn('Sector pack subscription failed:', err));
     }
 
     const totalPages = competitorsJson.reduce((sum, c) => sum + c.pages.length, 0);
     toast({
       title: 'Welcome to Control Plane!',
       description: `Tracking ${totalPages} pages across ${competitors.length} competitor${competitors.length !== 1 ? 's' : ''}`,
+    });
+
+    // Analytics: track onboarding completion
+    pushEvent('onboarding_complete', {
+      competitor_count: competitors.length,
+      total_pages: totalPages,
+      industry: industry || 'unknown',
+      has_sector_pack: !!selectedPackId,
     });
 
     // Fire Loops event with ICP data (fire-and-forget)
@@ -459,6 +492,12 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 Tell us about your company
               </>
             )}
+            {step === 'sector_pack' && (
+              <>
+                <Package className="h-6 w-6 text-[#6B9B9B]" />
+                Join a Sector Pack
+              </>
+            )}
             {step === 'competitors' && (
               <>
                 <IconSignalICP className="h-6 w-6 text-[#6B9B9B]" />
@@ -480,6 +519,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             {step === 'company' && 'This helps us personalize your intelligence feed'}
+            {step === 'sector_pack' && 'Get shared competitive intelligence from your industry'}
             {step === 'competitors' && `Add up to 10 competitors to track (${competitors.length}/10 selected)`}
             {step === 'review_pages' && `We auto-detected pages for your competitors. Verify and adjust below.`}
             {step === 'confirm' && 'Review your setup before we start gathering intel'}
@@ -589,6 +629,89 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </form>
+          )}
+
+          {/* ── Step 1b: Sector Pack Selection ───────────────────── */}
+          {step === 'sector_pack' && (
+            <div className="space-y-5">
+              {isLoadingPacks ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#6B9B9B] mr-2" />
+                  <span className="text-muted-foreground text-sm">Loading sector packs...</span>
+                </div>
+              ) : sectorPacks.length === 0 ? (
+                <div className="py-6 text-center text-muted-foreground text-sm">
+                  No sector packs available yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 max-h-[360px] overflow-y-auto pr-1">
+                  {sectorPacks.map((pack) => {
+                    const isSelected = selectedPackId === pack.id;
+                    return (
+                      <button
+                        key={pack.id}
+                        onClick={() => setSelectedPackId(isSelected ? null : pack.id)}
+                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                          isSelected
+                            ? 'bg-[#6B9B9B]/15 border-[#6B9B9B]/40'
+                            : 'bg-muted/30 border-border hover:bg-muted/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Package className={`h-4 w-4 ${isSelected ? 'text-[#6B9B9B]' : 'text-muted-foreground'}`} />
+                            <span className="text-foreground font-medium text-sm">{pack.pack_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                              {MOTION_LABELS[pack.motion] || pack.motion}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {pack.company_count} companies
+                            </span>
+                            {isSelected && (
+                              <CheckCircle2 className="h-4 w-4 text-[#6B9B9B]" />
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-muted-foreground text-xs mt-1 ml-6">{pack.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={() => setStep('company')}
+                  variant="outline"
+                  className="border-border text-muted-foreground hover:bg-muted"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <Button
+                  onClick={() => {
+                    // If a pack is selected and we have its companies, pre-populate competitors
+                    if (selectedPackId && packCompanies.length > 0 && competitors.length === 0) {
+                      const newCompetitors = packCompanies.slice(0, 10).map((pc) => ({
+                        name: pc.company_name,
+                        domain: pc.company_domain,
+                      }));
+                      setCompetitors(newCompetitors);
+                      // Start page detection for each
+                      newCompetitors.forEach((c) => startDetection(c.domain));
+                    }
+                    setStep('competitors');
+                  }}
+                  className="flex-1 bg-[#6B9B9B] text-white hover:bg-[#5A8A8A]"
+                >
+                  {selectedPackId ? 'Continue with pack' : 'Skip for now'}
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* ── Step 2: Competitors ──────────────────────────────── */}
@@ -729,7 +852,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
               {/* Navigation */}
               <div className="flex gap-3 pt-2">
                 <Button
-                  onClick={() => setStep('company')}
+                  onClick={() => setStep('sector_pack')}
                   variant="outline"
                   className="border-border text-muted-foreground hover:bg-muted"
                 >

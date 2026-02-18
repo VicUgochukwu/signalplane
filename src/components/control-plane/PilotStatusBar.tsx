@@ -31,11 +31,11 @@ export function PilotStatusBar() {
     const progressPercent = Math.min(100, Math.round((daysElapsed / 60) * 100));
 
     return (
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+      <div className="rounded-xl border border-[hsl(var(--accent-signal)/0.2)] bg-[hsl(var(--accent-signal)/0.05)] p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <IconPilotTimer className="h-4 w-4 text-primary" />
+            <div className="p-2 rounded-lg bg-[hsl(var(--accent-signal)/0.1)]">
+              <IconPilotTimer className="h-4 w-4 text-accent-signal" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -58,7 +58,7 @@ export function PilotStatusBar() {
         {/* Progress bar */}
         <div className="mt-3 h-1.5 rounded-full bg-muted/50 overflow-hidden">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-500"
+            className="h-full rounded-full bg-accent-signal transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -119,14 +119,14 @@ export function PilotStatusBar() {
                 Free Plan — 2 competitors
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Upgrade to Growth for 5 competitors, team seats, Judgment Loop scoring, and more.
+                Upgrade to Growth for 5 competitors, team seats, Judgment Loop scoring, and more. Or Enterprise for 10.
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs rounded-lg"
+              className="bg-accent-signal hover:bg-accent-signal/90 text-white text-xs rounded-lg"
             >
               Upgrade to Growth
             </Button>

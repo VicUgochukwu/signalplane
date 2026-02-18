@@ -29,7 +29,8 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Kanban, LogOut, FileStack } from 'lucide-react';
+import { Kanban, LogOut, FileStack, MessageCircleQuestion } from 'lucide-react';
+import { SupportModal } from './SupportModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,7 +90,7 @@ export function AppSidebar() {
 
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>{label}</SidebarGroupLabel>
+        <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-widest">{label}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {visible.map((item) => (
@@ -118,14 +119,14 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Signal Plane">
+            <SidebarMenuButton size="lg" asChild tooltip="Control Plane">
               <Link to="/control-plane">
                 <div className="flex aspect-square size-8 items-center justify-center">
                   <Logo className="w-8 h-8" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Signal Plane</span>
-                  <span className="text-xs text-muted-foreground">Control Plane</span>
+                  <span className="font-mono text-sm font-medium tracking-tight">CONTROL PLANE</span>
+                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Intelligence</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -144,7 +145,7 @@ export function AppSidebar() {
         {/* Admin */}
         {isAdmin && isEnabled('admin_panel') && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-widest">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -165,9 +166,12 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* Footer — User + Theme */}
+      {/* Footer — Support, links, theme, user */}
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SupportModal />
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <div className="flex items-center justify-center group-data-[collapsible=icon]:hidden px-2 pb-1">
               <ThemeToggle />
@@ -183,7 +187,7 @@ export function AppSidebar() {
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     {avatarUrl && <AvatarImage src={avatarUrl} alt={email} />}
-                    <AvatarFallback className="rounded-lg bg-primary/20 text-primary text-sm font-mono">
+                    <AvatarFallback className="rounded-lg bg-[hsl(var(--accent-signal)/0.15)] text-accent-signal text-sm font-mono">
                       {initial}
                     </AvatarFallback>
                   </Avatar>
@@ -204,7 +208,7 @@ export function AppSidebar() {
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
                       {avatarUrl && <AvatarImage src={avatarUrl} alt={email} />}
-                      <AvatarFallback className="rounded-lg bg-primary/20 text-primary text-sm font-mono">
+                      <AvatarFallback className="rounded-lg bg-[hsl(var(--accent-signal)/0.15)] text-accent-signal text-sm font-mono">
                         {initial}
                       </AvatarFallback>
                     </Avatar>

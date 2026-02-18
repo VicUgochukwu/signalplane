@@ -21,7 +21,7 @@ export function ExecutionKitPanel({ kit }: ExecutionKitPanelProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-primary" />
+        <Sparkles className="h-4 w-4 text-accent-signal" />
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Execution Kit</p>
         <Badge variant="outline" className={cn(
           'text-[10px] border',
@@ -132,7 +132,7 @@ function renderInline(text: string): ReactNode[] {
     } else if (match[5] && match[6]) {
       // [text](url)
       parts.push(
-        <a key={key++} href={match[6]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+        <a key={key++} href={match[6]} target="_blank" rel="noopener noreferrer" className="text-accent-signal hover:underline">
           {match[5]}
         </a>
       );
@@ -300,7 +300,7 @@ function MarkdownContent({ content }: { content: string }) {
           i++;
         }
         elements.push(
-          <blockquote key={key++} className="my-2 border-l-2 border-primary/30 pl-3 italic text-muted-foreground/80">
+          <blockquote key={key++} className="my-2 border-l-2 border-[hsl(var(--accent-signal)/0.30)] pl-3 italic text-muted-foreground/80">
             {quoteLines.map((ql, qi) => (
               <p key={qi}>{renderInline(ql)}</p>
             ))}
@@ -317,7 +317,7 @@ function MarkdownContent({ content }: { content: string }) {
           i++;
         }
         elements.push(
-          <ol key={key++} className="my-1.5 ml-4 list-decimal space-y-0.5 marker:text-primary/50">
+          <ol key={key++} className="my-1.5 ml-4 list-decimal space-y-0.5 marker:text-[hsl(var(--accent-signal)/0.50)]">
             {listItems.map((item, li) => (
               <li key={li} className="pl-1">{renderInline(item)}</li>
             ))}
@@ -334,7 +334,7 @@ function MarkdownContent({ content }: { content: string }) {
           i++;
         }
         elements.push(
-          <ul key={key++} className="my-1.5 ml-4 list-disc space-y-0.5 marker:text-primary/50">
+          <ul key={key++} className="my-1.5 ml-4 list-disc space-y-0.5 marker:text-[hsl(var(--accent-signal)/0.50)]">
             {listItems.map((item, li) => (
               <li key={li} className="pl-1">{renderInline(item)}</li>
             ))}

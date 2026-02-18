@@ -39,7 +39,7 @@ export const ControlPlaneContent = () => {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-accent-signal" />
           <p className="text-sm text-muted-foreground">Loading intelligence packets...</p>
         </div>
       </div>
@@ -66,7 +66,7 @@ export const ControlPlaneContent = () => {
           <p className="text-sm text-muted-foreground">This packet may have been archived or removed.</p>
           <button
             onClick={handleBack}
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-accent-signal hover:underline"
           >
             ← Back to Control Plane
           </button>

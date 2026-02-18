@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileText, MessageSquareQuote, Swords, TrendingUp } from 'lucide-react';
+import { IconArtifacts } from '@/components/icons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ObjectionLibraryTab } from '@/components/control-plane/artifacts/ObjectionLibraryTab';
@@ -40,9 +41,12 @@ export function ArtifactsContent() {
             Back to Intel Packets
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-foreground font-mono">GTM Artifacts</h1>
-        <p className="text-muted-foreground mt-2">
-          Weekly AI-generated sales enablement materials based on market signals
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+          <IconArtifacts className="h-5 w-5 text-accent-signal" />
+          GTM Artifacts
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1.5">
+          AI-generated sales enablement materials based on weekly market signals
         </p>
       </div>
 

@@ -35,14 +35,16 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
     low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   };
 
+  const rebuttal = objection.rebuttal || { acknowledge: '', reframe: '', proof: '', talk_track: '' };
+
   const handleCopyRebuttal = async () => {
-    const rebuttalText = `**Acknowledge:** ${objection.rebuttal.acknowledge}
+    const rebuttalText = `**Acknowledge:** ${rebuttal.acknowledge || ''}
 
-**Reframe:** ${objection.rebuttal.reframe}
+**Reframe:** ${rebuttal.reframe || ''}
 
-**Proof:** ${objection.rebuttal.proof}
+**Proof:** ${rebuttal.proof || ''}
 
-**Talk Track:** ${objection.rebuttal.talk_track}`;
+**Talk Track:** ${rebuttal.talk_track || ''}`;
 
     try {
       await navigator.clipboard.writeText(rebuttalText);
@@ -73,7 +75,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
       recordEdit.mutate({
         artifactType: 'objection_rebuttal',
         artifactVersionId: versionId,
-        sectionKey: `${objection.id}.${field}`,
+        sectionKey: `${objection.id || 'unknown'}.${field}`,
         originalContent: original,
         editedContent: editValue,
         editType: 'modify',
@@ -84,32 +86,32 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
   };
 
   const rebuttalSections = [
-    { key: 'acknowledge', label: 'Acknowledge', value: objection.rebuttal.acknowledge },
-    { key: 'reframe', label: 'Reframe', value: objection.rebuttal.reframe },
-    { key: 'proof', label: 'Proof', value: objection.rebuttal.proof },
-    { key: 'talk_track', label: 'Talk Track', value: objection.rebuttal.talk_track },
+    { key: 'acknowledge', label: 'Acknowledge', value: rebuttal.acknowledge || '' },
+    { key: 'reframe', label: 'Reframe', value: rebuttal.reframe || '' },
+    { key: 'proof', label: 'Proof', value: rebuttal.proof || '' },
+    { key: 'talk_track', label: 'Talk Track', value: rebuttal.talk_track || '' },
   ];
 
   return (
     <Card className="relative">
       {objection.is_new_this_week && (
-        <Badge className="absolute -top-2 -right-2 bg-primary text-primary-foreground gap-1">
+        <Badge className="absolute -top-2 -right-2 bg-accent-signal text-white gap-1">
           <Sparkles className="h-3 w-3" />
           New
         </Badge>
       )}
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start gap-2 mb-2">
-          <Badge className={frequencyColors[objection.frequency]}>
-            {objection.frequency} frequency
+          <Badge className={frequencyColors[objection.frequency] || frequencyColors.medium}>
+            {objection.frequency || 'medium'} frequency
           </Badge>
-          <Badge variant="outline">{objection.category}</Badge>
+          <Badge variant="outline">{objection.category || 'General'}</Badge>
         </div>
         <CardTitle className="text-base font-medium leading-relaxed">
-          &ldquo;{objection.objection_text}&rdquo;
+          &ldquo;{objection.objection_text || ''}&rdquo;
         </CardTitle>
         <div className="flex flex-wrap gap-1 mt-2">
-          {objection.personas.map((persona) => (
+          {(objection.personas || []).map((persona) => (
             <Badge key={persona} variant="secondary" className="text-xs">
               {persona}
             </Badge>
@@ -120,7 +122,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
         {/* Collapsible rebuttal toggle */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors w-full text-left"
+          className="flex items-center gap-1.5 text-sm font-medium text-accent-signal hover:text-accent-signal/80 transition-colors w-full text-left"
         >
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           {expanded ? 'Hide' : 'Show'} rebuttal framework
@@ -138,7 +140,7 @@ function ObjectionCard({ objection, versionId }: { objection: Objection; version
                         <textarea
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full min-h-[60px] rounded-md border border-primary/50 bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          className="w-full min-h-[60px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
                           autoFocus
                         />
                         <div className="flex gap-1.5 mt-1">
@@ -207,7 +209,7 @@ export function ObjectionLibraryTab() {
     }
 
     const objections = currentVersion.content_json.objections;
-    const allPersonas = [...new Set(objections.flatMap(o => o.personas))].sort();
+    const allPersonas = [...new Set(objections.flatMap(o => o.personas || []))].sort();
     const allCategories = [...new Set(objections.map(o => o.category || 'Uncategorized'))].sort();
 
     let filtered = objections;
@@ -216,16 +218,16 @@ export function ObjectionLibraryTab() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(o =>
-        o.objection_text.toLowerCase().includes(q) ||
-        o.rebuttal.talk_track.toLowerCase().includes(q) ||
-        o.rebuttal.reframe.toLowerCase().includes(q) ||
-        o.category.toLowerCase().includes(q)
+        o.objection_text?.toLowerCase().includes(q) ||
+        o.rebuttal?.talk_track?.toLowerCase().includes(q) ||
+        o.rebuttal?.reframe?.toLowerCase().includes(q) ||
+        o.category?.toLowerCase().includes(q)
       );
     }
 
     // Filters
     if (personaFilter !== 'all') {
-      filtered = filtered.filter(o => o.personas.includes(personaFilter));
+      filtered = filtered.filter(o => o.personas?.includes(personaFilter));
     }
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(o => o.category === categoryFilter);
@@ -306,7 +308,7 @@ export function ObjectionLibraryTab() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-primary">{content.new_this_week_count || 0}</div>
+            <div className="text-3xl font-bold text-accent-signal">{content.new_this_week_count || 0}</div>
             <p className="text-sm text-muted-foreground">New This Week</p>
           </CardContent>
         </Card>
@@ -330,7 +332,7 @@ export function ObjectionLibraryTab() {
                 placeholder="Search objections, rebuttals, categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full h-9 pl-10 pr-3 rounded-lg border border-border/50 bg-muted/10 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
               />
             </div>
 
@@ -348,7 +350,7 @@ export function ObjectionLibraryTab() {
                 <SelectContent className="bg-popover">
                   <SelectItem value="all">All Personas</SelectItem>
                   {personas.map(p => {
-                    const count = currentVersion.content_json.objections.filter(o => o.personas.includes(p)).length;
+                    const count = currentVersion.content_json.objections.filter(o => o.personas?.includes(p)).length;
                     return <SelectItem key={p} value={p}>{p} ({count})</SelectItem>;
                   })}
                 </SelectContent>
@@ -412,8 +414,8 @@ export function ObjectionLibraryTab() {
             {category} ({objections.length})
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
-            {objections.map((objection) => (
-              <ObjectionCard key={objection.id} objection={objection} versionId={currentVersion.id} />
+            {objections.map((objection, idx) => (
+              <ObjectionCard key={objection.id || `obj-${idx}`} objection={objection} versionId={currentVersion.id} />
             ))}
           </div>
         </div>

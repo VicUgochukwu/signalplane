@@ -7,7 +7,7 @@ export function ArchitectBar() {
           <span className="hidden sm:inline text-muted-foreground">·</span>
           <span className="text-muted-foreground">Built by a PMM who got tired of stale intel</span>
         </div>
-        <p className="font-mono text-xs uppercase tracking-wider text-primary/60 text-center sm:text-right">
+        <p className="font-mono text-xs uppercase tracking-wider text-[hsl(var(--accent-signal)/0.6)] text-center sm:text-right">
           GTM Decision Infrastructure
         </p>
       </div>

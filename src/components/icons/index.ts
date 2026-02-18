@@ -64,6 +64,10 @@ export {
   IconTrophy,
   IconCompany,
 
+  // Additional Signal Types
+  IconSignalSocial,
+  IconSignalEnablement,
+
   // Sector / Industry Icons
   IconSectorDevTools,
   IconSectorAnalytics,

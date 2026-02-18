@@ -85,7 +85,7 @@ export function DeliveryIntegrations() {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-primary/5 border-primary/20 text-foreground">
+      <Alert className="bg-[hsl(var(--accent-signal)/0.05)] border-[hsl(var(--accent-signal)/0.2)] text-foreground">
         <Info className="h-4 w-4" />
         <AlertDescription>
           Connect integrations to automatically receive weekly reports when competitor messaging

@@ -135,7 +135,7 @@ export const FEATURE_TIER_MAP: Record<GatedFeature, Tier[]> = {
 
 /** Competitor limits by tier */
 export const TIER_COMPETITOR_LIMITS: Record<Tier, number> = {
-  pilot: 99,
+  pilot: 10,
   free: 2,
   growth: 5,
   enterprise: 10,

@@ -823,3 +823,26 @@ export const IconSectorNoCode = ({ className = 'h-5 w-5', ...props }: IconProps)
     <path d="M6 18h0.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
+
+// =============================================================================
+// ADDITIONAL SIGNAL TYPE ICONS
+// =============================================================================
+
+/** Social Intelligence — Chat bubble with network nodes */
+export const IconSignalSocial = ({ className = 'h-5 w-5', ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M21 12a9 9 0 0 1-9 9c-1.5 0-2.9-.4-4.1-1L3 21l1-4.9A9 9 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="9" cy="12" r="1" fill="currentColor" />
+    <circle cx="12" cy="12" r="1" fill="currentColor" />
+    <circle cx="15" cy="12" r="1" fill="currentColor" />
+  </svg>
+);
+
+/** Sales Enablement — Shield with upward arrow */
+export const IconSignalEnablement = ({ className = 'h-5 w-5', ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} {...props}>
+    <path d="M12 2l8 4v5c0 5.25-3.5 9.74-8 11-4.5-1.26-8-5.75-8-11V6l8-4z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 16V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M9 12l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);

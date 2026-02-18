@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Plus, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 
 const URL_TYPES = [
   'homepage',
@@ -81,7 +82,7 @@ export function AddCompanyForm({ onSuccess }: AddCompanyFormProps) {
     if (error) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: friendlyError(error.message),
         variant: 'destructive',
       });
       return;

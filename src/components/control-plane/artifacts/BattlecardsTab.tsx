@@ -87,7 +87,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-primary" />
+            <Phone className="h-5 w-5 text-accent-signal" />
             <h3 className="text-lg font-bold text-foreground">Quick Reference: {content.competitor_name}</h3>
           </div>
           <Button variant="outline" size="sm" onClick={handleCopyBattlecard} className="gap-2">
@@ -148,7 +148,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
         <div className="flex items-center gap-3">
           <h3 className="text-xl font-bold text-foreground">{content.competitor_name}</h3>
           {hasChanges && (
-            <Badge className="bg-primary text-primary-foreground gap-1">
+            <Badge className="bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)] gap-1">
               <Sparkles className="h-3 w-3" />
               Changes This Week
             </Badge>
@@ -162,10 +162,10 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
 
       {/* What Changed This Week — structured as Change → Implication → Counter */}
       {hasChanges && (
-        <Card className="border-primary/50 bg-primary/5">
+        <Card className="border-[hsl(var(--accent-signal)/0.3)] bg-[hsl(var(--accent-signal)/0.05)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Sparkles className="h-4 w-4 text-accent-signal" />
               What Changed This Week
             </CardTitle>
           </CardHeader>
@@ -174,17 +174,17 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
               <div key={idx}>
                 <button
                   onClick={() => toggleChange(idx)}
-                  className="flex items-start gap-2 text-sm w-full text-left hover:bg-primary/5 rounded-md p-1 -mx-1 transition-colors"
+                  className="flex items-start gap-2 text-sm w-full text-left hover:bg-[hsl(var(--accent-signal)/0.05)] rounded-md p-1 -mx-1 transition-colors"
                 >
                   {expandedChanges.has(idx) ? (
-                    <ChevronDown className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <ChevronDown className="h-4 w-4 mt-0.5 text-accent-signal shrink-0" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <ChevronRight className="h-4 w-4 mt-0.5 text-accent-signal shrink-0" />
                   )}
                   <span className="font-medium text-foreground">{change}</span>
                 </button>
                 {expandedChanges.has(idx) && (
-                  <div className="ml-7 mt-1 pl-3 border-l-2 border-primary/30 space-y-1.5 text-sm text-muted-foreground">
+                  <div className="ml-7 mt-1 pl-3 border-l-2 border-[hsl(var(--accent-signal)/0.3)] space-y-1.5 text-sm text-muted-foreground">
                     <p className="flex items-start gap-1.5">
                       <ArrowRight className="h-3.5 w-3.5 mt-0.5 text-amber-500 shrink-0" />
                       <span><strong className="text-foreground">Implication:</strong> Prospects may ask about this — be ready with a counter-narrative.</span>
@@ -215,7 +215,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
                   className="flex items-start gap-2 w-full text-left hover:bg-muted/30 rounded-md p-2 -mx-2 transition-colors"
                 >
                   {expandedTracks.has(idx) ? (
-                    <ChevronDown className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <ChevronDown className="h-4 w-4 mt-0.5 text-accent-signal shrink-0" />
                   ) : (
                     <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                   )}
@@ -228,7 +228,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
                         <textarea
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full min-h-[80px] rounded-md border border-primary/50 bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          className="w-full min-h-[80px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
                           autoFocus
                         />
                         <div className="flex gap-1.5 mt-1">
@@ -307,7 +307,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
                           <textarea
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="w-full min-h-[60px] rounded-md border border-primary/50 bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+                            className="w-full min-h-[60px] rounded-md border border-[hsl(var(--accent-signal)/0.3)] bg-muted/10 p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--accent-signal)/0.5)]"
                             autoFocus
                             placeholder="Add a recommended alternative response..."
                           />
@@ -323,7 +323,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
                       ) : (
                         <button
                           onClick={() => startEdit(`landmine_${idx}`, '')}
-                          className="mt-1 text-xs text-primary hover:text-primary/80 flex items-center gap-1 opacity-0 group-hover/content:opacity-100 transition-opacity"
+                          className="mt-1 text-xs text-accent-signal hover:text-accent-signal/80 flex items-center gap-1 opacity-0 group-hover/content:opacity-100 transition-opacity"
                         >
                           <Pencil className="h-3 w-3" />
                           Add &ldquo;what to say instead&rdquo;
@@ -463,7 +463,7 @@ export function BattlecardsTab() {
           onClick={() => setCallMode(!callMode)}
           className={cn(
             "gap-2 shrink-0",
-            callMode && "bg-primary text-primary-foreground"
+            callMode && "bg-accent-signal text-white"
           )}
         >
           {callMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
@@ -489,7 +489,7 @@ export function BattlecardsTab() {
               >
                 {name}
                 {hasChanges && (
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-accent-signal" />
                 )}
               </TabsTrigger>
             );
