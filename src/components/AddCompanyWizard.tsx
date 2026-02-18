@@ -377,7 +377,7 @@ export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyCo
             {/* Loading state */}
             {isDetecting && (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-emerald-400 mr-2" />
+                <Loader2 className="h-5 w-5 animate-spin text-accent-signal mr-2" />
                 <span className="text-muted-foreground text-sm">Detecting pages for {companyDomain}...</span>
               </div>
             )}
@@ -391,7 +391,7 @@ export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyCo
                       key={page.url}
                       className={`rounded-lg border p-3 transition-colors ${
                         page.selected
-                          ? 'border-emerald-600/50 bg-emerald-900/10'
+                          ? 'border-[hsl(var(--accent-signal)/0.5)] bg-[hsl(var(--accent-signal)/0.1)]'
                           : 'border-border bg-card/50'
                       } ${!page.selected && selectedCount >= 10 ? 'opacity-50' : ''}`}
                     >
@@ -401,7 +401,7 @@ export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyCo
                           checked={page.selected}
                           onCheckedChange={() => handleTogglePage(page.url)}
                           disabled={!page.selected && selectedCount >= 10}
-                          className="border-muted-foreground data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                          className="border-muted-foreground data-[state=checked]:bg-[hsl(var(--accent-signal))] data-[state=checked]:border-[hsl(var(--accent-signal))]"
                         />
                         <label
                           htmlFor={`page-${page.type}-${page.url}`}
@@ -426,7 +426,7 @@ export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyCo
 
                 {/* Select / Deselect all */}
                 <div className="flex gap-2">
-                  <button onClick={handleSelectAll} className="text-xs text-emerald-400 hover:text-emerald-300">
+                  <button onClick={handleSelectAll} className="text-xs text-accent-signal hover:text-accent-signal">
                     Select all
                   </button>
                   <span className="text-muted-foreground">|</span>

@@ -273,7 +273,7 @@ export default function AdminFeatureFlags() {
           <h2 className="text-2xl font-bold text-foreground">Feature Flags</h2>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-emerald-600 hover:bg-emerald-700">
+              <Button className="bg-[hsl(var(--accent-signal))] hover:bg-[hsl(var(--accent-signal)/0.85)]">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Flag
               </Button>
@@ -293,7 +293,7 @@ export default function AdminFeatureFlags() {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-emerald-600 hover:bg-emerald-700"
+                    className="bg-[hsl(var(--accent-signal))] hover:bg-[hsl(var(--accent-signal)/0.85)]"
                     disabled={createMutation.isPending}
                   >
                     {createMutation.isPending ? (
@@ -395,7 +395,7 @@ export default function AdminFeatureFlags() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-[hsl(var(--accent-signal))] hover:bg-[hsl(var(--accent-signal)/0.85)]"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? (

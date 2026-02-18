@@ -219,7 +219,7 @@ export default function AdminSystemOverview() {
               <CardTitle className="text-foreground">API Status</CardTitle>
               <Link 
                 to="/admin/api-health" 
-                className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                className="text-sm text-accent-signal hover:text-accent-signal flex items-center gap-1"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
@@ -268,7 +268,7 @@ export default function AdminSystemOverview() {
               <CardTitle className="text-foreground">Workflows</CardTitle>
               <Link 
                 to="/admin/workflows" 
-                className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                className="text-sm text-accent-signal hover:text-accent-signal flex items-center gap-1"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>

@@ -13,7 +13,7 @@ interface OutcomePromptProps {
 }
 
 const OUTCOME_OPTIONS: { value: OutcomeType; label: string; icon: typeof ThumbsUp; cls: string; activeCls: string }[] = [
-  { value: 'positive', label: 'Positive', icon: ThumbsUp, cls: 'text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-500/10', activeCls: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+  { value: 'positive', label: 'Positive', icon: ThumbsUp, cls: 'text-accent-signal/60 hover:text-accent-signal hover:bg-[hsl(var(--accent-signal)/0.1)]', activeCls: 'text-accent-signal bg-[hsl(var(--accent-signal)/0.15)] border-[hsl(var(--accent-signal)/0.3)]' },
   { value: 'neutral', label: 'Neutral', icon: Minus, cls: 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/20', activeCls: 'text-muted-foreground bg-muted/20 border-border' },
   { value: 'negative', label: 'Negative', icon: ThumbsDown, cls: 'text-rose-400/60 hover:text-rose-400 hover:bg-rose-500/10', activeCls: 'text-rose-400 bg-rose-500/15 border-rose-500/30' },
 ];

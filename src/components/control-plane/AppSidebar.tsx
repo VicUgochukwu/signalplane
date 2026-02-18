@@ -22,6 +22,12 @@ import {
   IconTeam,
   IconDeals,
   IconSettings,
+  IconSignalEnablement,
+  IconSignalLaunch,
+  IconMonitorPricing,
+  IconTrophy,
+  IconPersonaPMM,
+  IconMonitorTargeting,
 } from '@/components/icons';
 import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -51,6 +57,15 @@ const actionItems = [
   { to: '/control-plane/submit', label: 'Submit Signal', icon: IconSubmitSignal, flag: 'submit_signal' },
   { to: '/control-plane/board', label: 'Action Board', icon: Kanban, flag: 'action_board' },
   { to: '/control-plane/deals', label: 'Deals', icon: IconDeals, flag: 'deal_logging' },
+];
+
+const pmmItems = [
+  { to: '/control-plane/enablement', label: 'Enablement', icon: IconSignalEnablement, flag: '' },
+  { to: '/control-plane/launches', label: 'Launch Ops', icon: IconSignalLaunch, flag: '' },
+  { to: '/control-plane/win-loss', label: 'Win/Loss', icon: IconTrophy, flag: '' },
+  { to: '/control-plane/voc-research', label: 'VoC Research', icon: IconPersonaPMM, flag: '' },
+  { to: '/control-plane/positioning', label: 'Positioning', icon: IconMonitorTargeting, flag: '' },
+  { to: '/control-plane/packaging', label: 'Packaging Intel', icon: IconMonitorPricing, flag: '' },
 ];
 
 const workspaceItems = [
@@ -139,6 +154,7 @@ export function AppSidebar() {
       {/* Navigation */}
       <SidebarContent>
         {renderGroup('Intelligence', intelligenceItems)}
+        {renderGroup('PMM Modules', pmmItems)}
         {renderGroup('Actions', actionItems)}
         {renderGroup('Workspace', workspaceItems)}
 

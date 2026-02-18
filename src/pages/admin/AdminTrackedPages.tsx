@@ -214,12 +214,12 @@ export default function AdminTrackedPages() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Globe className="h-6 w-6 text-emerald-400" />
+            <Globe className="h-6 w-6 text-accent-signal" />
             <h2 className="text-2xl font-bold text-foreground">Tracked Pages</h2>
           </div>
           <Button
             onClick={() => setShowAddDialog(true)}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="bg-[hsl(var(--accent-signal))] hover:bg-[hsl(var(--accent-signal)/0.85)]"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Page
@@ -361,7 +361,7 @@ export default function AdminTrackedPages() {
                             href={page.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-emerald-400 hover:underline flex items-center gap-1 truncate"
+                            className="text-accent-signal hover:underline flex items-center gap-1 truncate"
                           >
                             {page.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
@@ -498,7 +498,7 @@ export default function AdminTrackedPages() {
               <Button
                 onClick={() => addMutation.mutate()}
                 disabled={addMutation.isPending || !newUrl || (!existingCompanyId || (existingCompanyId === 'new' && !newCompanyName))}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-[hsl(var(--accent-signal))] hover:bg-[hsl(var(--accent-signal)/0.85)]"
               >
                 {addMutation.isPending ? (
                   <>

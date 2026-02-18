@@ -116,7 +116,7 @@ export const WorkflowFailuresTable = ({ failures }: WorkflowFailuresTableProps) 
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                            className="h-7 w-7 text-accent-signal hover:text-accent-signal hover:bg-[hsl(var(--accent-signal)/0.1)]"
                             onClick={() => resolveFailure.mutate(failure.id)}
                             disabled={resolveFailure.isPending}
                           >

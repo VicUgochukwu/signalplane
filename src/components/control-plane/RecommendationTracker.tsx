@@ -83,7 +83,7 @@ export function RecommendationTracker({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-1"
+              className="h-6 px-2 text-xs text-accent-signal hover:text-accent-signal hover:bg-[hsl(var(--accent-signal)/0.1)] gap-1"
               onClick={() => handleStatusChange('adopted')}
               disabled={isPending}
             >

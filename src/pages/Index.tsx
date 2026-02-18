@@ -127,8 +127,8 @@ const Index = () => {
             <CardContent className="p-4">
               <Link to={latestPacket ? `/control-plane/packet/${latestPacket.id}` : '/control-plane'} className="block">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 rounded-md bg-emerald-500/10">
-                    <ArrowRight className="h-3.5 w-3.5 text-emerald-400" />
+                  <div className="p-1.5 rounded-md bg-[hsl(var(--accent-signal)/0.1)]">
+                    <ArrowRight className="h-3.5 w-3.5 text-accent-signal" />
                   </div>
                 </div>
                 {latestPacket ? (
@@ -142,7 +142,7 @@ const Index = () => {
                   </>
                 ) : (
                   <>
-                    <div className="text-sm font-semibold text-emerald-400 group-hover:text-emerald-300 transition-colors">View Packets →</div>
+                    <div className="text-sm font-semibold text-accent-signal group-hover:text-accent-signal transition-colors">View Packets →</div>
                     <div className="text-xs text-muted-foreground mt-0.5">Weekly Intel</div>
                   </>
                 )}

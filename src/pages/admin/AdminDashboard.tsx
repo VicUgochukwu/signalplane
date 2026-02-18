@@ -139,7 +139,7 @@ export default function AdminDashboard() {
             <CardTitle className="text-foreground">Subscription Tiers</CardTitle>
             <Link
               to="/admin/users"
-              className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+              className="text-sm text-accent-signal hover:text-accent-signal flex items-center gap-1"
             >
               View all users <ArrowRight className="h-3 w-3" />
             </Link>
@@ -238,12 +238,12 @@ export default function AdminDashboard() {
         <Card className="bg-muted/50 border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-foreground flex items-center gap-2">
-              <Activity className="h-5 w-5 text-emerald-400" />
+              <Activity className="h-5 w-5 text-accent-signal" />
               System Health
             </CardTitle>
             <Link 
               to="/admin/system" 
-              className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+              className="text-sm text-accent-signal hover:text-accent-signal flex items-center gap-1"
             >
               View details <ArrowRight className="h-3 w-3" />
             </Link>

@@ -225,9 +225,9 @@ export default function AdminCsvUpload() {
                 onDrop={handleDrop}
                 className={`
                   relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-                  ${isDragging 
-                    ? 'border-emerald-500 bg-emerald-500/5' 
-                    : 'border-border hover:border-emerald-500/50'
+                  ${isDragging
+                    ? 'border-[hsl(var(--accent-signal))] bg-[hsl(var(--accent-signal)/0.05)]'
+                    : 'border-border hover:border-[hsl(var(--accent-signal)/0.5)]'
                   }
                 `}
                 onClick={() => document.getElementById('csv-file-input')?.click()}
@@ -241,7 +241,7 @@ export default function AdminCsvUpload() {
                 />
                 {file ? (
                   <div className="flex items-center justify-center gap-3">
-                    <FileText className="h-8 w-8 text-emerald-400" />
+                    <FileText className="h-8 w-8 text-accent-signal" />
                     <div className="text-left">
                       <p className="font-medium text-foreground">{file.name}</p>
                       <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
@@ -420,7 +420,7 @@ export default function AdminCsvUpload() {
                 <Button
                   onClick={handleUpload}
                   disabled={isUploading || previewData.validRows === 0}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-[hsl(var(--accent-signal))] hover:bg-[hsl(var(--accent-signal)/0.85)]"
                 >
                   {isUploading ? (
                     <>

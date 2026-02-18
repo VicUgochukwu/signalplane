@@ -259,7 +259,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-400/10"
+              className="text-muted-foreground hover:text-accent-signal hover:bg-[hsl(var(--accent-signal)/0.1)]"
               onClick={handleDetectPages}
               disabled={isDetecting}
               title="Detect pages"
@@ -400,7 +400,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
               <div className="px-4 py-3 bg-card/50 space-y-3">
                 {isDetecting ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin text-emerald-400 mr-2" />
+                    <Loader2 className="h-4 w-4 animate-spin text-accent-signal mr-2" />
                     <span className="text-sm text-muted-foreground">Detecting pages for {companySlug}...</span>
                   </div>
                 ) : (
@@ -414,14 +414,14 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                           key={page.url}
                           className={`flex items-center gap-3 rounded-md border p-2 transition-colors ${
                             page.selected
-                              ? 'border-emerald-600/50 bg-emerald-900/10'
+                              ? 'border-[hsl(var(--accent-signal)/0.5)] bg-[hsl(var(--accent-signal)/0.1)]'
                               : 'border-border bg-background/50'
                           }`}
                         >
                           <Checkbox
                             checked={page.selected}
                             onCheckedChange={() => handleToggleDetected(page.url)}
-                            className="border-muted-foreground data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                            className="border-muted-foreground data-[state=checked]:bg-[hsl(var(--accent-signal))] data-[state=checked]:border-[hsl(var(--accent-signal))]"
                           />
                           <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
                             {getUrlTypeLabel(page.type)}
@@ -439,7 +439,7 @@ export function CompanyCard({ companyId, companyName, companySlug, pages }: Comp
                         size="sm"
                         onClick={handleSaveDetected}
                         disabled={isSavingDetected || selectedDetectedCount === 0}
-                        className="bg-emerald-600 text-white hover:bg-emerald-700"
+                        className="bg-[hsl(var(--accent-signal))] text-white hover:bg-[hsl(var(--accent-signal)/0.85)]"
                       >
                         {isSavingDetected ? (
                           <Loader2 className="h-3 w-3 animate-spin mr-1" />
