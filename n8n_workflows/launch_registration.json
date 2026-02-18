@@ -1,0 +1,206 @@
+{
+  "name": "Launch Registration Handler [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "launch-register",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "lnch-wh-01",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ],
+      "webhookId": "launch-register"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate incoming payload\nconst body = $input.first().json.body || $input.first().json;\n\nif (!body.launch_id || !body.user_id) {\n  throw new Error('Missing required fields: launch_id, user_id');\n}\n\nreturn [{\n  json: {\n    launch_id: body.launch_id,\n    user_id: body.user_id\n  }\n}];"
+      },
+      "id": "lnch-code-01",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.*, ARRAY(SELECT c.company_name FROM public.companies c WHERE c.id = ANY(l.competitor_ids)) AS resolved_competitor_names FROM launch.launches l WHERE l.id = '{{ $json.launch_id }}'::uuid AND l.user_id = '{{ $json.user_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "lnch-pg-01",
+      "name": "Load Launch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.id, s.signal_type, s.company_name, s.title, s.summary, s.created_at FROM control_plane.signals s WHERE s.user_id = '{{ $('Validate Payload').first().json.user_id }}'::uuid AND s.company_name = ANY(ARRAY[{{ $json.competitor_names ? $json.competitor_names.map(n => \"'\" + n.replace(/'/g, \"''\") + \"'\").join(',') : \"''\" }}]) AND s.created_at >= now() - INTERVAL '30 days' ORDER BY s.created_at DESC LIMIT 50;",
+        "options": {}
+      },
+      "id": "lnch-pg-02",
+      "name": "Fetch Competitor Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const launch = $('Load Launch').first().json;\nconst signals = $('Fetch Competitor Signals').all().map(i => i.json);\n\n// Capture initial messaging/positioning state\nconst messagingSignals = signals.filter(s => s.signal_type === 'messaging');\nconst positioningSignals = signals.filter(s => s.signal_type === 'positioning');\n\nconst initialMessaging = {\n  snapshot_date: new Date().toISOString(),\n  competitor_messaging_signals: messagingSignals.length,\n  top_themes: messagingSignals.slice(0, 5).map(s => s.title)\n};\n\nconst initialPositioning = {\n  snapshot_date: new Date().toISOString(),\n  competitor_positioning_signals: positioningSignals.length,\n  top_themes: positioningSignals.slice(0, 5).map(s => s.title)\n};\n\n// Compute initial readiness estimate\nconst hasCompetitors = (launch.competitor_names || []).length > 0;\nconst hasSignals = signals.length > 0;\nconst daysUntil = Math.round((new Date(launch.target_launch_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));\n\nlet readinessScore = 30; // base\nif (hasCompetitors) readinessScore += 15;\nif (hasSignals) readinessScore += 15;\nif (messagingSignals.length >= 3) readinessScore += 10;\nif (positioningSignals.length >= 3) readinessScore += 10;\nif (daysUntil > 14) readinessScore += 10;\nreadinessScore = Math.min(readinessScore, 100);\n\nreturn [{\n  json: {\n    launch_id: launch.id,\n    user_id: launch.user_id,\n    initial_messaging: JSON.stringify(initialMessaging),\n    initial_positioning: JSON.stringify(initialPositioning),\n    readiness_score: readinessScore,\n    readiness_breakdown: JSON.stringify({\n      competitor_landscape: hasCompetitors ? 60 : 20,\n      messaging_readiness: messagingSignals.length >= 3 ? 70 : 30,\n      market_timing: daysUntil > 14 ? 80 : 40,\n      objection_coverage: 30,\n      battlecard_freshness: hasSignals ? 50 : 20\n    }),\n    signal_count: signals.length\n  }\n}];"
+      },
+      "id": "lnch-code-02",
+      "name": "Build Initial State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE launch.launches SET initial_messaging = '{{ $json.initial_messaging }}'::jsonb, initial_positioning = '{{ $json.initial_positioning }}'::jsonb, readiness_score = {{ $json.readiness_score }}, readiness_breakdown = '{{ $json.readiness_breakdown }}'::jsonb, updated_at = now() WHERE id = '{{ $json.launch_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "lnch-pg-03",
+      "name": "Update Launch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, launch_id: $('Validate Payload').first().json.launch_id, readiness_score: $('Build Initial State').first().json.readiness_score }) }}"
+      },
+      "id": "lnch-resp-01",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Load Launch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Launch": {
+      "main": [
+        [
+          {
+            "node": "Fetch Competitor Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Competitor Signals": {
+      "main": [
+        [
+          {
+            "node": "Build Initial State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Initial State": {
+      "main": [
+        [
+          {
+            "node": "Update Launch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Launch": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

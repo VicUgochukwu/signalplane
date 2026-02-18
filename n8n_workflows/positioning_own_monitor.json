@@ -1,0 +1,225 @@
+{
+  "name": "Positioning Own Monitor [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "posom-cron-01",
+      "name": "Sunday 10:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT om.user_id, om.page_url, om.page_type, om.page_title, om.snapshot_hash AS prev_hash FROM positioning.own_messaging om INNER JOIN ( SELECT user_id, page_url, MAX(captured_at) AS max_captured FROM positioning.own_messaging GROUP BY user_id, page_url ) latest ON om.user_id = latest.user_id AND om.page_url = latest.page_url AND om.captured_at = latest.max_captured ORDER BY om.user_id, om.page_url;",
+        "options": {}
+      },
+      "id": "posom-pg-01",
+      "name": "Get Tracked Pages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -600,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.page_url }}",
+        "options": {
+          "timeout": 15000,
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "id": "posom-http-01",
+      "name": "Fetch Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $('Get Tracked Pages').item.json;\nconst response = $input.item.json;\n\n// Extract text content (strip HTML tags for comparison)\nconst body = (typeof response === 'string' ? response : (response.data || response.body || '')).toString();\nconst textContent = body.replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .substring(0, 50000);\n\n// Simple hash (use first 64 chars of base64 encoded text)\nconst encoder = new TextEncoder();\nconst hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(textContent));\nconst hashArray = Array.from(new Uint8Array(hashBuffer));\nconst newHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');\n\nconst changed = item.prev_hash !== newHash;\n\n// Classify drift direction heuristically\nlet driftDirection = 'gradual';\nlet severity = 'low';\nif (changed) {\n  const prevLen = textContent.length;\n  // Large changes on homepage/pricing = deliberate\n  if (item.page_type === 'homepage' || item.page_type === 'pricing') {\n    severity = 'high';\n    driftDirection = 'deliberate';\n  } else if (item.page_type === 'comparison') {\n    severity = 'medium';\n    driftDirection = 'deliberate';\n  } else {\n    severity = 'low';\n    driftDirection = 'gradual';\n  }\n}\n\nreturn [{\n  json: {\n    user_id: item.user_id,\n    page_url: item.page_url,\n    page_type: item.page_type,\n    page_title: item.page_title,\n    snapshot_text: textContent.substring(0, 10000),\n    snapshot_hash: newHash,\n    prev_hash: item.prev_hash,\n    changed: changed,\n    drift_direction: driftDirection,\n    severity: severity\n  }\n}];"
+      },
+      "id": "posom-code-01",
+      "name": "Compare Snapshots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO positioning.own_messaging (user_id, page_url, page_type, page_title, snapshot_text, snapshot_hash, captured_at) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.page_url.replace(/'/g, \"''\") }}', '{{ $json.page_type }}', {{ $json.page_title ? \"'\" + $json.page_title.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, '{{ $json.snapshot_text.replace(/'/g, \"''\").substring(0, 10000) }}', '{{ $json.snapshot_hash }}', now()) ON CONFLICT (user_id, page_url, snapshot_hash) DO NOTHING;",
+        "options": {}
+      },
+      "id": "posom-pg-02",
+      "name": "Store Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.changed }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "posom-if-01",
+      "name": "Has Changed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO positioning.drift_events (user_id, page_url, page_type, change_description, severity, drift_direction, detected_at, evidence_urls) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.page_url.replace(/'/g, \"''\") }}', '{{ $json.page_type }}', 'Content change detected on {{ $json.page_type }} page (hash: {{ $json.prev_hash.substring(0, 8) }} \u2192 {{ $json.snapshot_hash.substring(0, 8) }})', '{{ $json.severity }}', '{{ $json.drift_direction }}', now(), ARRAY['{{ $json.page_url.replace(/'/g, \"''\") }}']);",
+        "options": {}
+      },
+      "id": "posom-pg-03",
+      "name": "Create Drift Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Sunday 10:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Tracked Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tracked Pages": {
+      "main": [
+        [
+          {
+            "node": "Fetch Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Page": {
+      "main": [
+        [
+          {
+            "node": "Compare Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Store Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Has Changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Changed?": {
+      "main": [
+        [
+          {
+            "node": "Create Drift Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

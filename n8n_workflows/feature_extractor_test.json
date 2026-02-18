@@ -6,7 +6,10 @@
       "id": "trigger",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
-      "position": [100, 300],
+      "position": [
+        100,
+        300
+      ],
       "typeVersion": 1
     },
     {
@@ -17,8 +20,14 @@
       "id": "fetch_pricing_page",
       "name": "Fetch Stripe Pricing",
       "type": "n8n-nodes-base.httpRequest",
-      "position": [300, 300],
-      "typeVersion": 4.2
+      "position": [
+        300,
+        300
+      ],
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -27,7 +36,10 @@
       "id": "extract_features",
       "name": "Extract Features",
       "type": "n8n-nodes-base.code",
-      "position": [500, 300],
+      "position": [
+        500,
+        300
+      ],
       "typeVersion": 2
     },
     {
@@ -39,14 +51,20 @@
       "id": "save_to_db",
       "name": "Save to DB",
       "type": "n8n-nodes-base.postgres",
-      "position": [700, 300],
+      "position": [
+        700,
+        300
+      ],
       "typeVersion": 2.5,
       "credentials": {
         "postgres": {
           "id": "YOUR_POSTGRES_CREDENTIAL_ID",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     }
   ],
   "connections": {
@@ -83,5 +101,8 @@
         ]
       ]
     }
+  },
+  "settings": {
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   }
 }

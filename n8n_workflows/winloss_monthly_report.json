@@ -1,0 +1,213 @@
+{
+  "name": "Win/Loss Monthly Report [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 1-7 * 1"
+            }
+          ]
+        }
+      },
+      "id": "wlmr-cron-01",
+      "name": "1st Monday 07:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only run on the first Monday of the month\nconst today = new Date();\nif (today.getDate() > 7) {\n  return []; // Not first week of month\n}\nreturn [{ json: { run: true, report_month: today.toISOString().substring(0, 7) + '-01' } }];"
+      },
+      "id": "wlmr-code-00",
+      "name": "Check First Monday",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT i.user_id FROM winloss.indicators i WHERE i.detected_at >= (date_trunc('month', CURRENT_DATE) - INTERVAL '1 month') AND i.detected_at < date_trunc('month', CURRENT_DATE) AND (i.meta->>'status') = 'classified';",
+        "options": {}
+      },
+      "id": "wlmr-pg-01",
+      "name": "Get Users With Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.indicator_type, i.company_name, i.reason, i.sentiment_score, i.source_platform, i.detected_at FROM winloss.indicators i WHERE i.user_id = '{{ $json.user_id }}'::uuid AND i.detected_at >= (date_trunc('month', CURRENT_DATE) - INTERVAL '1 month') AND i.detected_at < date_trunc('month', CURRENT_DATE) AND (i.meta->>'status') = 'classified' ORDER BY i.detected_at DESC;",
+        "options": {}
+      },
+      "id": "wlmr-pg-02",
+      "name": "Get Month Indicators",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.pattern_type, p.company_name, p.description, p.frequency, p.trend, p.confidence FROM winloss.patterns p WHERE p.user_id = '{{ $('Get Users With Data').item.json.user_id }}'::uuid ORDER BY p.frequency DESC;",
+        "options": {}
+      },
+      "id": "wlmr-pg-03",
+      "name": "Get Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Get Users With Data').item.json.user_id;\nconst reportMonth = $('Check First Monday').item.json.report_month;\nconst indicators = $('Get Month Indicators').all().map(i => i.json);\nconst patterns = $('Get Patterns').all().map(i => i.json);\n\n// Count by type\nconst winCount = indicators.filter(i => i.indicator_type === 'win').length;\nconst lossCount = indicators.filter(i => i.indicator_type === 'loss').length;\nconst switchCount = indicators.filter(i => i.indicator_type === 'switch').length;\n\n// Companies analyzed\nconst companies = [...new Set(indicators.map(i => i.company_name))];\n\n// Build report content\nconst winPatterns = patterns.filter(p => p.pattern_type === 'win').slice(0, 5);\nconst lossPatterns = patterns.filter(p => p.pattern_type === 'loss').slice(0, 5);\nconst switchPatterns = patterns.filter(p => p.pattern_type === 'switch').slice(0, 5);\n\nconst monthName = new Date(reportMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });\nconst title = `Win/Loss Report \u2014 ${monthName}`;\n\nconst md = `# ${title}\\n\\n**Period:** ${monthName}\\n**Total Indicators:** ${indicators.length} (${winCount} win, ${lossCount} loss, ${switchCount} switch)\\n**Companies Analyzed:** ${companies.join(', ')}\\n\\n---\\n\\n## Top Win Patterns\\n${winPatterns.map(p => `- **${p.company_name}**: ${p.description} (${p.frequency}x, ${p.trend})`).join('\\n') || 'None detected'}\\n\\n## Top Loss Patterns\\n${lossPatterns.map(p => `- **${p.company_name}**: ${p.description} (${p.frequency}x, ${p.trend})`).join('\\n') || 'None detected'}\\n\\n## Switch Patterns\\n${switchPatterns.map(p => `- **${p.company_name}**: ${p.description} (${p.frequency}x, ${p.trend})`).join('\\n') || 'None detected'}\\n\\n---\\n*Generated by Signal Plane Win/Loss Intelligence*`;\n\nconst contentJson = {\n  win_count: winCount,\n  loss_count: lossCount,\n  switch_count: switchCount,\n  total_indicators: indicators.length,\n  companies: companies,\n  top_win_patterns: winPatterns,\n  top_loss_patterns: lossPatterns,\n  top_switch_patterns: switchPatterns\n};\n\nreturn [{\n  json: {\n    user_id: userId,\n    report_month: reportMonth,\n    title: title,\n    content_json: JSON.stringify(contentJson),\n    content_md: md,\n    indicator_count: indicators.length,\n    pattern_count: patterns.length,\n    companies_analyzed: companies\n  }\n}];"
+      },
+      "id": "wlmr-code-01",
+      "name": "Build Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO winloss.reports (user_id, report_month, title, content_json, content_md, indicator_count, pattern_count, companies_analyzed) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.report_month }}'::date, '{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.content_json }}'::jsonb, '{{ $json.content_md.replace(/'/g, \"''\") }}', {{ $json.indicator_count }}, {{ $json.pattern_count }}, ARRAY[{{ $json.companies_analyzed.map(c => \"'\" + c.replace(/'/g, \"''\") + \"'\").join(',') }}]) ON CONFLICT (user_id, report_month) DO UPDATE SET title = EXCLUDED.title, content_json = EXCLUDED.content_json, content_md = EXCLUDED.content_md, indicator_count = EXCLUDED.indicator_count, pattern_count = EXCLUDED.pattern_count, companies_analyzed = EXCLUDED.companies_analyzed;",
+        "options": {}
+      },
+      "id": "wlmr-pg-04",
+      "name": "Write Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "1st Monday 07:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Check First Monday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check First Monday": {
+      "main": [
+        [
+          {
+            "node": "Get Users With Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Users With Data": {
+      "main": [
+        [
+          {
+            "node": "Get Month Indicators",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Month Indicators": {
+      "main": [
+        [
+          {
+            "node": "Build Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report": {
+      "main": [
+        [
+          {
+            "node": "Write Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

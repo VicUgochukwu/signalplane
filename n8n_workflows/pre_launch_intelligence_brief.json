@@ -1,0 +1,224 @@
+{
+  "name": "Pre-Launch Intelligence Brief [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "plib-cron-01",
+      "name": "Daily 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.id AS launch_id, l.user_id, l.launch_name, l.product_name, l.competitor_names, l.competitor_ids, l.target_launch_date, (l.target_launch_date - CURRENT_DATE) AS days_until_launch, l.readiness_score FROM launch.launches l WHERE l.phase = 'pre_launch' AND l.target_launch_date > CURRENT_DATE;",
+        "options": {}
+      },
+      "id": "plib-pg-01",
+      "name": "Get Pre-Launch Launches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.signal_type, s.company_name, s.title, s.summary, s.created_at FROM control_plane.signals s WHERE s.user_id = '{{ $json.user_id }}'::uuid AND s.company_name = ANY(ARRAY[{{ $json.competitor_names ? $json.competitor_names.map(n => \"'\" + n.replace(/'/g, \"''\") + \"'\").join(',') : \"''\" }}]) AND s.created_at >= now() - INTERVAL '7 days' ORDER BY s.created_at DESC LIMIT 30;",
+        "options": {}
+      },
+      "id": "plib-pg-02",
+      "name": "Fetch Recent Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const launch = $('Get Pre-Launch Launches').item.json;\nconst signals = $('Fetch Recent Signals').all().map(i => i.json);\n\nconst daysUntil = launch.days_until_launch;\nconst signalCount = signals.length;\n\n// Build signal summary grouped by type\nconst byType = {};\nfor (const s of signals) {\n  if (!byType[s.signal_type]) byType[s.signal_type] = [];\n  byType[s.signal_type].push({ title: s.title, company: s.company_name, summary: (s.summary || '').substring(0, 200) });\n}\n\n// Compute readiness scores\nconst messagingCount = (byType['messaging'] || []).length;\nconst positioningCount = (byType['positioning'] || []).length;\nconst pricingCount = (byType['pricing'] || []).length;\nconst proofCount = (byType['proof'] || []).length;\n\nconst competitorLandscape = Math.min(100, 40 + signalCount * 4);\nconst messagingReadiness = Math.min(100, 30 + messagingCount * 15);\nconst marketTiming = daysUntil > 14 ? 80 : daysUntil > 7 ? 60 : daysUntil > 3 ? 40 : 20;\nconst objectionCoverage = Math.min(100, 20 + proofCount * 10 + pricingCount * 10);\nconst battlecardFreshness = Math.min(100, 30 + signalCount * 5);\n\nconst overallScore = Math.round(\n  (competitorLandscape + messagingReadiness + marketTiming + objectionCoverage + battlecardFreshness) / 5\n);\n\n// Build risk factors\nconst risks = [];\nif (messagingReadiness < 50) risks.push({ label: 'Messaging Gap', detail: 'Few competitor messaging signals detected. Update battlecards before launch.', severity: 'high' });\nif (daysUntil <= 3) risks.push({ label: 'Tight Timeline', detail: `Only ${daysUntil} days until launch. Limited time for adjustments.`, severity: 'high' });\nif (objectionCoverage < 40) risks.push({ label: 'Objection Coverage', detail: 'Low objection readiness. Review competitive proof points.', severity: 'medium' });\n\n// Build opportunities\nconst opportunities = [];\nif (pricingCount > 0) opportunities.push({ label: 'Pricing Intel', detail: `${pricingCount} pricing signals detected. Check for advantageous positioning.` });\nif (positioningCount > 0) opportunities.push({ label: 'Positioning Shifts', detail: `${positioningCount} positioning changes detected. May create opening.` });\n\n// Build brief content\nconst briefTitle = `Intelligence Brief \u2014 T-${daysUntil}d`;\nconst sections = Object.entries(byType).map(([type, sigs]) => {\n  return `## ${type.charAt(0).toUpperCase() + type.slice(1)} Signals (${sigs.length})\\n` +\n    sigs.map(s => `- **${s.company}**: ${s.title}`).join('\\n');\n}).join('\\n\\n');\n\nconst briefMd = `# ${briefTitle}\\n**Launch:** ${launch.launch_name} | **Product:** ${launch.product_name}\\n**Days to Launch:** ${daysUntil} | **Readiness:** ${overallScore}/100\\n\\n---\\n\\n${sections}\\n\\n---\\n\\n### Risk Factors\\n${risks.map(r => `- **[${r.severity.toUpperCase()}]** ${r.label}: ${r.detail}`).join('\\n') || 'None identified'}\\n\\n### Opportunities\\n${opportunities.map(o => `- ${o.label}: ${o.detail}`).join('\\n') || 'None identified'}`;\n\nreturn [{\n  json: {\n    launch_id: launch.launch_id,\n    user_id: launch.user_id,\n    days_until_launch: daysUntil,\n    brief_title: briefTitle,\n    brief_md: briefMd,\n    brief_json: JSON.stringify({ signal_summary: byType, risks, opportunities }),\n    signal_count: signalCount,\n    overall_score: overallScore,\n    competitor_landscape: competitorLandscape,\n    messaging_readiness: messagingReadiness,\n    market_timing: marketTiming,\n    objection_coverage: objectionCoverage,\n    battlecard_freshness: battlecardFreshness,\n    risks_json: JSON.stringify(risks),\n    opportunities_json: JSON.stringify(opportunities),\n    recommendations_json: JSON.stringify(risks.map(r => ({ label: r.label, detail: r.detail, priority: r.severity })))\n  }\n}];"
+      },
+      "id": "plib-code-01",
+      "name": "Build Intelligence Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO launch.readiness_checks (launch_id, check_date, score, competitor_landscape_score, messaging_readiness_score, market_timing_score, objection_coverage_score, battlecard_freshness_score, risk_factors, opportunities, recommendations) VALUES ('{{ $json.launch_id }}'::uuid, CURRENT_DATE, {{ $json.overall_score }}, {{ $json.competitor_landscape }}, {{ $json.messaging_readiness }}, {{ $json.market_timing }}, {{ $json.objection_coverage }}, {{ $json.battlecard_freshness }}, '{{ $json.risks_json }}'::jsonb, '{{ $json.opportunities_json }}'::jsonb, '{{ $json.recommendations_json }}'::jsonb) ON CONFLICT (launch_id, check_date) DO UPDATE SET score = EXCLUDED.score, competitor_landscape_score = EXCLUDED.competitor_landscape_score, messaging_readiness_score = EXCLUDED.messaging_readiness_score, market_timing_score = EXCLUDED.market_timing_score, objection_coverage_score = EXCLUDED.objection_coverage_score, battlecard_freshness_score = EXCLUDED.battlecard_freshness_score, risk_factors = EXCLUDED.risk_factors, opportunities = EXCLUDED.opportunities, recommendations = EXCLUDED.recommendations;",
+        "options": {}
+      },
+      "id": "plib-pg-03",
+      "name": "Write Readiness Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO launch.briefs (launch_id, brief_type, brief_date, title, content_json, content_md, signal_count, days_to_launch) VALUES ('{{ $('Build Intelligence Brief').first().json.launch_id }}'::uuid, 'intelligence', CURRENT_DATE, '{{ $('Build Intelligence Brief').first().json.brief_title }}', '{{ $('Build Intelligence Brief').first().json.brief_json }}'::jsonb, '{{ $('Build Intelligence Brief').first().json.brief_md.replace(/'/g, \"''\") }}', {{ $('Build Intelligence Brief').first().json.signal_count }}, {{ $('Build Intelligence Brief').first().json.days_until_launch }});",
+        "options": {}
+      },
+      "id": "plib-pg-04",
+      "name": "Write Brief",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE launch.launches SET readiness_score = {{ $json.overall_score }}, readiness_breakdown = '{{ JSON.stringify({ competitor_landscape: $json.competitor_landscape, messaging_readiness: $json.messaging_readiness, market_timing: $json.market_timing, objection_coverage: $json.objection_coverage, battlecard_freshness: $json.battlecard_freshness }) }}'::jsonb, updated_at = now() WHERE id = '{{ $json.launch_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "plib-pg-05",
+      "name": "Update Launch Score",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Daily 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Pre-Launch Launches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pre-Launch Launches": {
+      "main": [
+        [
+          {
+            "node": "Fetch Recent Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Recent Signals": {
+      "main": [
+        [
+          {
+            "node": "Build Intelligence Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Intelligence Brief": {
+      "main": [
+        [
+          {
+            "node": "Write Readiness Check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Write Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Readiness Check": {
+      "main": [
+        [
+          {
+            "node": "Update Launch Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
@@ -20,24 +21,44 @@ import { BoardColumn as BoardColumnComponent } from './BoardColumn';
 import { BoardCard } from './BoardCard';
 import { CardDetail } from './CardDetail';
 import { BoardFilters } from './BoardFilters';
+import { InboxDigest } from './InboxDigest';
+import { OutcomePrompt, OutcomeType } from './OutcomePrompt';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Kanban } from 'lucide-react';
+import { Kanban, ChevronRight, Archive } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function BoardView() {
-  const { cards, cardsByColumn, isLoading, moveCard, updateCard, archiveCard, isMoving } = useActionBoard();
+  const { cards, cardsByColumn, isLoading, moveCard, updateCard, archiveCard, recordOutcome, isMoving } = useActionBoard();
   const { generateKit } = useExecutionKit();
   const demo = useDemo();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeCard, setActiveCard] = useState<ActionBoardCard | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [archivedCollapsed, setArchivedCollapsed] = useState(true);
+
+  // Outcome prompt state
+  const [outcomePromptCard, setOutcomePromptCard] = useState<ActionBoardCard | null>(null);
 
   // Derive the selected card from live data so it updates after mutations
   const selectedCard = selectedCardId ? cards.find(c => c.id === selectedCardId) || null : null;
+
+  // URL-synced filters
   const [filters, setFilters] = useState<{ search: string; decisionType: string | null; ownerTeam: string | null; priority: string | null }>({
-    search: '',
-    decisionType: null,
-    ownerTeam: null,
-    priority: null,
+    search: searchParams.get('q') || '',
+    decisionType: searchParams.get('type') || null,
+    ownerTeam: searchParams.get('team') || null,
+    priority: searchParams.get('priority') || null,
   });
+
+  // Sync filter state → URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set('q', filters.search);
+    if (filters.decisionType) params.set('type', filters.decisionType);
+    if (filters.ownerTeam) params.set('team', filters.ownerTeam);
+    if (filters.priority) params.set('priority', filters.priority);
+    setSearchParams(params, { replace: true });
+  }, [filters, setSearchParams]);
 
   // Track which column the dragged card is currently hovering over
   const overColumnRef = useRef<string | null>(null);
@@ -74,6 +95,14 @@ export function BoardView() {
       return [key, colCards];
     })
   ) as Record<BoardColumn, ActionBoardCard[]>;
+
+  // Done column outcome stats
+  const doneCards = cardsByColumn['done'] || [];
+  const outcomeStats = {
+    positive: doneCards.filter(c => c.outcome === 'positive').length,
+    neutral: doneCards.filter(c => c.outcome === 'neutral').length,
+    negative: doneCards.filter(c => c.outcome === 'negative').length,
+  };
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const card = cards.find(c => c.id === event.active.id);
@@ -115,11 +144,21 @@ export function BoardView() {
 
     moveCard(cardId, targetColumn, newOrder);
 
-    // Auto-generate execution kit when card moves to this_week and has no kit
-    if (targetColumn === 'this_week' && !sourceCard.execution_kit && !demo?.isDemo) {
+    // Auto-generate execution kit when card moves to this_week OR in_progress and has no kit
+    if ((targetColumn === 'this_week' || targetColumn === 'in_progress') && !sourceCard.execution_kit && !demo?.isDemo) {
       setTimeout(() => generateKit(cardId), 500);
     }
+
+    // Show outcome prompt when card moves to done
+    if (targetColumn === 'done' && !sourceCard.outcome) {
+      setTimeout(() => setOutcomePromptCard(sourceCard), 300);
+    }
   }, [cards, cardsByColumn, moveCard, generateKit, demo?.isDemo, resolveColumn]);
+
+  const handleOutcomeSubmit = useCallback((cardId: string, outcome: OutcomeType, notes: string) => {
+    recordOutcome(cardId, outcome, notes);
+    setOutcomePromptCard(null);
+  }, [recordOutcome]);
 
   if (isLoading) {
     return (
@@ -142,6 +181,9 @@ export function BoardView() {
         </div>
       </div>
 
+      {/* Inbox Digest */}
+      <InboxDigest cards={cardsByColumn['inbox'] || []} />
+
       {/* Filters */}
       <BoardFilters filters={filters} onFiltersChange={setFilters} cardsByColumn={cardsByColumn} />
 
@@ -153,18 +195,22 @@ export function BoardView() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[500px]">
-          {BOARD_COLUMNS.map(({ key, label, color }) => (
-            <BoardColumnComponent
-              key={key}
-              columnKey={key}
-              label={label}
-              color={color}
-              cards={filteredCardsByColumn[key] || []}
-              onCardClick={(card) => setSelectedCardId(card.id)}
-              onArchive={(cardId) => archiveCard(cardId)}
-            />
-          ))}
+        <div className="flex gap-4 min-h-[500px]">
+          {/* Active columns (inbox, this_week, in_progress, done) */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+            {BOARD_COLUMNS.map(({ key, label, color }) => (
+              <BoardColumnComponent
+                key={key}
+                columnKey={key}
+                label={label}
+                color={color}
+                cards={filteredCardsByColumn[key] || []}
+                onCardClick={(card) => setSelectedCardId(card.id)}
+                onArchive={(cardId) => archiveCard(cardId)}
+                outcomeStats={key === 'done' ? outcomeStats : undefined}
+              />
+            ))}
+          </div>
         </div>
 
         <DragOverlay dropAnimation={null}>
@@ -174,6 +220,16 @@ export function BoardView() {
         </DragOverlay>
       </DndContext>
 
+      {/* Outcome Prompt Modal */}
+      {outcomePromptCard && (
+        <OutcomePrompt
+          cardId={outcomePromptCard.id}
+          actionText={outcomePromptCard.action_text}
+          onSubmit={handleOutcomeSubmit}
+          onDismiss={() => setOutcomePromptCard(null)}
+        />
+      )}
+
       {/* Card Detail Sheet */}
       <CardDetail
         card={selectedCard}
@@ -181,6 +237,7 @@ export function BoardView() {
         onUpdateNotes={(cardId, notes) => updateCard(cardId, notes)}
         onArchive={(cardId) => { archiveCard(cardId); setSelectedCardId(null); }}
         onMoveCard={moveCard}
+        onRecordOutcome={recordOutcome}
       />
     </div>
   );

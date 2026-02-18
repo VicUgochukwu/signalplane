@@ -6,12 +6,24 @@ import { Label } from '@/components/ui/label';
 import { Building2, Target, Plus, X, Loader2, CheckCircle2, Search } from 'lucide-react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
+import { usePilot } from '@/hooks/usePilot';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { detectPages } from '@/lib/pageDetection';
 
 const INDUSTRIES = [
   'SaaS / Software',
+  'AI / Automation',
+  'GEO / AEO',
+  'Intent Data',
+  'Events / Webinars',
+  'ABM Platforms',
+  'Content Tools',
+  'Data Enrichment',
+  'Stack Consolidation',
   'E-commerce',
   'Fintech',
   'Healthcare',
@@ -38,10 +50,23 @@ interface Competitor {
   domain: string;
 }
 
+interface DetectionProgress {
+  current: number;
+  total: number;
+  currentName: string;
+  completed: number;
+  failed: number;
+}
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export function CompanyProfileSettings() {
   const { profile, competitors: existingCompetitors, needsOnboarding, refetch } = useOnboarding();
   const { user } = useAuth();
+  const { maxCompetitors } = usePilot();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,6 +84,9 @@ export function CompanyProfileSettings() {
   const [newCompetitorName, setNewCompetitorName] = useState('');
   const [newCompetitorDomain, setNewCompetitorDomain] = useState('');
 
+  // Detection progress
+  const [detectionProgress, setDetectionProgress] = useState<DetectionProgress | null>(null);
+
   const startEditing = () => {
     setCompanyName(profile?.company_name || '');
     setCompanyDomain(profile?.company_domain || '');
@@ -72,8 +100,8 @@ export function CompanyProfileSettings() {
 
   const addCompetitor = () => {
     if (!newCompetitorName.trim()) return;
-    if (competitors.length >= 10) {
-      toast({ title: 'Maximum 10 competitors allowed', variant: 'destructive' });
+    if (competitors.length >= maxCompetitors) {
+      toast({ title: `Maximum ${maxCompetitors} competitors allowed`, variant: 'destructive' });
       return;
     }
 
@@ -94,6 +122,11 @@ export function CompanyProfileSettings() {
 
     setIsSaving(true);
 
+    // Capture which competitor domains existed BEFORE save
+    const previousDomains = new Set(
+      existingCompetitors?.map(c => c.competitor_domain?.toLowerCase()).filter(Boolean) || []
+    );
+
     const competitorsJson = competitors.map((c, idx) => ({
       name: c.name,
       domain: c.domain,
@@ -111,9 +144,8 @@ export function CompanyProfileSettings() {
       p_competitors: competitorsJson,
     });
 
-    setIsSaving(false);
-
     if (error) {
+      setIsSaving(false);
       toast({ title: 'Error saving profile', description: error.message, variant: 'destructive' });
       return;
     }
@@ -121,7 +153,103 @@ export function CompanyProfileSettings() {
     // Clear the session skip flag since user is now setting up
     sessionStorage.removeItem('skippedOnboarding');
 
-    toast({ title: 'Profile updated', description: 'Your company profile has been saved.' });
+    // Profile saved — now auto-detect pages for NEW competitors
+    const newCompetitors = competitors.filter(
+      (c) => c.domain && !previousDomains.has(c.domain.toLowerCase())
+    );
+
+    if (newCompetitors.length > 0) {
+      let completedCount = 0;
+      let failedCount = 0;
+
+      for (let i = 0; i < newCompetitors.length; i++) {
+        const comp = newCompetitors[i];
+        setDetectionProgress({
+          current: i + 1,
+          total: newCompetitors.length,
+          currentName: comp.name,
+          completed: completedCount,
+          failed: failedCount,
+        });
+
+        try {
+          // Step 1: Create company in core.companies
+          const { data: companyData, error: companyError } = await supabase.rpc('add_company', {
+            p_company_name: comp.name,
+            p_company_slug: comp.domain,
+          });
+
+          if (companyError) {
+            console.warn(`add_company failed for ${comp.name}:`, companyError.message);
+            failedCount++;
+            continue;
+          }
+
+          const compId = companyData?.[0]?.company_id;
+          if (!compId) {
+            console.warn(`No company_id returned for ${comp.name}`);
+            failedCount++;
+            continue;
+          }
+
+          // Step 2: Detect pages
+          const pages = await detectPages(comp.domain, industry || undefined);
+          const selectedPages = pages
+            .filter((p) => p.confidence !== 'low') // auto-select high + medium
+            .slice(0, 10) // respect 10-page limit
+            .map((p) => ({ url: p.url, url_type: p.type }));
+
+          if (selectedPages.length > 0) {
+            // Step 3: Insert pages
+            const { error: pagesError } = await supabase.rpc('add_company_pages', {
+              p_company_id: compId,
+              p_pages: selectedPages,
+            });
+
+            if (pagesError) {
+              console.warn(`add_company_pages failed for ${comp.name}:`, pagesError.message);
+              failedCount++;
+            } else {
+              completedCount++;
+            }
+          } else {
+            // Company created but no pages detected
+            completedCount++;
+          }
+        } catch (err) {
+          console.warn(`Page detection failed for ${comp.domain}:`, err);
+          failedCount++;
+        }
+
+        // Delay between calls to respect rate limits (20 req/min)
+        if (i < newCompetitors.length - 1) {
+          await delay(3000);
+        }
+      }
+
+      // Invalidate tracked pages so MyPages reflects new data
+      queryClient.invalidateQueries({ queryKey: ['tracked-pages'] });
+      queryClient.invalidateQueries({ queryKey: ['competitor-suggestions'] });
+
+      // Show result toast with link to MyPages
+      if (completedCount > 0) {
+        toast({
+          title: 'Pages auto-detected',
+          description: `${completedCount} competitor${completedCount !== 1 ? 's' : ''} set up with tracked pages. ${failedCount > 0 ? `${failedCount} failed.` : ''} Review in My Pages.`,
+        });
+      } else if (failedCount > 0) {
+        toast({
+          title: 'Page detection had issues',
+          description: `Could not detect pages for ${failedCount} competitor${failedCount !== 1 ? 's' : ''}. You can add pages manually from My Pages.`,
+          variant: 'destructive',
+        });
+      }
+    } else {
+      toast({ title: 'Profile updated', description: 'Your company profile has been saved.' });
+    }
+
+    setDetectionProgress(null);
+    setIsSaving(false);
     setIsEditing(false);
     refetch();
   };
@@ -204,7 +332,7 @@ export function CompanyProfileSettings() {
             <div className="pt-4 border-t border-border">
               <Label className="text-muted-foreground text-xs flex items-center gap-1 mb-2">
                 <Target className="h-3 w-3" />
-                Tracked Competitors ({existingCompetitors.length}/5)
+                Tracked Competitors ({existingCompetitors.length}/{maxCompetitors})
               </Label>
               <div className="flex flex-wrap gap-2">
                 {existingCompetitors.map((comp) => (
@@ -246,6 +374,7 @@ export function CompanyProfileSettings() {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               className="bg-background border-border text-foreground"
+              disabled={isSaving}
             />
           </div>
           <div className="space-y-2">
@@ -258,11 +387,12 @@ export function CompanyProfileSettings() {
               onChange={(e) => setCompanyDomain(e.target.value)}
               placeholder="yourcompany.com"
               className="bg-background border-border text-foreground"
+              disabled={isSaving}
             />
           </div>
           <div className="space-y-2">
             <Label className="text-foreground/80">Industry</Label>
-            <Select value={industry} onValueChange={setIndustry}>
+            <Select value={industry} onValueChange={setIndustry} disabled={isSaving}>
               <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
@@ -277,7 +407,7 @@ export function CompanyProfileSettings() {
           </div>
           <div className="space-y-2">
             <Label className="text-foreground/80">Company Size</Label>
-            <Select value={companySize} onValueChange={setCompanySize}>
+            <Select value={companySize} onValueChange={setCompanySize} disabled={isSaving}>
               <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
@@ -296,7 +426,7 @@ export function CompanyProfileSettings() {
         <div className="pt-4 border-t border-border space-y-3">
           <Label className="text-foreground/80 flex items-center gap-1">
             <Target className="h-4 w-4" />
-            Tracked Competitors ({competitors.length}/5)
+            Tracked Competitors ({competitors.length}/{maxCompetitors})
           </Label>
 
           {competitors.length > 0 && (
@@ -312,7 +442,8 @@ export function CompanyProfileSettings() {
                   </div>
                   <button
                     onClick={() => removeCompetitor(idx)}
-                    className="text-muted-foreground hover:text-muted-foreground"
+                    className="text-muted-foreground hover:text-foreground"
+                    disabled={isSaving}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -321,19 +452,21 @@ export function CompanyProfileSettings() {
             </div>
           )}
 
-          {competitors.length < 5 && (
+          {competitors.length < maxCompetitors && !isSaving && (
             <div className="flex gap-2">
               <Input
                 placeholder="Competitor name"
                 value={newCompetitorName}
                 onChange={(e) => setNewCompetitorName(e.target.value)}
                 className="bg-background border-border text-foreground"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCompetitor(); } }}
               />
               <Input
                 placeholder="domain.com"
                 value={newCompetitorDomain}
                 onChange={(e) => setNewCompetitorDomain(e.target.value)}
                 className="bg-background border-border text-foreground w-40"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCompetitor(); } }}
               />
               <Button
                 onClick={addCompetitor}
@@ -345,6 +478,34 @@ export function CompanyProfileSettings() {
             </div>
           )}
         </div>
+
+        {/* Detection progress */}
+        {detectionProgress && (
+          <div className="rounded-lg border border-emerald-600/30 bg-emerald-900/10 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+              <span className="text-sm text-emerald-300 font-medium">
+                Detecting pages for {detectionProgress.currentName}
+              </span>
+              <span className="text-xs text-emerald-400/70 ml-auto">
+                {detectionProgress.current}/{detectionProgress.total}
+              </span>
+            </div>
+            <div className="w-full bg-emerald-900/30 rounded-full h-1.5">
+              <div
+                className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${(detectionProgress.current / detectionProgress.total) * 100}%` }}
+              />
+            </div>
+            {(detectionProgress.completed > 0 || detectionProgress.failed > 0) && (
+              <p className="text-[11px] text-emerald-400/60 mt-1.5">
+                {detectionProgress.completed > 0 && `${detectionProgress.completed} done`}
+                {detectionProgress.completed > 0 && detectionProgress.failed > 0 && ' · '}
+                {detectionProgress.failed > 0 && `${detectionProgress.failed} failed`}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 pt-2">
@@ -364,7 +525,7 @@ export function CompanyProfileSettings() {
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                {detectionProgress ? 'Detecting pages...' : 'Saving...'}
               </>
             ) : (
               <>

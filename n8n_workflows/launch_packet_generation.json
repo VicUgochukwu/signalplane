@@ -1,0 +1,224 @@
+{
+  "name": "Launch Packet Generation [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "lpg-cron-01",
+      "name": "Daily 07:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.id AS launch_id, l.user_id, l.launch_name, l.product_name, l.competitor_names, l.target_launch_date, l.readiness_score, l.readiness_breakdown, l.initial_messaging, l.initial_positioning FROM launch.launches l WHERE l.phase IN ('pre_launch', 'planning') AND l.target_launch_date = CURRENT_DATE;",
+        "options": {}
+      },
+      "id": "lpg-pg-01",
+      "name": "Get Launch-Day Launches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT b.brief_type, b.title, b.content_md, b.brief_date, b.signal_count FROM launch.briefs b WHERE b.launch_id = '{{ $json.launch_id }}'::uuid ORDER BY b.brief_date DESC LIMIT 20;",
+        "options": {}
+      },
+      "id": "lpg-pg-02",
+      "name": "Load All Briefs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT rc.check_date, rc.score, rc.risk_factors, rc.opportunities FROM launch.readiness_checks rc WHERE rc.launch_id = '{{ $('Get Launch-Day Launches').item.json.launch_id }}'::uuid ORDER BY rc.check_date DESC LIMIT 7;",
+        "options": {}
+      },
+      "id": "lpg-pg-03",
+      "name": "Load Readiness History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const launch = $('Get Launch-Day Launches').item.json;\nconst briefs = $('Load All Briefs').all().map(i => i.json);\nconst readinessHistory = $('Load Readiness History').all().map(i => i.json);\n\n// Build the launch packet\nconst intelBriefs = briefs.filter(b => b.brief_type === 'intelligence');\nconst totalSignals = briefs.reduce((sum, b) => sum + (b.signal_count || 0), 0);\n\n// Readiness trend\nconst scores = readinessHistory.map(r => r.score);\nconst trend = scores.length >= 2\n  ? scores[0] > scores[scores.length - 1] ? 'improving' : scores[0] < scores[scores.length - 1] ? 'declining' : 'stable'\n  : 'insufficient data';\n\n// Compile latest risks and opportunities\nconst latestRisks = readinessHistory.length > 0 ? (readinessHistory[0].risk_factors || []) : [];\nconst latestOpportunities = readinessHistory.length > 0 ? (readinessHistory[0].opportunities || []) : [];\n\nconst packetTitle = `Launch Packet \u2014 ${launch.launch_name}`;\nconst packetMd = `# ${packetTitle}\\n**Product:** ${launch.product_name}\\n**Launch Date:** ${launch.target_launch_date}\\n**Readiness Score:** ${launch.readiness_score}/100 (${trend})\\n\\n---\\n\\n## Pre-Launch Intelligence Summary\\n- ${intelBriefs.length} intelligence briefs generated\\n- ${totalSignals} total signals consumed\\n- Readiness trend: ${trend}\\n\\n## Readiness Score History\\n${readinessHistory.map(r => `- ${r.check_date}: ${r.score}/100`).join('\\n')}\\n\\n## Active Risks\\n${(typeof latestRisks === 'string' ? JSON.parse(latestRisks) : latestRisks).map(r => `- **${r.label}**: ${r.detail}`).join('\\n') || 'None'}\\n\\n## Opportunities\\n${(typeof latestOpportunities === 'string' ? JSON.parse(latestOpportunities) : latestOpportunities).map(o => `- **${o.label}**: ${o.detail}`).join('\\n') || 'None'}\\n\\n## Competitors\\n${(launch.competitor_names || []).map(c => `- ${c}`).join('\\n') || 'None tracked'}\\n\\n---\\n*Generated automatically by Signal Plane Launch Operations*`;\n\nreturn [{\n  json: {\n    launch_id: launch.launch_id,\n    user_id: launch.user_id,\n    packet_title: packetTitle,\n    packet_md: packetMd,\n    packet_json: JSON.stringify({\n      readiness_score: launch.readiness_score,\n      readiness_trend: trend,\n      intelligence_briefs_count: intelBriefs.length,\n      total_signals: totalSignals,\n      risks: latestRisks,\n      opportunities: latestOpportunities\n    }),\n    total_signals: totalSignals\n  }\n}];"
+      },
+      "id": "lpg-code-01",
+      "name": "Build Launch Packet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO launch.briefs (launch_id, brief_type, brief_date, title, content_json, content_md, signal_count, days_to_launch) VALUES ('{{ $json.launch_id }}'::uuid, 'packet', CURRENT_DATE, '{{ $json.packet_title }}', '{{ $json.packet_json }}'::jsonb, '{{ $json.packet_md.replace(/'/g, \"''\") }}', {{ $json.total_signals }}, 0);",
+        "options": {}
+      },
+      "id": "lpg-pg-04",
+      "name": "Write Packet Brief",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE launch.launches SET phase = 'post_launch', actual_launch_date = CURRENT_DATE, updated_at = now() WHERE id = '{{ $json.launch_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "lpg-pg-05",
+      "name": "Transition to Post-Launch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Daily 07:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Launch-Day Launches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Launch-Day Launches": {
+      "main": [
+        [
+          {
+            "node": "Load All Briefs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Readiness History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load All Briefs": {
+      "main": [
+        [
+          {
+            "node": "Build Launch Packet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Launch Packet": {
+      "main": [
+        [
+          {
+            "node": "Write Packet Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Packet Brief": {
+      "main": [
+        [
+          {
+            "node": "Transition to Post-Launch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

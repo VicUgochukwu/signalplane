@@ -1,26 +1,37 @@
 import { useMemo, useState } from 'react';
 import { useChangelog } from '@/hooks/useChangelog';
 import { useMyChangelog } from '@/hooks/useMyChangelog';
+import { useNarrativeArcs } from '@/hooks/useNarrativeArcs';
+import { useConvergences } from '@/hooks/useConvergences';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
+import { NarrativeArcCard } from '@/components/NarrativeArcCard';
+import { ConvergenceAlert } from '@/components/ConvergenceAlert';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Globe, User, Plus, AlertCircle, ArrowRight } from 'lucide-react';
+import { Globe, User, Plus, AlertCircle, ArrowRight, ChevronDown, ChevronUp, GitBranch } from 'lucide-react';
 import { IconSignalCount, IconPersonaRevenue, IconCompany } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
+import { useReports } from '@/hooks/useReports';
+import { format, parseISO } from 'date-fns';
 
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAllChanges, setShowAllChanges] = useState(false);
+  const [arcsExpanded, setArcsExpanded] = useState(true);
 
-  const publicFeed = useChangelog();
+  // Both feeds are now user-scoped (filtered by auth.uid())
+  // "My Feed" = enabled pages only, "All Signals" = all pages including disabled
+  const allFeed = useChangelog(!!user && showAllChanges);
   const myFeed = useMyChangelog(!!user && !showAllChanges);
+  const { data: arcs } = useNarrativeArcs();
+  const { data: convergences } = useConvergences();
 
   const isPersonalized = !!user && !showAllChanges;
-  const activeFeed = isPersonalized ? myFeed : publicFeed;
+  const activeFeed = isPersonalized ? myFeed : allFeed;
   const { data: entries, isLoading, error } = activeFeed;
 
   const [selectedCompany, setSelectedCompany] = useState('all');
@@ -57,6 +68,9 @@ const Index = () => {
     });
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [filteredEntries]);
+
+  const { data: packets } = useReports();
+  const latestPacket = packets?.[0]; // Already sorted by created_at desc
 
   const totalSignals = entries?.length || 0;
   const highPriorityCount = entries?.filter(e => e.change_magnitude === 'major').length || 0;
@@ -111,18 +125,69 @@ const Index = () => {
           </Card>
           <Card className="rounded-xl border border-border/50 bg-card group hover:border-primary/20 transition-colors">
             <CardContent className="p-4">
-              <Link to="/control-plane" className="block">
+              <Link to={latestPacket ? `/control-plane/packet/${latestPacket.id}` : '/control-plane'} className="block">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-md bg-emerald-500/10">
                     <ArrowRight className="h-3.5 w-3.5 text-emerald-400" />
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-emerald-400 group-hover:text-emerald-300 transition-colors">View Packets →</div>
-                <div className="text-xs text-muted-foreground mt-0.5">Weekly Intel</div>
+                {latestPacket ? (
+                  <>
+                    <div className="text-sm font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                      {latestPacket.packet_title}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      Latest Packet · {(() => { try { return format(parseISO(latestPacket.week_start), 'MMM d'); } catch { return ''; } })()}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm font-semibold text-emerald-400 group-hover:text-emerald-300 transition-colors">View Packets →</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Weekly Intel</div>
+                  </>
+                )}
               </Link>
             </CardContent>
           </Card>
         </div>
+
+        {/* Narrative Intelligence */}
+        {user && ((arcs && arcs.length > 0) || (convergences && convergences.length > 0)) && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setArcsExpanded(!arcsExpanded)}
+              className="flex items-center gap-2 w-full group"
+            >
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <GitBranch className="h-4 w-4 text-primary" />
+                Narrative Intelligence
+              </div>
+              <div className="flex-1 h-px bg-border/50" />
+              <span className="text-xs text-muted-foreground font-medium">
+                {(arcs?.length || 0)} arc{(arcs?.length || 0) !== 1 ? 's' : ''}
+              </span>
+              {arcsExpanded
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+
+            {arcsExpanded && (
+              <div className="space-y-4">
+                {/* Convergence alerts */}
+                {convergences?.map((c) => (
+                  <ConvergenceAlert key={c.convergence_id} convergence={c} />
+                ))}
+
+                {/* Arc cards */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  {arcs?.map((arc) => (
+                    <NarrativeArcCard key={arc.arc_id} arc={arc} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Feed Toggle & Filters */}
         <div className="space-y-4 border-t border-border/50 pt-6">
@@ -150,14 +215,14 @@ const Index = () => {
                   }`}
                 >
                   <Globe className="h-3.5 w-3.5" />
-                  All Signals
+                  All Pages
                 </button>
               </div>
             )}
 
             {!user && (
               <div className="text-sm text-muted-foreground">
-                Showing all public signals
+                Sign in to view competitor messaging signals for your tracked companies.
               </div>
             )}
 
@@ -173,9 +238,11 @@ const Index = () => {
             />
           </div>
 
-          {isPersonalized && (
+          {user && (
             <p className="text-xs text-muted-foreground">
-              Showing signals for your tracked companies only.
+              {isPersonalized
+                ? 'Showing signals for your active tracked pages only.'
+                : 'Showing signals for all your tracked pages, including disabled ones.'}
             </p>
           )}
         </div>
@@ -240,7 +307,7 @@ const Index = () => {
                   className="border-border/50 text-foreground hover:bg-muted/50 rounded-lg"
                 >
                   <Globe className="h-4 w-4 mr-2" />
-                  Browse All Signals
+                  View All Pages
                 </Button>
               </div>
             </CardContent>

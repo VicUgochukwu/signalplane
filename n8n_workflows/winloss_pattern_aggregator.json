@@ -1,0 +1,160 @@
+{
+  "name": "Win/Loss Pattern Aggregator [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "wlpa-cron-01",
+      "name": "Sunday 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT i.user_id FROM winloss.indicators i WHERE i.detected_at >= now() - INTERVAL '90 days' AND (i.meta->>'status') = 'classified';",
+        "options": {}
+      },
+      "id": "wlpa-pg-01",
+      "name": "Get Active Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.user_id, i.indicator_type, i.company_name, i.company_id, i.reason, i.sentiment_score, i.detected_at FROM winloss.indicators i WHERE i.user_id = '{{ $json.user_id }}'::uuid AND i.detected_at >= now() - INTERVAL '90 days' AND (i.meta->>'status') = 'classified' ORDER BY i.detected_at DESC;",
+        "options": {}
+      },
+      "id": "wlpa-pg-02",
+      "name": "Get User Indicators",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Get Active Users').item.json.user_id;\nconst indicators = $('Get User Indicators').all().map(i => i.json);\n\n// Group by company + indicator_type + similar reason\nconst patterns = {};\nfor (const ind of indicators) {\n  // Simple grouping: company + type + first 50 chars of reason (in production, use LLM semantic clustering)\n  const reasonKey = ind.reason.substring(0, 50).toLowerCase().replace(/[^a-z0-9 ]/g, '');\n  const key = `${ind.company_name}__${ind.indicator_type}__${reasonKey}`;\n  \n  if (!patterns[key]) {\n    patterns[key] = {\n      user_id: userId,\n      pattern_type: ind.indicator_type,\n      company_name: ind.company_name,\n      company_id: ind.company_id,\n      description: ind.reason,\n      frequency: 0,\n      indicator_ids: [],\n      sentiments: [],\n      first_seen: ind.detected_at,\n      last_seen: ind.detected_at\n    };\n  }\n  \n  patterns[key].frequency++;\n  patterns[key].indicator_ids.push(ind.id);\n  patterns[key].sentiments.push(ind.sentiment_score);\n  \n  if (new Date(ind.detected_at) < new Date(patterns[key].first_seen)) {\n    patterns[key].first_seen = ind.detected_at;\n  }\n  if (new Date(ind.detected_at) > new Date(patterns[key].last_seen)) {\n    patterns[key].last_seen = ind.detected_at;\n  }\n}\n\n// Compute trend (simple: more recent = rising)\nconst results = Object.values(patterns).map(p => {\n  const avgSentiment = p.sentiments.reduce((a, b) => a + b, 0) / p.sentiments.length;\n  const midpoint = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);\n  const recentCount = p.indicator_ids.filter((_, idx) => {\n    // Indicators are sorted DESC so index 0 is most recent\n    return idx < p.indicator_ids.length / 2;\n  }).length;\n  const olderCount = p.indicator_ids.length - recentCount;\n  \n  let trend = 'stable';\n  if (recentCount > olderCount * 1.5) trend = 'rising';\n  else if (olderCount > recentCount * 1.5) trend = 'falling';\n  \n  const confidence = Math.min(1, 0.3 + (p.frequency * 0.1));\n  \n  return {\n    user_id: p.user_id,\n    pattern_type: p.pattern_type,\n    company_name: p.company_name,\n    company_id: p.company_id,\n    description: p.description,\n    frequency: p.frequency,\n    trend: trend,\n    confidence: Math.round(confidence * 100) / 100,\n    first_seen: p.first_seen,\n    last_seen: p.last_seen,\n    indicator_ids: p.indicator_ids\n  };\n});\n\n// Only keep patterns with frequency >= 2\nreturn results.filter(r => r.frequency >= 2).map(r => ({ json: r }));"
+      },
+      "id": "wlpa-code-01",
+      "name": "Aggregate Patterns",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO winloss.patterns (user_id, pattern_type, company_name, company_id, description, frequency, trend, confidence, first_seen, last_seen, indicator_ids) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.pattern_type }}', '{{ $json.company_name.replace(/'/g, \"''\") }}', {{ $json.company_id ? \"'\" + $json.company_id + \"'::uuid\" : 'NULL' }}, '{{ $json.description.replace(/'/g, \"''\") }}', {{ $json.frequency }}, '{{ $json.trend }}', {{ $json.confidence }}, '{{ $json.first_seen }}'::timestamptz, '{{ $json.last_seen }}'::timestamptz, ARRAY[{{ $json.indicator_ids.map(id => \"'\" + id + \"'::uuid\").join(',') }}]) ON CONFLICT (user_id, pattern_type, company_name, description) DO UPDATE SET frequency = EXCLUDED.frequency, trend = EXCLUDED.trend, confidence = EXCLUDED.confidence, last_seen = EXCLUDED.last_seen, indicator_ids = EXCLUDED.indicator_ids, updated_at = now();",
+        "options": {}
+      },
+      "id": "wlpa-pg-03",
+      "name": "Upsert Patterns",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Sunday 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Users": {
+      "main": [
+        [
+          {
+            "node": "Get User Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Indicators": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Patterns": {
+      "main": [
+        [
+          {
+            "node": "Upsert Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

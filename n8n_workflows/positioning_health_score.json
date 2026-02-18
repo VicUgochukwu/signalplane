@@ -1,0 +1,243 @@
+{
+  "name": "Positioning Health Score [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 1-7 * 1"
+            }
+          ]
+        }
+      },
+      "id": "poshs-cron-01",
+      "name": "1st Monday 09:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only run on the first Monday of the month\nconst today = new Date();\nif (today.getDate() > 7) {\n  return [];\n}\nreturn [{ json: { run: true, score_month: today.toISOString().substring(0, 7) + '-01' } }];"
+      },
+      "id": "poshs-code-00",
+      "name": "Check First Monday",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT om.user_id FROM positioning.own_messaging om;",
+        "options": {}
+      },
+      "id": "poshs-pg-01",
+      "name": "Get Users With Pages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT 'voc' AS source, COUNT(*) AS cnt FROM research.voc_entries e WHERE e.user_id = '{{ $json.user_id }}'::uuid AND e.dimension IN ('language', 'criteria') AND e.first_seen >= (date_trunc('month', CURRENT_DATE) - INTERVAL '2 months') UNION ALL SELECT 'ci' AS source, COUNT(*) AS cnt FROM public.classified_changes cc WHERE cc.primary_tag = 'positioning' AND cc.detected_at >= (date_trunc('month', CURRENT_DATE) - INTERVAL '2 months') UNION ALL SELECT 'narrative' AS source, COUNT(*) AS cnt FROM diff_tracker.narrative_arcs na WHERE na.status = 'active' AND na.first_seen >= (date_trunc('month', CURRENT_DATE) - INTERVAL '3 months');",
+        "options": {}
+      },
+      "id": "poshs-pg-02",
+      "name": "Get Cross-Module Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Get Users With Pages').item.json.user_id;\nconst scoreMonth = $('Check First Monday').item.json.score_month;\nconst crossData = $('Get Cross-Module Data').all().map(i => i.json);\n\n// Determine which dimensions are available\nconst vocCount = crossData.find(d => d.source === 'voc')?.cnt || 0;\nconst ciCount = crossData.find(d => d.source === 'ci')?.cnt || 0;\nconst narrativeCount = crossData.find(d => d.source === 'narrative')?.cnt || 0;\n\nconst dimensionsAvailable = [];\nlet buyerAlignmentScore = 0;\nlet differentiationScore = 0;\nlet narrativeFitScore = 0;\n\n// Buyer Alignment (0-33): based on VoC language/criteria data\nif (vocCount > 0) {\n  dimensionsAvailable.push('buyer_alignment');\n  // Score based on volume of buyer language data available\n  // More data = better coverage = higher score\n  buyerAlignmentScore = Math.min(33, Math.round(vocCount * 3.3));\n  if (buyerAlignmentScore < 10) buyerAlignmentScore = Math.max(10, buyerAlignmentScore); // min 10 if data exists\n}\n\n// Competitive Differentiation (0-33): based on CI positioning changes\nif (ciCount > 0) {\n  dimensionsAvailable.push('differentiation');\n  // Fewer competitor positioning moves = more differentiated\n  // Many changes = positioning is contested = lower score\n  if (ciCount <= 3) differentiationScore = 28;\n  else if (ciCount <= 10) differentiationScore = 22;\n  else if (ciCount <= 25) differentiationScore = 16;\n  else differentiationScore = 10;\n}\n\n// Narrative Fit (0-33): based on narrative arc activity\nif (narrativeCount > 0) {\n  dimensionsAvailable.push('narrative_fit');\n  // Active narratives = market is moving, need to check alignment\n  // Having narrative data means we can assess, score based on coverage\n  if (narrativeCount >= 5) narrativeFitScore = 27;\n  else if (narrativeCount >= 3) narrativeFitScore = 22;\n  else narrativeFitScore = 17;\n}\n\n// If no dimensions available, assign default\nif (dimensionsAvailable.length === 0) {\n  dimensionsAvailable.push('buyer_alignment');\n  buyerAlignmentScore = 15; // default mid-range\n}\n\nconst totalScore = buyerAlignmentScore + differentiationScore + narrativeFitScore;\n\n// Get prior score for trend\nreturn [{\n  json: {\n    user_id: userId,\n    score_month: scoreMonth,\n    total_score: totalScore,\n    buyer_alignment_score: buyerAlignmentScore,\n    differentiation_score: differentiationScore,\n    narrative_fit_score: narrativeFitScore,\n    dimensions_available: dimensionsAvailable,\n    breakdown: JSON.stringify({\n      voc_entries_used: vocCount,\n      ci_changes_used: ciCount,\n      narrative_arcs_used: narrativeCount,\n      dimensions_scored: dimensionsAvailable.length\n    })\n  }\n}];"
+      },
+      "id": "poshs-code-01",
+      "name": "Compute Health Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hs.total_score FROM positioning.health_scores hs WHERE hs.user_id = '{{ $json.user_id }}'::uuid ORDER BY hs.score_month DESC LIMIT 1;",
+        "options": {}
+      },
+      "id": "poshs-pg-03",
+      "name": "Get Prior Score",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const score = $('Compute Health Score').item.json;\nconst priorRows = $('Get Prior Score').all();\nconst priorScore = priorRows.length > 0 ? priorRows[0].json.total_score : null;\n\nlet trend = 'stable';\nif (priorScore !== null) {\n  if (score.total_score > priorScore + 5) trend = 'improving';\n  else if (score.total_score < priorScore - 5) trend = 'declining';\n}\n\nreturn [{\n  json: {\n    ...score,\n    trend_vs_prior: trend,\n    prior_total_score: priorScore\n  }\n}];"
+      },
+      "id": "poshs-code-02",
+      "name": "Determine Trend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO positioning.health_scores (user_id, score_month, total_score, buyer_alignment_score, differentiation_score, narrative_fit_score, dimensions_available, breakdown, trend_vs_prior, prior_total_score) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.score_month }}'::date, {{ $json.total_score }}, {{ $json.buyer_alignment_score }}, {{ $json.differentiation_score }}, {{ $json.narrative_fit_score }}, ARRAY[{{ $json.dimensions_available.map(d => \"'\" + d + \"'\").join(',') }}]::text[], '{{ $json.breakdown }}'::jsonb, '{{ $json.trend_vs_prior }}', {{ $json.prior_total_score !== null ? $json.prior_total_score : 'NULL' }}) ON CONFLICT (user_id, score_month) DO UPDATE SET total_score = EXCLUDED.total_score, buyer_alignment_score = EXCLUDED.buyer_alignment_score, differentiation_score = EXCLUDED.differentiation_score, narrative_fit_score = EXCLUDED.narrative_fit_score, dimensions_available = EXCLUDED.dimensions_available, breakdown = EXCLUDED.breakdown, trend_vs_prior = EXCLUDED.trend_vs_prior, prior_total_score = EXCLUDED.prior_total_score;",
+        "options": {}
+      },
+      "id": "poshs-pg-04",
+      "name": "Write Health Score",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        600,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "1st Monday 09:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Check First Monday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check First Monday": {
+      "main": [
+        [
+          {
+            "node": "Get Users With Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Users With Pages": {
+      "main": [
+        [
+          {
+            "node": "Get Cross-Module Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cross-Module Data": {
+      "main": [
+        [
+          {
+            "node": "Compute Health Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Health Score": {
+      "main": [
+        [
+          {
+            "node": "Get Prior Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Prior Score": {
+      "main": [
+        [
+          {
+            "node": "Determine Trend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Trend": {
+      "main": [
+        [
+          {
+            "node": "Write Health Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

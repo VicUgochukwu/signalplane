@@ -148,12 +148,14 @@ async function handleSendTest(req: Request, headers: Record<string, string>) {
   }), { status: 200, headers });
 }
 
-async function handleSendCampaign(req: Request, headers: Record<string, string>) {
-  // Auth: admin JWT required
-  const userClient = createSupabaseClient(req);
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers });
+async function handleSendCampaign(req: Request, headers: Record<string, string>, opts?: { skipAuth?: boolean }) {
+  // Auth: admin JWT required (skip when called internally from check_scheduled)
+  if (!opts?.skipAuth) {
+    const userClient = createSupabaseClient(req);
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers });
+    }
   }
 
   const body = await req.json();
@@ -407,27 +409,50 @@ async function handleCheckScheduled(req: Request, headers: Record<string, string
     });
   }
 
-  // Trigger each campaign (by updating status to trigger)
+  // Process each scheduled campaign inline
   const results = [];
   for (const campaign of scheduled) {
     try {
-      // Directly update to 'sending' and process inline
-      // In a production system this would be a queue, but for v1 we process synchronously
-      console.log(`Triggering scheduled campaign: ${campaign.name} (${campaign.id})`);
+      console.log(`Processing scheduled campaign: ${campaign.name} (${campaign.id})`);
 
-      // Update status
-      await serviceClient.from('email_campaigns')
-        .update({ status: 'sending', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('id', campaign.id);
+      // Build a synthetic request with the campaign_id so handleSendCampaign can process it
+      const campaignReq = new Request(req.url, {
+        method: 'POST',
+        headers: req.headers,
+        body: JSON.stringify({ action: 'send_campaign', campaign_id: campaign.id }),
+      });
 
-      results.push({ id: campaign.id, name: campaign.name, status: 'triggered' });
+      const sendResponse = await handleSendCampaign(campaignReq, headers, { skipAuth: true });
+      const sendResult = await sendResponse.json();
+
+      if (sendResponse.ok) {
+        results.push({
+          id: campaign.id,
+          name: campaign.name,
+          status: 'sent',
+          total_sent: sendResult.total_sent,
+          total_failed: sendResult.total_failed,
+        });
+      } else {
+        results.push({
+          id: campaign.id,
+          name: campaign.name,
+          status: 'error',
+          error: sendResult.error,
+        });
+      }
     } catch (err) {
+      console.error(`Failed to process campaign ${campaign.id}:`, err);
+      // Mark campaign as failed
+      await serviceClient.from('email_campaigns')
+        .update({ status: 'failed', metadata: { error: (err as Error).message }, updated_at: new Date().toISOString() })
+        .eq('id', campaign.id);
       results.push({ id: campaign.id, name: campaign.name, status: 'error', error: (err as Error).message });
     }
   }
 
   return new Response(JSON.stringify({
-    message: `Triggered ${results.length} scheduled campaign(s)`,
+    message: `Processed ${results.length} scheduled campaign(s)`,
     results,
   }), { status: 200, headers });
 }

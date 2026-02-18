@@ -40,7 +40,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {},
@@ -143,7 +146,7 @@
       "parameters": {
         "jsCode": "function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; } return Math.abs(h).toString(36); }\nconst sources = $input.all();\nconst out = [];\nfor (const srcItem of sources) {\n  const src = srcItem.json;\n  if (!src.feed_url) { out.push({json: {source_id: src.source_id, skip: true}}); continue; }\n  try {\n    const html = await this.helpers.httpRequest({ timeout: 15000, method: \"GET\", url: src.feed_url, encoding: \"utf-8\" });\n    const htmlStr = typeof html === \"string\" ? html : JSON.stringify(html);\n    let text = htmlStr.replace(/<script[\\\\s\\\\S]*?<\\\\/script>/gi, \"\").replace(/<style[\\\\s\\\\S]*?<\\\\/style>/gi, \"\").replace(/<[^>]+>/g, \" \").replace(/&nbsp;/g, \" \").replace(/&amp;/g, \"&\").replace(/\\\\s+/g, \" \").trim().substring(0, 20000);\n    const hash = simpleHash(src.name + src.feed_url + new Date().toISOString().split(\"T\")[0]);\n    out.push({json: {source_id: src.source_id, source_name: src.name, source_type: src.source_type, channel: src.channel, tags: src.tags, domain_focus: src.domain_focus, title: src.name, url: src.feed_url, published_at: new Date().toISOString(), content_text: text, raw: {url: src.feed_url, fetched_at: new Date().toISOString()}, hash}});\n  } catch(e) { out.push({json: {source_id: src.source_id, skip: true, error: e.message}}); }\n}\nreturn out.length > 0 ? out : [{json: {skip: true}}];"
       },
-      "name": "HTML → Text (simple)",
+      "name": "HTML \u2192 Text (simple)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -157,7 +160,7 @@
       "parameters": {
         "jsCode": "function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; } return Math.abs(h).toString(36); }\nconst sources = $input.all();\nconst out = [];\nfor (const srcItem of sources) {\n  const src = srcItem.json;\n  if (!src.feed_url) { out.push({json: {source_id: src.source_id, skip: true}}); continue; }\n  try {\n    const resp = await this.helpers.httpRequest({ timeout: 15000, method: \"GET\", url: src.feed_url, encoding: \"utf-8\", headers: {\"Accept\": \"application/json\"} });\n    const text = typeof resp === \"string\" ? resp.substring(0, 20000) : JSON.stringify(resp).substring(0, 20000);\n    const hash = simpleHash(src.name + src.feed_url + new Date().toISOString().split(\"T\")[0]);\n    out.push({json: {source_id: src.source_id, source_name: src.name, source_type: src.source_type, channel: src.channel, tags: src.tags, domain_focus: src.domain_focus, title: src.name, url: src.feed_url, published_at: new Date().toISOString(), content_text: text, raw: {url: src.feed_url, fetched_at: new Date().toISOString()}, hash}});\n  } catch(e) { out.push({json: {source_id: src.source_id, skip: true, error: e.message}}); }\n}\nreturn out.length > 0 ? out : [{json: {skip: true}}];"
       },
-      "name": "API → Text Snapshot",
+      "name": "API \u2192 Text Snapshot",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -187,7 +190,10 @@
           "name": "Supabase Postgres"
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -252,7 +258,10 @@
           "name": "Supabase Postgres"
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -273,7 +282,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -309,7 +321,10 @@
           "name": "Supabase Postgres"
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     }
   ],
   "connections": {
@@ -386,14 +401,14 @@
         ],
         [
           {
-            "node": "HTML → Text (simple)",
+            "node": "HTML \u2192 Text (simple)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "API → Text Snapshot",
+            "node": "API \u2192 Text Snapshot",
             "type": "main",
             "index": 0
           }
@@ -413,7 +428,7 @@
         ]
       ]
     },
-    "HTML → Text (simple)": {
+    "HTML \u2192 Text (simple)": {
       "main": [
         [
           {
@@ -424,7 +439,7 @@
         ]
       ]
     },
-    "API → Text Snapshot": {
+    "API \u2192 Text Snapshot": {
       "main": [
         [
           {
@@ -517,7 +532,8 @@
   "settings": {
     "executionTimeout": 300,
     "saveExecutionProgress": true,
-    "executionOrder": "v0"
+    "executionOrder": "v0",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   },
   "staticData": null,
   "tags": [

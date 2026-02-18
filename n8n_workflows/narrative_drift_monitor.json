@@ -60,10 +60,13 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
-      "id": "78086327-a473-43b7-a627-efb5f0537f8e"
+      "id": "78086327-a473-43b7-a627-efb5f0537f8e",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "get-snapshots",
@@ -77,7 +80,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
       "parameters": {
@@ -99,7 +102,10 @@
           ]
         },
         "options": {}
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "merge-pages-snapshots",
@@ -151,7 +157,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-4-20250514\", max_tokens: 1500, system: \"Extract only the core value proposition text (hero headline, subhead, pricing headline) from the following page text. Remove navigation, testimonials, UI labels, legal text. Return clean text only, no JSON.\", messages: [{ role: \"user\", content: $json.text_content || $json.raw_html || \"No content\" }] }) }}",
         "genericAuthType": "httpHeaderAuth"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "parse-extract",
@@ -178,7 +187,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
       "parameters": {
@@ -229,7 +238,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "collect-all-narratives",
@@ -257,7 +269,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
       "parameters": {
@@ -279,7 +291,10 @@
           ]
         },
         "options": {}
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "build-drift-prompts",
@@ -351,7 +366,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-4-20250514\", max_tokens: 1500, system: \"Compare previous and current value proposition text for this company. Identify if there is a meaningful narrative shift. Classify drift direction: Outcome, Control, Speed, Intelligence, Risk, Trust, Platform, Simplicity. Return valid JSON only: {changed: bool, drift_from: string, drift_to: string, drift_direction: string, gtm_implication: string, severity: 1-5}\", messages: [{ role: \"user\", content: \"Previous copy:\\n\" + ($json.previous_copy || \"N/A\") + \"\\n\\nCurrent copy:\\n\" + ($json.current_copy || \"N/A\") }] }) }}",
         "genericAuthType": "httpHeaderAuth"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "parse-drift",
@@ -378,7 +396,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
       "parameters": {
@@ -402,7 +420,10 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { company_id: $json.company_id, week_start_date: $json.week_start_date || \"2026-01-26\", drift_detected: $json.changed || false, drift_from: $json.drift_from || null, drift_to: $json.drift_to || null, drift_direction: $json.drift_direction || null, scope: \"single_company\", gtm_implication: $json.gtm_implication || null, severity: $json.severity || 1, raw_llm_response: $json } }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "emit-signal",
@@ -416,7 +437,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
       "parameters": {
@@ -488,7 +509,10 @@
           ]
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "name": "LLM: Category Drift Analysis",
@@ -526,7 +550,10 @@
           "name": "Anthropic API Key"
         }
       },
-      "id": "fb8a75e0-24fe-41ab-b6a8-72bc8fed3872"
+      "id": "fb8a75e0-24fe-41ab-b6a8-72bc8fed3872",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "name": "Store Category Analysis",
@@ -584,10 +611,13 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
-      "id": "8e6ba59e-32a8-4fe2-a861-7d67e09d057a"
+      "id": "8e6ba59e-32a8-4fe2-a861-7d67e09d057a",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "name": "Generate Weekly Packet",
@@ -637,10 +667,13 @@
       "credentials": {
         "supabaseApi": {
           "id": "LLNegs5ACcYZC3K1",
-          "name": "Supabase – Messaging Tracker"
+          "name": "Supabase \u2013 Messaging Tracker"
         }
       },
-      "id": "92a6ac3a-69fb-4c8f-97d1-b8c34130df35"
+      "id": "92a6ac3a-69fb-4c8f-97d1-b8c34130df35",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "id": "adcb0500-b58b-4d33-9e6a-966584b012aa",
@@ -654,6 +687,432 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst results = [];\nfor (const item of items) {\n  const d = item.json;\n  results.push({\n    json: {\n      tracked_page_id: d.tracked_page_id || d.page_id,\n      company_id: d.company_id,\n      company_name: d.company_name,\n      url_type: d.url_type,\n      week_start_date: d.week_start_date || '2026-01-26',\n      extracted_copy: d.extracted_copy || '',\n      copy_hash: d.copy_hash || ''\n    }\n  });\n}\nreturn results;"
       }
+    },
+    {
+      "id": "node-a0-collect-drifts",
+      "name": "Collect Drift Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3540,
+        480
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Gather all drift results from the Parse Drift Result step\nlet drifts = [];\ntry {\n  drifts = $('Parse Drift Result').all().map(i => i.json);\n} catch(e) {}\n\nif (drifts.length === 0) {\n  return [{json: {skip: true, reason: 'no_drifts_detected', company_ids_csv: ''}}];\n}\n\nconst companyIds = [...new Set(drifts.map(d => d.company_id).filter(Boolean))];\nreturn [{json: {\n  skip: false,\n  this_week_drifts: drifts,\n  company_ids: companyIds,\n  company_ids_csv: companyIds.join(',')\n}}];"
+      }
+    },
+    {
+      "id": "node-a1-skip-check",
+      "name": "Has Drifts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3720,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !$json.skip }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-a2-fetch-arcs",
+      "name": "Fetch Active Arcs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3900,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "=https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_arcs?arc_status=neq.fading&company_id=in.({{ $('Collect Drift Data').first().json.company_ids_csv }})&select=*",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Profile",
+              "value": "diff_tracker"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-a3-fetch-recent-drifts",
+      "name": "Fetch Recent Drifts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3900,
+        560
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "=https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_drifts?company_id=in.({{ $('Collect Drift Data').first().json.company_ids_csv }})&order=week_start_date.desc&limit=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Profile",
+              "value": "diff_tracker"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-a4-merge-arc-data",
+      "name": "Merge Arc Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4120,
+        480
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const driftData = $('Collect Drift Data').first().json;\nconst existingArcs = $('Fetch Active Arcs').all().map(i => i.json);\nconst recentDrifts = $('Fetch Recent Drifts').all().map(i => i.json);\n\nreturn [{json: {\n  this_week_drifts: driftData.this_week_drifts || [],\n  existing_arcs: Array.isArray(existingArcs[0]) ? existingArcs[0] : existingArcs,\n  recent_drifts: Array.isArray(recentDrifts[0]) ? recentDrifts[0] : recentDrifts,\n  company_ids: driftData.company_ids || []\n}}];"
+      }
+    },
+    {
+      "id": "node-b-llm-arc-detection",
+      "name": "LLM: Arc Detection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4340,
+        480
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 3000, system: 'You are a competitive intelligence analyst building a narrative graph. Use intelligence-grade language: We assess, Indicators suggest, Consistent with. Never state conclusions as facts.\\n\\nFor each drift this week:\\n1. Does it connect to an existing arc? Look for thematic similarity.\\n2. If yes: update that arc. If no: create a new arc.\\n3. Classify the edge: origin (first signal), escalation (intensifies), reinforcement (same repeated), pivot (direction changed).\\n4. Determine evidence_weight from page type: homepage or pricing = high, product = medium, blog or partners or docs = low.\\n5. Generate alternative_explanation (counter-hypothesis) for every arc.\\n6. Compute confidence_level: high (4+ signals, 3+ page types, 4+ weeks), moderate-high (3+ signals, 2+ page types), moderate (2+ signals OR 2+ page types), low (single signal or page type).\\n\\nReturn valid JSON only:\\n{\\n  \"arc_operations\": [\\n    {\\n      \"operation\": \"update\" or \"create\",\\n      \"arc_id\": \"existing UUID or null for create\",\\n      \"company_id\": \"UUID\",\\n      \"arc_title\": \"Campaign title (3-6 words)\",\\n      \"arc_theme\": \"Persistent narrative direction\",\\n      \"arc_status\": \"building|escalating|peaked\",\\n      \"trajectory\": \"accelerating|steady|decelerating\",\\n      \"current_severity\": 1-5,\\n      \"strategic_summary\": \"Use intelligence language: We assess... (1-2 sentences)\",\\n      \"alternative_explanation\": \"Plausible counter-hypothesis with evidence for and against (1-2 sentences)\",\\n      \"confidence_level\": \"high|moderate-high|moderate|low\",\\n      \"edge\": {\\n        \"signal_source\": \"narrative_drift\",\\n        \"source_id\": \"drift UUID or null\",\\n        \"week_start_date\": \"YYYY-MM-DD\",\\n        \"edge_label\": \"origin|escalation|reinforcement|pivot\",\\n        \"llm_reasoning\": \"Why this connects (1 sentence)\",\\n        \"evidence_weight\": \"high|medium|low\",\\n        \"page_type\": \"homepage|pricing|product|blog|partners|docs\"\\n      }\\n    }\\n  ]\\n}', messages: [{ role: 'user', content: 'THIS WEEK DRIFTS:\\n' + JSON.stringify(($json.this_week_drifts || []).slice(0,20)) + '\\n\\nEXISTING ACTIVE ARCS:\\n' + JSON.stringify(($json.existing_arcs || []).slice(0,20)) + '\\n\\nRECENT DRIFTS (12 weeks):\\n' + JSON.stringify(($json.recent_drifts || []).slice(0,30)) }] }) }}",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-c-parse-arc-result",
+      "name": "Parse Arc Operations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        480
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nlet text = raw.content?.[0]?.text || '{}';\nconst fm = text.match(/```(?:\\w*)\\s*([\\s\\S]*?)```/);\nif (fm) text = fm[1].trim();\n\nlet parsed;\ntry { parsed = JSON.parse(text); } catch(e) {\n  return [{json: {error: true, arc_operations: [], raw: text.slice(0, 500)}}];\n}\n\nconst ops = parsed.arc_operations || [];\n// Emit each operation as a separate item for HTTP Request processing\nif (ops.length === 0) {\n  return [{json: {error: false, arc_operations: [], no_ops: true}}];\n}\n\n// Return all ops as a single item for the upsert code to process\nconst prevData = $('Merge Arc Context').first().json;\nreturn [{json: {\n  error: false,\n  arc_operations: ops,\n  existing_arcs: prevData.existing_arcs || [],\n  company_ids: prevData.company_ids || []\n}}];"
+      }
+    },
+    {
+      "id": "node-c2-upsert-arcs",
+      "name": "Upsert Arcs via RPC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4780,
+        400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_arcs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "diff_tracker"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const ops = $json.arc_operations || []; const creates = ops.filter(o => o.operation === 'create'); if (creates.length === 0) return JSON.stringify({skip: true}); const now = new Date().toISOString(); return JSON.stringify(creates.map(op => ({ company_id: op.company_id, arc_title: op.arc_title || 'Untitled Arc', arc_theme: op.arc_theme || '', arc_status: op.arc_status || 'building', first_seen_week: op.edge?.week_start_date || now.slice(0,10), last_seen_week: op.edge?.week_start_date || now.slice(0,10), weeks_active: 1, escalation_count: 1, trajectory: op.trajectory || 'steady', current_severity: op.current_severity || 1, strategic_summary: op.strategic_summary || null, alternative_explanation: op.alternative_explanation || null, confidence_level: op.confidence_level || 'low', corroboration_score: (() => { const pt = new Set(); const edges = (op.edge ? [op.edge] : []); edges.forEach(e => { if(e.page_type) pt.add(e.page_type); }); const numSignals = edges.length; const numPageTypes = pt.size; if (numSignals >= 3 && numPageTypes >= 2) return 'strong'; if (numSignals >= 2 || numPageTypes >= 2) return 'moderate'; return 'weak'; })(), page_type_diversity: (() => { const pt = new Set(); const edges = (op.edge ? [op.edge] : []); edges.forEach(e => { if(e.page_type) pt.add(e.page_type); }); return pt.size || 1; })(), updated_at: now }))); })() }}"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-c3-build-edges",
+      "name": "Build Edge Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5000,
+        480
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const parsedOps = $('Parse Arc Operations').first().json;\nconst ops = parsedOps.arc_operations || [];\nconst createdArcs = $('Upsert Arcs via RPC').all().map(i => i.json);\nconst flatCreated = Array.isArray(createdArcs[0]) ? createdArcs[0] : createdArcs;\n\nconst edges = [];\nlet createIdx = 0;\n\nfor (const op of ops) {\n  let arcId = op.arc_id;\n  if (op.operation === 'create' && flatCreated[createIdx]) {\n    arcId = flatCreated[createIdx].id;\n    createIdx++;\n  }\n  if (arcId && op.edge) {\n    edges.push({\n      arc_id: arcId,\n      signal_source: op.edge.signal_source || 'narrative_drift',\n      source_id: op.edge.source_id || '00000000-0000-0000-0000-000000000000',\n      week_start_date: op.edge.week_start_date || new Date().toISOString().slice(0,10),\n      edge_label: op.edge.edge_label || 'origin',\n      llm_reasoning: op.edge.llm_reasoning || null,\n      evidence_weight: op.edge.evidence_weight || 'medium',\n      page_type: op.edge.page_type || null\n    });\n  }\n}\n\nif (edges.length === 0) {\n  return [{json: {edges: [], arc_results: ops.map(o => ({op: o.operation, company_id: o.company_id, title: o.arc_title}))}}];\n}\n\nreturn [{json: {edges: edges, arc_results: ops.map((o, i) => ({op: o.operation, arc_id: o.arc_id || (flatCreated[i]?.id), company_id: o.company_id, title: o.arc_title}))}}];"
+      }
+    },
+    {
+      "id": "node-c4-upsert-edges",
+      "name": "Upsert Arc Edges",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5220,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/narrative_arc_edges?on_conflict=arc_id,signal_source,source_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "diff_tracker"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.edges || []) }}"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-d-llm-convergence",
+      "name": "LLM: Cross-Company Convergence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5440,
+        480
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: 'You are a market intelligence analyst. Use intelligence-grade language: We assess, Indicators suggest, Consistent with. Never state conclusions as facts.\\n\\nGiven active narrative arcs across companies, detect if 2+ companies converge on the same narrative theme within 4 weeks.\\n\\nFor each convergence:\\n1. Determine corroboration_score: strong (3+ arcs across 3+ companies with high-weight signals), moderate (2 arcs or 2+ companies), weak (circumstantial similarity).\\n2. Generate alternative_explanation: a plausible counter-hypothesis for why the convergence may be coincidental.\\n3. Determine confidence_level: high, moderate-high, moderate, or low.\\n\\nReturn valid JSON only:\\n{\"convergences\": [{\"convergence_theme\": \"Theme\", \"company_ids\": [\"uuid1\",\"uuid2\"], \"arc_ids\": [\"uuid1\",\"uuid2\"], \"severity\": 1-5, \"summary\": \"Use intelligence language: We assess... (1-2 sentences)\", \"corroboration_score\": \"strong|moderate|weak\", \"alternative_explanation\": \"Counter-hypothesis (1-2 sentences)\", \"confidence_level\": \"high|moderate-high|moderate|low\"}]}\\n\\nIf no convergence: {\"convergences\": []}', messages: [{ role: 'user', content: 'ACTIVE ARCS:\\n' + JSON.stringify(($('Merge Arc Context').first().json.existing_arcs || []).slice(0,20)) + '\\n\\nTHIS WEEK OPS:\\n' + JSON.stringify(($('Build Edge Records').first().json.arc_results || []).slice(0,20)) }] }) }}",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-e-parse-convergence",
+      "name": "Parse Convergence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5660,
+        480
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nlet text = raw.content?.[0]?.text || '{}';\nconst fm = text.match(/```(?:\\w*)\\s*([\\s\\S]*?)```/);\nif (fm) text = fm[1].trim();\n\nlet parsed;\ntry { parsed = JSON.parse(text); } catch(e) {\n  return [{json: {convergences: [], error: true}}];\n}\n\nconst convergences = (parsed.convergences || []).filter(c => c.company_ids && c.company_ids.length >= 2);\n\nconst weekDate = new Date();\nconst day = weekDate.getDay();\nconst diff = weekDate.getDate() - day + (day === 0 ? -6 : 1);\nweekDate.setDate(diff);\nconst weekStr = weekDate.toISOString().slice(0,10);\n\n// Format for batch insert\nconst records = convergences.map(c => ({\n  convergence_theme: c.convergence_theme || 'Unknown',\n  week_detected: weekStr,\n  company_ids: c.company_ids,\n  arc_ids: c.arc_ids || [],\n  severity: c.severity || 1,\n  summary: c.summary || null,\n  corroboration_score: c.corroboration_score || 'weak',\n  alternative_explanation: c.alternative_explanation || null,\n  confidence_level: c.confidence_level || 'low'\n}));\n\nreturn [{json: {convergence_records: records, count: records.length}}];"
+      }
+    },
+    {
+      "id": "node-e2-store-convergence",
+      "name": "Store Convergences",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5880,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/cross_company_convergences",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "diff_tracker"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.convergence_records || []) }}"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "node-f-emit-arc-signal",
+      "name": "Emit Arc Signal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6100,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LLNegs5ACcYZC3K1",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/signals",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "control_plane"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ signal_type: 'narrative', severity: 4, confidence: 0.8, title: 'Narrative Graph Update: ' + ($('Parse Arc Operations').first().json.arc_operations || []).length + ' arc(s) processed, ' + ($('Parse Convergence').first().json.count || 0) + ' convergence(s)', summary: 'Weekly narrative graph analysis complete. Campaign arcs and market convergence updated.', source_schema: 'diff_tracker', source_table: 'narrative_arcs', source_id: '00000000-0000-0000-0000-000000000000' }) }}"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     }
   ],
   "connections": {
@@ -850,6 +1309,166 @@
         ]
       ]
     },
+    "Emit Control Plane Signal": {
+      "main": [
+        [
+          {
+            "node": "Collect Drift Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Drift Data": {
+      "main": [
+        [
+          {
+            "node": "Has Drifts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Drifts?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Arcs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Recent Drifts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Fetch Active Arcs": {
+      "main": [
+        [
+          {
+            "node": "Merge Arc Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Recent Drifts": {
+      "main": [
+        [
+          {
+            "node": "Merge Arc Context",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Arc Context": {
+      "main": [
+        [
+          {
+            "node": "LLM: Arc Detection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM: Arc Detection": {
+      "main": [
+        [
+          {
+            "node": "Parse Arc Operations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Arc Operations": {
+      "main": [
+        [
+          {
+            "node": "Upsert Arcs via RPC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Arcs via RPC": {
+      "main": [
+        [
+          {
+            "node": "Build Edge Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Edge Records": {
+      "main": [
+        [
+          {
+            "node": "Upsert Arc Edges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Arc Edges": {
+      "main": [
+        [
+          {
+            "node": "LLM: Cross-Company Convergence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM: Cross-Company Convergence": {
+      "main": [
+        [
+          {
+            "node": "Parse Convergence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Convergence": {
+      "main": [
+        [
+          {
+            "node": "Store Convergences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Convergences": {
+      "main": [
+        [
+          {
+            "node": "Emit Arc Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Build Upsert Body": {
       "main": [
         [
@@ -863,7 +1482,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v0"
+    "executionOrder": "v0",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   },
   "staticData": null,
   "tags": [

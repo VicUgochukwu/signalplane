@@ -1,0 +1,52 @@
+{
+  "name": "Error Handler — Dead Letter Queue [cloud]",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "errh-trigger-01",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [-400, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const execution = $input.first().json;\n\n// The error trigger provides execution context\nconst workflowId = execution.workflow?.id || 'unknown';\nconst workflowName = execution.workflow?.name || 'unknown';\nconst executionId = execution.execution?.id || 'unknown';\nconst executionMode = execution.execution?.mode || 'production';\n\n// Extract error details from the last node that failed\nlet failedNode = 'unknown';\nlet errorMessage = 'Unknown error';\nlet errorStack = '';\nlet inputData = {};\n\ntry {\n  const lastNode = execution.execution?.lastNodeExecuted || '';\n  failedNode = lastNode;\n\n  // Try to get error from execution data\n  if (execution.execution?.error) {\n    const err = execution.execution.error;\n    errorMessage = err.message || err.description || JSON.stringify(err);\n    errorStack = err.stack || '';\n  }\n\n  // Try to get input data from the failed node\n  const runData = execution.execution?.data?.resultData?.runData;\n  if (runData && runData[lastNode]) {\n    const nodeData = runData[lastNode];\n    const lastRun = nodeData[nodeData.length - 1];\n    if (lastRun && lastRun.error) {\n      errorMessage = lastRun.error.message || errorMessage;\n      errorStack = lastRun.error.stack || errorStack;\n    }\n    // Capture input data for debugging\n    if (lastRun && lastRun.inputData) {\n      inputData = { keys: Object.keys(lastRun.inputData) };\n    }\n  }\n} catch (e) {\n  // If parsing fails, use what we have\n  errorMessage = errorMessage || `Parse error: ${e.message}`;\n}\n\nreturn [{\n  json: {\n    workflow_id: workflowId,\n    workflow_name: workflowName,\n    execution_id: executionId,\n    failed_node: failedNode,\n    error_message: errorMessage.slice(0, 2000),\n    error_stack: errorStack.slice(0, 5000),\n    execution_mode: executionMode,\n    input_data: JSON.stringify(inputData)\n  }\n}];"
+      },
+      "id": "errh-code-01",
+      "name": "Extract Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ops.log_workflow_failure(\n  '{{ $json.workflow_id }}',\n  '{{ $json.workflow_name.replace(/'/g, \"''\") }}',\n  '{{ $json.execution_id }}',\n  '{{ $json.failed_node.replace(/'/g, \"''\") }}',\n  '{{ $json.error_message.replace(/'/g, \"''\") }}',\n  '{{ $json.error_stack.replace(/'/g, \"''\") }}',\n  '{{ $json.execution_mode }}',\n  '{{ $json.input_data }}'::jsonb\n) AS failure_id;",
+        "options": {}
+      },
+      "id": "errh-pg-01",
+      "name": "Log to Dead-Letter Queue",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [0, 0],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Extract Error Details", "type": "main", "index": 0 }]]
+    },
+    "Extract Error Details": {
+      "main": [[{ "node": "Log to Dead-Letter Queue", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

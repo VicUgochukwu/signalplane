@@ -9,8 +9,9 @@ SET market_winners = $${
       "where_seen": ["CrowdStrike", "SentinelOne"],
       "survival_weeks": 12,
       "propagation_count": 5,
-      "why_it_matters": "CISOs are under pressure to reduce SOC headcount costs while maintaining 24/7 coverage. AI automation is the answer they are buying.",
-      "implementation_guidance": "Lead with SOC automation ROI metrics. Show before/after analyst workload reduction. Quantify MTTR improvement."
+      "trend": "accelerating",
+      "your_gap": "2 of 5 tracked competitors lead with AI SOC automation. You still lead with endpoint protection.",
+      "why_it_matters": "CISOs are under pressure to reduce SOC headcount costs while maintaining 24/7 coverage. AI automation is the answer they are buying."
     },
     {
       "pattern_label": "Platform Consolidation Savings",
@@ -19,8 +20,9 @@ SET market_winners = $${
       "where_seen": ["Palo Alto Networks", "CrowdStrike", "Fortinet"],
       "survival_weeks": 8,
       "propagation_count": 4,
-      "why_it_matters": "Enterprise security teams average 76 tools. Budget pressure is forcing consolidation. Vendors who enable this win.",
-      "implementation_guidance": "Create a tool consolidation calculator. Show which specific tools your platform replaces. Quantify savings."
+      "trend": "stable",
+      "your_gap": "3 of 5 competitors emphasize consolidation savings on their homepage. You don't have a TCO calculator.",
+      "why_it_matters": "Enterprise security teams average 76 tools. Budget pressure is forcing consolidation. Vendors who enable this win."
     }
   ],
   "emerging": [
@@ -31,8 +33,8 @@ SET market_winners = $${
       "where_seen": ["Okta", "CrowdStrike"],
       "survival_weeks": 4,
       "propagation_count": 3,
-      "why_it_matters": "With cloud and remote work, network boundaries are gone. Identity is the new control point.",
-      "implementation_guidance": "Develop identity security messaging. Create content connecting identity verification to threat prevention."
+      "trend": "accelerating",
+      "why_it_matters": "With cloud and remote work, network boundaries are gone. Identity is the new control point."
     },
     {
       "pattern_label": "Real-Time Compliance Dashboards",
@@ -41,8 +43,9 @@ SET market_winners = $${
       "where_seen": ["Wiz", "Lacework"],
       "survival_weeks": 3,
       "propagation_count": 2,
-      "why_it_matters": "Compliance visibility during evaluation accelerates procurement approval. CISOs can show immediate value to auditors.",
-      "implementation_guidance": "Add compliance posture visualization to demo environment. Show real-time compliance status during sales presentations."
+      "trend": "accelerating",
+      "your_gap": "Both cloud security challengers show live compliance in their trial. Your trial has no compliance visibility.",
+      "why_it_matters": "Compliance visibility during evaluation accelerates procurement approval. CISOs can show immediate value to auditors."
     }
   ]
 }$$::jsonb
@@ -59,8 +62,9 @@ SET market_winners = $${
       "where_seen": ["Mixpanel", "Amplitude"],
       "survival_weeks": 10,
       "propagation_count": 4,
-      "why_it_matters": "Data teams no longer accept data duplication. Warehouse-native is becoming table stakes for enterprise evaluation.",
-      "implementation_guidance": "Make warehouse-native your primary setup flow. Remove ETL-based setup as the default. Show time-to-first-insight metrics."
+      "trend": "stable",
+      "your_gap": "2 of 4 competitors default to warehouse-native setup. Your onboarding still leads with SDK integration.",
+      "why_it_matters": "Data teams no longer accept data duplication. Warehouse-native is becoming table stakes for enterprise evaluation."
     },
     {
       "pattern_label": "Product-Led Free Tier Expansion",
@@ -69,8 +73,9 @@ SET market_winners = $${
       "where_seen": ["Mixpanel", "PostHog", "Amplitude"],
       "survival_weeks": 8,
       "propagation_count": 5,
-      "why_it_matters": "Developer adoption drives enterprise deals. Free tier generosity creates switching costs before procurement even starts.",
-      "implementation_guidance": "Evaluate free tier against Mixpanel 100M events. Consider matching or exceeding. Track free-to-paid conversion rate by company size."
+      "trend": "accelerating",
+      "your_gap": "3 of 4 competitors offer 100M+ free events. Your free tier caps at 10M.",
+      "why_it_matters": "Developer adoption drives enterprise deals. Free tier generosity creates switching costs before procurement even starts."
     }
   ],
   "emerging": [
@@ -81,8 +86,8 @@ SET market_winners = $${
       "where_seen": ["Amplitude", "Heap"],
       "survival_weeks": 3,
       "propagation_count": 2,
-      "why_it_matters": "First-session insights reduce time-to-value from days to minutes. Dramatically improves trial conversion.",
-      "implementation_guidance": "Build an AI insights preview that works with sample data during onboarding. Show what their analytics could look like."
+      "trend": "accelerating",
+      "why_it_matters": "First-session insights reduce time-to-value from days to minutes. Dramatically improves trial conversion."
     },
     {
       "pattern_label": "Privacy-First Positioning",
@@ -91,8 +96,9 @@ SET market_winners = $${
       "where_seen": ["Plausible", "Fathom", "PostHog"],
       "survival_weeks": 6,
       "propagation_count": 3,
-      "why_it_matters": "EU market growing 40% YoY. Privacy-first vendors winning deals that traditional analytics vendors lose to compliance concerns.",
-      "implementation_guidance": "Create privacy-first landing page for EU market. Add compliance certifications to pricing page. Offer EU-hosted option."
+      "trend": "stable",
+      "your_gap": "3 privacy-focused competitors lead with compliance positioning in EU. You have no EU-specific landing page.",
+      "why_it_matters": "EU market growing 40% YoY. Privacy-first vendors winning deals that traditional analytics vendors lose to compliance concerns."
     }
   ]
 }$$::jsonb

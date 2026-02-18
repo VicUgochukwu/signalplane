@@ -1,0 +1,224 @@
+{
+  "name": "Positioning Audit [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 9 1 1,4,7,10 *"
+            }
+          ]
+        }
+      },
+      "id": "posau-cron-01",
+      "name": "Quarterly 1st 09:30 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date();\nconst month = today.getMonth(); // 0-11\nconst year = today.getFullYear();\nconst quarter = Math.floor(month / 3) + 1;\nconst quarterLabel = `${year}-Q${quarter}`;\nreturn [{ json: { quarter: quarterLabel, year: year } }];"
+      },
+      "id": "posau-code-00",
+      "name": "Compute Quarter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT hs.user_id FROM positioning.health_scores hs WHERE hs.score_month >= (date_trunc('month', CURRENT_DATE) - INTERVAL '3 months');",
+        "options": {}
+      },
+      "id": "posau-pg-01",
+      "name": "Get Users With Scores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT hs.score_month, hs.total_score, hs.buyer_alignment_score, hs.differentiation_score, hs.narrative_fit_score, hs.dimensions_available, hs.breakdown, hs.trend_vs_prior FROM positioning.health_scores hs WHERE hs.user_id = '{{ $json.user_id }}'::uuid ORDER BY hs.score_month DESC LIMIT 3;",
+        "options": {}
+      },
+      "id": "posau-pg-02",
+      "name": "Get Last 3 Scores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT de.page_url, de.page_type, de.change_description, de.severity, de.drift_direction, de.detected_at, de.resolved FROM positioning.drift_events de WHERE de.user_id = '{{ $json.user_id }}'::uuid AND de.detected_at >= (date_trunc('month', CURRENT_DATE) - INTERVAL '3 months') ORDER BY de.detected_at DESC;",
+        "options": {}
+      },
+      "id": "posau-pg-03",
+      "name": "Get Quarter Drifts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Get Users With Scores').item.json.user_id;\nconst quarter = $('Compute Quarter').item.json.quarter;\nconst scores = $('Get Last 3 Scores').all().map(i => i.json);\nconst drifts = $('Get Quarter Drifts').all().map(i => i.json);\n\nconst latestScore = scores.length > 0 ? scores[0] : null;\nconst avgScore = scores.length > 0 ? Math.round(scores.reduce((s, sc) => s + sc.total_score, 0) / scores.length) : 0;\n\n// Build recommendations based on scores and drift patterns\nconst recommendations = [];\n\n// Analyze buyer alignment\nif (latestScore) {\n  if (latestScore.buyer_alignment_score < 17) {\n    recommendations.push({\n      claim: 'Buyer language alignment',\n      action: 'adjust',\n      reasoning: 'Buyer alignment score below 50%. Review VoC language data and update messaging to match buyer terminology.',\n      priority: 'high',\n      evidence_count: latestScore.buyer_alignment_score\n    });\n  } else {\n    recommendations.push({\n      claim: 'Buyer language alignment',\n      action: 'hold',\n      reasoning: 'Buyer alignment score is healthy. Continue monitoring.',\n      priority: 'low',\n      evidence_count: latestScore.buyer_alignment_score\n    });\n  }\n\n  if (latestScore.differentiation_score < 17) {\n    recommendations.push({\n      claim: 'Competitive differentiation claims',\n      action: 'adjust',\n      reasoning: 'Differentiation score below 50%. Competitors may have adopted similar positioning. Review CI data for claim overlap.',\n      priority: 'high',\n      evidence_count: latestScore.differentiation_score\n    });\n  }\n\n  if (latestScore.narrative_fit_score < 17) {\n    recommendations.push({\n      claim: 'Narrative alignment',\n      action: 'adjust',\n      reasoning: 'Narrative fit score below 50%. Your messaging may not align with rising market narratives.',\n      priority: 'medium',\n      evidence_count: latestScore.narrative_fit_score\n    });\n  }\n}\n\n// Analyze drift patterns\nconst highDrifts = drifts.filter(d => d.severity === 'high' && !d.resolved);\nconst regressions = drifts.filter(d => d.drift_direction === 'regression');\n\nif (highDrifts.length > 0) {\n  recommendations.push({\n    claim: 'Unresolved high-severity drifts',\n    action: 'adjust',\n    reasoning: `${highDrifts.length} unresolved high-severity positioning changes detected. Review and confirm intentionality.`,\n    priority: 'high',\n    evidence_count: highDrifts.length\n  });\n}\n\nif (regressions.length > 0) {\n  recommendations.push({\n    claim: 'Messaging regressions',\n    action: 'retire',\n    reasoning: `${regressions.length} regression events detected \u2014 messaging reverted unintentionally. Investigate root cause.`,\n    priority: 'high',\n    evidence_count: regressions.length\n  });\n}\n\nconst title = `Positioning Audit \u2014 ${quarter}`;\nconst claimCount = recommendations.length;\n\n// Build markdown\nconst md = `# ${title}\\\\n\\\\n**Quarter:** ${quarter}\\\\n**Average Score:** ${avgScore}/100\\\\n**Drift Events:** ${drifts.length} (${highDrifts.length} high severity)\\\\n\\\\n---\\\\n\\\\n## Score Trend\\\\n${scores.map(s => `- ${s.score_month}: ${s.total_score}/100 (${s.trend_vs_prior})`).join('\\\\n') || 'No scores available'}\\\\n\\\\n## Recommendations\\\\n${recommendations.map(r => `- [${r.action.toUpperCase()}] ${r.claim}: ${r.reasoning}`).join('\\\\n') || 'No recommendations'}\\\\n\\\\n## Drift Events\\\\n${drifts.slice(0, 10).map(d => `- [${d.severity}] ${d.page_type}: ${d.change_description} (${d.drift_direction})`).join('\\\\n') || 'No drift events'}\\\\n\\\\n---\\\\n*Generated by Signal Plane Positioning Health Monitor*`;\n\nreturn [{\n  json: {\n    user_id: userId,\n    quarter: quarter,\n    title: title,\n    content_json: JSON.stringify({\n      avg_score: avgScore,\n      score_count: scores.length,\n      drift_count: drifts.length,\n      high_drift_count: highDrifts.length,\n      regression_count: regressions.length\n    }),\n    content_md: md,\n    claim_count: claimCount,\n    recommendations: JSON.stringify(recommendations)\n  }\n}];"
+      },
+      "id": "posau-code-01",
+      "name": "Build Audit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO positioning.audits (user_id, quarter, title, content_json, content_md, claim_count, recommendations) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.quarter }}', '{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.content_json }}'::jsonb, '{{ $json.content_md.replace(/'/g, \"''\") }}', {{ $json.claim_count }}, '{{ $json.recommendations }}'::jsonb) ON CONFLICT (user_id, quarter) DO UPDATE SET title = EXCLUDED.title, content_json = EXCLUDED.content_json, content_md = EXCLUDED.content_md, claim_count = EXCLUDED.claim_count, recommendations = EXCLUDED.recommendations;",
+        "options": {}
+      },
+      "id": "posau-pg-04",
+      "name": "Write Audit",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Quarterly 1st 09:30 UTC": {
+      "main": [
+        [
+          {
+            "node": "Compute Quarter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Quarter": {
+      "main": [
+        [
+          {
+            "node": "Get Users With Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Users With Scores": {
+      "main": [
+        [
+          {
+            "node": "Get Last 3 Scores",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Quarter Drifts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Last 3 Scores": {
+      "main": [
+        [
+          {
+            "node": "Build Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Quarter Drifts": {
+      "main": [
+        [
+          {
+            "node": "Build Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit": {
+      "main": [
+        [
+          {
+            "node": "Write Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

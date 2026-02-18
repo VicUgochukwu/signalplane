@@ -1,0 +1,160 @@
+{
+  "name": "VoC Trend Aggregator [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "vocta-cron-01",
+      "name": "Sunday 09:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT e.user_id FROM research.voc_entries e WHERE e.created_at >= now() - INTERVAL '90 days';",
+        "options": {}
+      },
+      "id": "vocta-pg-01",
+      "name": "Get Active Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT e.id, e.user_id, e.dimension, e.text, e.source_url, e.source_platform, e.persona, e.funnel_stage, e.frequency, e.trend, e.first_seen, e.last_seen FROM research.voc_entries e WHERE e.user_id = '{{ $json.user_id }}'::uuid AND e.first_seen >= now() - INTERVAL '90 days' ORDER BY e.first_seen DESC;",
+        "options": {}
+      },
+      "id": "vocta-pg-02",
+      "name": "Get User Entries",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Get Active Users').item.json.user_id;\nconst entries = $('Get User Entries').all().map(i => i.json);\n\n// Group by dimension + similar text (first 60 chars)\nconst groups = {};\nfor (const entry of entries) {\n  const textKey = entry.text.substring(0, 60).toLowerCase().replace(/[^a-z0-9 ]/g, '');\n  const key = `${entry.dimension}__${textKey}`;\n  \n  if (!groups[key]) {\n    groups[key] = {\n      id: entry.id,\n      dimension: entry.dimension,\n      text: entry.text,\n      frequency: 0,\n      entries: [],\n      first_seen: entry.first_seen,\n      last_seen: entry.last_seen\n    };\n  }\n  \n  groups[key].frequency++;\n  groups[key].entries.push(entry);\n  \n  if (new Date(entry.first_seen) < new Date(groups[key].first_seen)) {\n    groups[key].first_seen = entry.first_seen;\n  }\n  if (new Date(entry.last_seen) > new Date(groups[key].last_seen)) {\n    groups[key].last_seen = entry.last_seen;\n  }\n}\n\n// Compute trend for each group\nconst midpoint = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);\nconst updates = Object.values(groups).map(g => {\n  const recentCount = g.entries.filter(e => new Date(e.first_seen) >= midpoint).length;\n  const olderCount = g.entries.length - recentCount;\n  \n  let trend = 'stable';\n  if (recentCount > olderCount * 1.5) trend = 'rising';\n  else if (olderCount > recentCount * 1.5) trend = 'fading';\n  \n  return {\n    id: g.id,\n    user_id: userId,\n    dimension: g.dimension,\n    text: g.text,\n    frequency: g.frequency,\n    trend: trend,\n    first_seen: g.first_seen,\n    last_seen: g.last_seen\n  };\n});\n\nreturn updates.map(u => ({ json: u }));"
+      },
+      "id": "vocta-code-01",
+      "name": "Compute Trends",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE research.voc_entries SET frequency = {{ $json.frequency }}, trend = '{{ $json.trend }}', last_seen = '{{ $json.last_seen }}'::timestamptz WHERE id = '{{ $json.id }}'::uuid;",
+        "options": {}
+      },
+      "id": "vocta-pg-03",
+      "name": "Update Entry Trends",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Sunday 09:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Users": {
+      "main": [
+        [
+          {
+            "node": "Get User Entries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Entries": {
+      "main": [
+        [
+          {
+            "node": "Compute Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Trends": {
+      "main": [
+        [
+          {
+            "node": "Update Entry Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

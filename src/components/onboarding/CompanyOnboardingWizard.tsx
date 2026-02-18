@@ -42,6 +42,14 @@ interface CompanyOnboardingWizardProps {
 
 const INDUSTRIES = [
   'SaaS / Software',
+  'AI / Automation',
+  'GEO / AEO',
+  'Intent Data',
+  'Events / Webinars',
+  'ABM Platforms',
+  'Content Tools',
+  'Data Enrichment',
+  'Stack Consolidation',
   'E-commerce',
   'Fintech',
   'Healthcare',
@@ -111,14 +119,19 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
   // Auto-generate domain from company name
   useEffect(() => {
     if (companyName && !companyDomain) {
-      const slug = companyName
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '')
-        .replace(/-+/g, '-');
-      if (slug) {
-        setCompanyDomain(`${slug}.com`);
+      const trimmed = companyName.trim().toLowerCase();
+      // If the input already looks like a domain (contains a dot with a valid TLD-like suffix), use it directly
+      const domainMatch = trimmed.match(/^([a-z0-9-]+\.(?:com|io|ai|so|co|dev|app|org|net|xyz|tech|tools|cloud|gg|sh|fm|tv|cc|me|to))$/);
+      if (domainMatch) {
+        setCompanyDomain(domainMatch[1]);
+      } else {
+        const slug = trimmed
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '')
+          .replace(/-+/g, '-');
+        if (slug) {
+          setCompanyDomain(`${slug}.com`);
+        }
       }
     }
   }, [companyName]);

@@ -344,6 +344,9 @@ function resolveEnvHeaders(
     if (typeof value === 'string' && value.startsWith('ENV:')) {
       const envVar = value.substring(4);
       resolved[key] = Deno.env.get(envVar) || '';
+    } else if (typeof value === 'string' && value.includes('ENV:')) {
+      // Support patterns like "Bearer ENV:RESEND_API_KEY"
+      resolved[key] = value.replace(/ENV:(\w+)/g, (_, envVar) => Deno.env.get(envVar) || '');
     } else {
       resolved[key] = String(value);
     }

@@ -7,7 +7,9 @@ export type ArtifactType =
   | 'battlecard_talk_track'
   | 'battlecard_landmine'
   | 'objection_rebuttal'
-  | 'swipe_phrase';
+  | 'swipe_phrase'
+  | 'maturity_stage_talk_track'
+  | 'maturity_stage_reframe';
 
 export type EditType = 'modify' | 'delete' | 'add';
 

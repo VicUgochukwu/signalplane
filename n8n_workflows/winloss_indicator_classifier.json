@@ -1,0 +1,125 @@
+{
+  "name": "Win/Loss Indicator Classifier [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 3,6"
+            }
+          ]
+        }
+      },
+      "id": "wlic-cron-01",
+      "name": "Wed+Sat 07:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.user_id, i.indicator_type, i.company_name, i.company_id, i.source_url, i.source_platform, i.raw_snippet FROM winloss.indicators i WHERE i.meta->>'status' = 'pending_classification' ORDER BY i.created_at ASC LIMIT 50;",
+        "options": {}
+      },
+      "id": "wlic-pg-01",
+      "name": "Get Pending Indicators",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\n\n// Simulated classification (in production, this would call Anthropic API)\n// For now, use heuristic classification based on source platform and content\nconst sourceUrl = item.source_url || '';\nconst snippet = item.raw_snippet || '';\n\n// Default classification\nlet indicatorType = 'loss';\nlet reason = 'Public review or discussion detected';\nlet sentimentScore = -0.3;\n\n// Simple heuristics for classification\nconst lowerSnippet = snippet.toLowerCase();\nconst lowerUrl = sourceUrl.toLowerCase();\n\nif (lowerSnippet.includes('love') || lowerSnippet.includes('great') || lowerSnippet.includes('recommend') || lowerSnippet.includes('best')) {\n  indicatorType = 'win';\n  reason = 'Positive buyer sentiment detected';\n  sentimentScore = 0.6;\n} else if (lowerSnippet.includes('switch') || lowerSnippet.includes('migrat') || lowerSnippet.includes('moved to') || lowerSnippet.includes('replaced')) {\n  indicatorType = 'switch';\n  reason = 'Product switching signal detected';\n  sentimentScore = -0.1;\n} else if (lowerSnippet.includes('terrible') || lowerSnippet.includes('worst') || lowerSnippet.includes('hate') || lowerSnippet.includes('avoid')) {\n  indicatorType = 'loss';\n  reason = 'Strong negative buyer sentiment detected';\n  sentimentScore = -0.7;\n}\n\nreturn [{\n  json: {\n    id: item.id,\n    user_id: item.user_id,\n    company_name: item.company_name,\n    company_id: item.company_id,\n    indicator_type: indicatorType,\n    reason: reason,\n    sentiment_score: sentimentScore,\n    source_url: item.source_url,\n    source_platform: item.source_platform\n  }\n}];"
+      },
+      "id": "wlic-code-01",
+      "name": "Classify Indicator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE winloss.indicators SET indicator_type = '{{ $json.indicator_type }}', reason = '{{ $json.reason.replace(/'/g, \"''\") }}', sentiment_score = {{ $json.sentiment_score }}, meta = jsonb_set(COALESCE(meta, '{}'::jsonb), '{status}', '\"classified\"'::jsonb) WHERE id = '{{ $json.id }}'::uuid;",
+        "options": {}
+      },
+      "id": "wlic-pg-02",
+      "name": "Update Indicator",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Wed+Sat 07:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Indicators": {
+      "main": [
+        [
+          {
+            "node": "Classify Indicator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Indicator": {
+      "main": [
+        [
+          {
+            "node": "Update Indicator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

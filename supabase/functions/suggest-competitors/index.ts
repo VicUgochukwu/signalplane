@@ -167,13 +167,15 @@ async function handleSuggest(
     : '';
 
   // 4. Call Claude
-  const systemPrompt = `You are a competitive intelligence analyst with deep knowledge of B2B SaaS, including niche and emerging players — not just the largest companies.
+  const systemPrompt = `You are a competitive intelligence analyst with deep knowledge of B2B SaaS, martech, AI tools, and emerging tech — including niche and emerging players, not just the largest companies.
 
 Your job is to identify REAL competitors based on what the company actually does (inferred from their domain and industry), not just broad category matches.
 
+IMPORTANT: Many modern companies use non-traditional TLDs like .ai, .so, .io, .co, .dev, .app, .tools, .gg, .sh, .fm, .tech, .cloud. Always use the company's ACTUAL domain — do not assume .com.
+
 Return ONLY a JSON array with no additional text. Each element must have exactly these fields:
 - "name": Company name (string)
-- "domain": Their primary website domain, e.g. "kompyte.com" (string)
+- "domain": Their primary website domain — use the REAL domain, e.g. "jasper.ai", "copy.ai", "writer.com" (string)
 - "reason": 1-sentence explanation of why they compete, max 15 words (string)
 - "confidence": How likely they are a direct competitor, 0.0 to 1.0 (number)
 

@@ -63,7 +63,10 @@
       "position": [
         304,
         112
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -179,7 +182,8 @@
   },
   "settings": {
     "executionOrder": "v0",
-    "availableInMCP": false
+    "availableInMCP": false,
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   },
   "staticData": null,
   "tags": [

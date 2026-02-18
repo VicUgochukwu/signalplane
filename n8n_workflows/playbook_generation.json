@@ -1,0 +1,311 @@
+{
+  "name": "Launch Playbook Generation [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "lpbk-cron-01",
+      "name": "Weekly Monday 10:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT l.id AS launch_id, l.user_id, l.launch_name, l.product_name, l.launch_type, l.competitor_names, l.target_launch_date, l.actual_launch_date, l.readiness_score, l.tags FROM launch.launches l WHERE l.phase = 'retrospective' AND NOT EXISTS (SELECT 1 FROM launch.playbooks pb WHERE pb.launch_id = l.id);",
+        "options": {}
+      },
+      "id": "lpbk-pg-01",
+      "name": "Get Retrospective Launches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT b.brief_type, b.title, b.brief_date, b.signal_count, b.days_to_launch FROM launch.briefs b WHERE b.launch_id = '{{ $json.launch_id }}'::uuid ORDER BY b.brief_date ASC;",
+        "options": {}
+      },
+      "id": "lpbk-pg-02",
+      "name": "Load All Briefs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        -100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT rc.check_date, rc.score FROM launch.readiness_checks rc WHERE rc.launch_id = '{{ $('Get Retrospective Launches').item.json.launch_id }}'::uuid ORDER BY rc.check_date ASC;",
+        "options": {}
+      },
+      "id": "lpbk-pg-03",
+      "name": "Load Readiness History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT dr.week_number, dr.momentum_status, dr.messaging_drift_score, dr.competitor_response_count FROM launch.decay_reports dr WHERE dr.launch_id = '{{ $('Get Retrospective Launches').item.json.launch_id }}'::uuid ORDER BY dr.week_number ASC;",
+        "options": {}
+      },
+      "id": "lpbk-pg-04",
+      "name": "Load Decay Reports",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const launch = $('Get Retrospective Launches').item.json;\nconst briefs = $('Load All Briefs').all().map(i => i.json);\nconst readiness = $('Load Readiness History').all().map(i => i.json);\nconst decayReports = $('Load Decay Reports').all().map(i => i.json);\n\nconst totalBriefs = briefs.length;\nconst totalSignals = briefs.reduce((sum, b) => sum + (b.signal_count || 0), 0);\nconst peakReadiness = readiness.length > 0 ? Math.max(...readiness.map(r => r.score)) : launch.readiness_score;\nconst finalMomentum = decayReports.length > 0 ? decayReports[decayReports.length - 1].momentum_status : 'holding';\n\n// Build readiness arc\nconst readinessArc = readiness.map(r => `${r.check_date}: ${r.score}/100`).join('\\n');\n\n// Build decay summary\nconst decaySummary = decayReports.map(d => `Week ${d.week_number}: drift=${d.messaging_drift_score}%, responses=${d.competitor_response_count}, momentum=${d.momentum_status}`).join('\\n');\n\n// Key learnings\nconst learnings = [];\nif (peakReadiness < 70) learnings.push('Launch readiness never reached 70%. Consider extending pre-launch intelligence gathering for future launches.');\nif (finalMomentum === 'fading') learnings.push('Post-launch momentum faded. Consider stronger follow-up campaigns or competitive responses.');\nif (finalMomentum === 'strong') learnings.push('Launch maintained strong momentum through all 4 weeks. Replicate this approach.');\nif (totalSignals < 10) learnings.push('Low signal volume. Increase competitor monitoring frequency before next launch.');\nif (totalBriefs > 15) learnings.push('Extensive briefing coverage. This level of intelligence gathering supported good decision-making.');\n\nconst playbookTitle = `Retrospective Playbook \u2014 ${launch.launch_name}`;\nconst playbookMd = `# ${playbookTitle}\\n**Product:** ${launch.product_name}\\n**Launch Type:** ${launch.launch_type}\\n**Target Date:** ${launch.target_launch_date}\\n**Actual Date:** ${launch.actual_launch_date || 'N/A'}\\n**Final Momentum:** ${finalMomentum}\\n\\n---\\n\\n## Launch Summary\\n- **${totalBriefs}** briefs generated across the lifecycle\\n- **${totalSignals}** competitive signals consumed\\n- **Peak readiness:** ${peakReadiness}/100\\n- **Competitors tracked:** ${(launch.competitor_names || []).join(', ') || 'None'}\\n\\n## Readiness Arc\\n${readinessArc || 'No readiness checks recorded'}\\n\\n## Post-Launch Decay\\n${decaySummary || 'No decay reports recorded'}\\n\\n## Key Learnings\\n${learnings.map((l, i) => `${i + 1}. ${l}`).join('\\n') || 'No specific learnings identified.'}\\n\\n## Recommendations for Next Launch\\n1. Start pre-launch intelligence gathering at least 14 days before target date\\n2. Aim for readiness score of 80+ before proceeding to launch\\n3. Monitor post-launch decay weekly and respond to competitor moves within 48 hours\\n4. Use this playbook as a reference template for similar launch types\\n\\n---\\n*Generated by Signal Plane Launch Operations*`;\n\nreturn [{\n  json: {\n    launch_id: launch.launch_id,\n    user_id: launch.user_id,\n    playbook_title: playbookTitle,\n    playbook_md: playbookMd,\n    playbook_json: JSON.stringify({\n      launch_summary: { total_briefs: totalBriefs, total_signals: totalSignals, peak_readiness: peakReadiness },\n      readiness_arc: readiness,\n      decay_summary: decayReports,\n      learnings: learnings\n    }),\n    total_briefs: totalBriefs,\n    total_signals: totalSignals,\n    peak_readiness: peakReadiness,\n    final_momentum: finalMomentum,\n    learnings: learnings\n  }\n}];"
+      },
+      "id": "lpbk-code-01",
+      "name": "Build Playbook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO launch.playbooks (launch_id, title, content_json, content_md, total_briefs_generated, total_signals_consumed, peak_readiness_score, final_momentum_status) VALUES ('{{ $json.launch_id }}'::uuid, '{{ $json.playbook_title }}', '{{ $json.playbook_json }}'::jsonb, '{{ $json.playbook_md.replace(/'/g, \"''\") }}', {{ $json.total_briefs }}, {{ $json.total_signals }}, {{ $json.peak_readiness }}, '{{ $json.final_momentum }}') ON CONFLICT (launch_id) DO UPDATE SET title = EXCLUDED.title, content_json = EXCLUDED.content_json, content_md = EXCLUDED.content_md, total_briefs_generated = EXCLUDED.total_briefs_generated, total_signals_consumed = EXCLUDED.total_signals_consumed, peak_readiness_score = EXCLUDED.peak_readiness_score, final_momentum_status = EXCLUDED.final_momentum_status;",
+        "options": {}
+      },
+      "id": "lpbk-pg-05",
+      "name": "Write Playbook",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO launch.briefs (launch_id, brief_type, brief_date, title, content_md, signal_count, days_to_launch) VALUES ('{{ $json.launch_id }}'::uuid, 'playbook', CURRENT_DATE, '{{ $json.playbook_title }}', '{{ $json.playbook_md.replace(/'/g, \"''\") }}', {{ $json.total_signals }}, -30);",
+        "options": {}
+      },
+      "id": "lpbk-pg-06",
+      "name": "Write Playbook Brief",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE launch.launches SET phase = 'completed', updated_at = now() WHERE id = '{{ $json.launch_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "lpbk-pg-07",
+      "name": "Transition to Completed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT upsert_knowledge_item('{{ $json.user_id }}'::uuid, 'launch_playbook', '{{ $json.playbook_title }}', '{{ $json.playbook_md.replace(/'/g, \"''\").substring(0, 2000) }}', 'high', '{\"launch_id\": \"{{ $json.launch_id }}\", \"peak_readiness\": {{ $json.peak_readiness }}, \"final_momentum\": \"{{ $json.final_momentum }}\"}'::jsonb);",
+        "options": {}
+      },
+      "id": "lpbk-pg-08",
+      "name": "Persist to GTM Memory",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Weekly Monday 10:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Retrospective Launches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Retrospective Launches": {
+      "main": [
+        [
+          {
+            "node": "Load All Briefs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Readiness History",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Decay Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load All Briefs": {
+      "main": [
+        [
+          {
+            "node": "Build Playbook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Playbook": {
+      "main": [
+        [
+          {
+            "node": "Write Playbook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Write Playbook Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Playbook": {
+      "main": [
+        [
+          {
+            "node": "Transition to Completed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Persist to GTM Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

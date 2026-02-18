@@ -1,0 +1,125 @@
+{
+  "name": "VoC Classifier [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * 3,6"
+            }
+          ]
+        }
+      },
+      "id": "vocc-cron-01",
+      "name": "Wed+Sat 07:30 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.user_id, i.indicator_type, i.company_name, i.company_id, i.reason, i.sentiment_score, i.source_url, i.source_platform, i.raw_snippet, i.detected_at FROM winloss.indicators i WHERE (i.meta->>'status') = 'classified' AND i.detected_at >= now() - INTERVAL '14 days' AND NOT EXISTS ( SELECT 1 FROM research.voc_entries v WHERE v.user_id = i.user_id AND v.source_url = i.source_url ) ORDER BY i.detected_at DESC LIMIT 100;",
+        "options": {}
+      },
+      "id": "vocc-pg-01",
+      "name": "Get Unprocessed Indicators",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\nconst reason = (item.reason || '').toLowerCase();\nconst snippet = (item.raw_snippet || item.reason || '').toLowerCase();\n\nconst entries = [];\n\n// --- Pain detection ---\nconst painKeywords = ['frustrat', 'pain', 'struggle', 'difficult', 'problem', 'issue', 'bug', 'broken', 'slow', 'expensive', 'confus', 'complex', 'lack', 'missing', 'poor', 'terrible', 'worst', 'hate', 'annoying', 'unreliable'];\nif (painKeywords.some(k => snippet.includes(k))) {\n  entries.push({\n    user_id: item.user_id,\n    dimension: 'pain',\n    text: item.reason,\n    source_url: item.source_url,\n    source_platform: item.source_platform,\n    persona: null,\n    funnel_stage: item.indicator_type === 'loss' ? 'decision' : 'consideration',\n    raw_snippet: item.raw_snippet\n  });\n}\n\n// --- Desire detection ---\nconst desireKeywords = ['wish', 'want', 'need', 'hope', 'dream', 'love', 'great', 'amazing', 'perfect', 'ideal', 'looking for', 'prefer', 'excited', 'recommend', 'best'];\nif (desireKeywords.some(k => snippet.includes(k))) {\n  entries.push({\n    user_id: item.user_id,\n    dimension: 'desire',\n    text: item.reason,\n    source_url: item.source_url,\n    source_platform: item.source_platform,\n    persona: null,\n    funnel_stage: item.indicator_type === 'win' ? 'decision' : 'consideration',\n    raw_snippet: item.raw_snippet\n  });\n}\n\n// --- Language detection (buyer phrases) ---\nconst languageKeywords = ['roi', 'time-to-value', 'total cost', 'enterprise-grade', 'scalab', 'integration', 'workflow', 'productivity', 'collaboration', 'self-serve', 'onboard', 'user-friendly', 'intuitive', 'out-of-the-box'];\nif (languageKeywords.some(k => snippet.includes(k))) {\n  entries.push({\n    user_id: item.user_id,\n    dimension: 'language',\n    text: item.reason,\n    source_url: item.source_url,\n    source_platform: item.source_platform,\n    persona: null,\n    funnel_stage: 'consideration',\n    raw_snippet: item.raw_snippet\n  });\n}\n\n// --- Criteria detection ---\nconst criteriaKeywords = ['compared', 'versus', 'vs', 'chose', 'picked', 'decided', 'evaluated', 'criteria', 'requirement', 'must-have', 'deal-breaker', 'factor', 'reason we', 'why we', 'switched because', 'moved because'];\nif (criteriaKeywords.some(k => snippet.includes(k))) {\n  entries.push({\n    user_id: item.user_id,\n    dimension: 'criteria',\n    text: item.reason,\n    source_url: item.source_url,\n    source_platform: item.source_platform,\n    persona: null,\n    funnel_stage: 'decision',\n    raw_snippet: item.raw_snippet\n  });\n}\n\n// If no specific dimension matched, default based on indicator type\nif (entries.length === 0) {\n  let defaultDim = 'language';\n  let defaultStage = 'consideration';\n  if (item.indicator_type === 'loss') { defaultDim = 'pain'; defaultStage = 'decision'; }\n  else if (item.indicator_type === 'win') { defaultDim = 'desire'; defaultStage = 'decision'; }\n  else if (item.indicator_type === 'switch') { defaultDim = 'criteria'; defaultStage = 'decision'; }\n  \n  entries.push({\n    user_id: item.user_id,\n    dimension: defaultDim,\n    text: item.reason,\n    source_url: item.source_url,\n    source_platform: item.source_platform,\n    persona: null,\n    funnel_stage: defaultStage,\n    raw_snippet: item.raw_snippet\n  });\n}\n\nreturn entries.map(e => ({ json: e }));"
+      },
+      "id": "vocc-code-01",
+      "name": "Classify VoC Dimensions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO research.voc_entries (user_id, dimension, text, source_url, source_platform, persona, funnel_stage, raw_snippet, trend, frequency, first_seen, last_seen, meta) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.dimension }}', '{{ $json.text.replace(/'/g, \"''\") }}', '{{ $json.source_url.replace(/'/g, \"''\") }}', '{{ $json.source_platform }}', {{ $json.persona ? \"'\" + $json.persona.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, {{ $json.funnel_stage ? \"'\" + $json.funnel_stage + \"'\" : 'NULL' }}, {{ $json.raw_snippet ? \"'\" + $json.raw_snippet.replace(/'/g, \"''\").substring(0, 2000) + \"'\" : 'NULL' }}, 'stable', 1, now(), now(), '{\"source\": \"winloss_classifier\"}'::jsonb) ON CONFLICT (user_id, source_url) DO UPDATE SET dimension = EXCLUDED.dimension, text = EXCLUDED.text, funnel_stage = EXCLUDED.funnel_stage, updated_at = now();",
+        "options": {}
+      },
+      "id": "vocc-pg-02",
+      "name": "Upsert VoC Entry",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Wed+Sat 07:30 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Unprocessed Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Unprocessed Indicators": {
+      "main": [
+        [
+          {
+            "node": "Classify VoC Dimensions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify VoC Dimensions": {
+      "main": [
+        [
+          {
+            "node": "Upsert VoC Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

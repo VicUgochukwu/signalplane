@@ -7,7 +7,7 @@ import { DEMO_BOARD_CARDS } from '@/data/demoBoardCards';
 
 /**
  * Main hook for the Action Board.
- * Fetches cards, provides mutations for move/update/archive.
+ * Fetches cards, provides mutations for move/update/archive/outcome.
  * In demo mode, returns per-sector synthetic data with local state.
  */
 export function useActionBoard() {
@@ -179,6 +179,51 @@ export function useActionBoard() {
     },
   });
 
+  // Record outcome (when card moves to Done)
+  const recordOutcomeMutation = useMutation({
+    mutationFn: async ({ cardId, outcome, outcomeNotes }: { cardId: string; outcome: string; outcomeNotes: string }) => {
+      if (isDemo) return;
+
+      const { error } = await supabase.rpc('record_board_card_outcome', {
+        p_card_id: cardId,
+        p_outcome: outcome,
+        p_outcome_notes: outcomeNotes || null,
+      });
+
+      if (error) throw error;
+    },
+    onMutate: async ({ cardId, outcome, outcomeNotes }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ActionBoardCard[]>(queryKey);
+
+      queryClient.setQueryData<ActionBoardCard[]>(queryKey, (old = []) =>
+        old.map((card) =>
+          card.id === cardId
+            ? {
+                ...card,
+                outcome: outcome as ActionBoardCard['outcome'],
+                outcome_notes: outcomeNotes || null,
+                outcome_recorded_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+            : card
+        )
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      if (!isDemo) {
+        queryClient.invalidateQueries({ queryKey });
+      }
+    },
+  });
+
   // Helper: group cards by column
   const cardsByColumn = (cards || []).reduce<Record<BoardColumn, ActionBoardCard[]>>(
     (acc, card) => {
@@ -191,9 +236,14 @@ export function useActionBoard() {
     { inbox: [], this_week: [], in_progress: [], done: [] }
   );
 
-  // Sort each column by column_order
+  // Smart sort: severity DESC, then oldest first (most stale = higher priority)
+  const smartSort = (a: ActionBoardCard, b: ActionBoardCard): number => {
+    if (b.severity !== a.severity) return b.severity - a.severity;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  };
+
   Object.keys(cardsByColumn).forEach((col) => {
-    cardsByColumn[col as BoardColumn].sort((a, b) => a.column_order - b.column_order);
+    cardsByColumn[col as BoardColumn].sort(smartSort);
   });
 
   return {
@@ -207,6 +257,8 @@ export function useActionBoard() {
       updateCardMutation.mutate({ cardId, notes, assignedTo }),
     archiveCard: (cardId: string, reason?: string) =>
       archiveCardMutation.mutate({ cardId, reason }),
+    recordOutcome: (cardId: string, outcome: string, outcomeNotes: string) =>
+      recordOutcomeMutation.mutate({ cardId, outcome, outcomeNotes }),
     isMoving: moveCardMutation.isPending,
     refetch,
   };

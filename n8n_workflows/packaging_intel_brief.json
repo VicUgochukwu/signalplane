@@ -1,0 +1,162 @@
+{
+  "name": "Packaging Intel Brief",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8,
+              "triggerAtDay": {
+                "value": "3,6"
+              }
+            }
+          ]
+        }
+      },
+      "id": "pkgib-cron-01",
+      "name": "Wed+Sat 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  pc.id AS change_id,\n  pc.company_id,\n  tp.company_name,\n  tp.user_id,\n  pc.change_type,\n  pc.change_details,\n  pc.significance,\n  pc.interpretation,\n  pc.strategic_signal,\n  pc.detected_at\nFROM pricing_tracker.pricing_changes pc\nJOIN pricing_tracker.pricing_snapshots ps ON ps.id = pc.new_snapshot_id\nJOIN core.tracked_pages tp ON tp.id = ps.tracked_page_id\nWHERE pc.signal_emitted = true\n  AND pc.detected_at >= CURRENT_DATE - INTERVAL '14 days'\n  AND NOT EXISTS (\n    SELECT 1 FROM packaging.briefs b\n    WHERE b.change_id = pc.id AND b.user_id = tp.user_id\n  )\nORDER BY pc.detected_at DESC\nLIMIT 50;",
+        "options": {}
+      },
+      "id": "pkgib-pg-01",
+      "name": "Get Unprocessed Changes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -600,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (const item of $input.all()) {\n  const d = item.json;\n\n  // Strategic interpretation based on change_type\n  let strategic_interpretation;\n  switch (d.change_type) {\n    case 'plan_added':\n      strategic_interpretation = 'New tier introduction signals market expansion strategy';\n      break;\n    case 'plan_removed':\n      strategic_interpretation = 'Tier consolidation suggests simplification push or segment abandonment';\n      break;\n    case 'model_change':\n      strategic_interpretation = 'Pricing model shift indicates fundamental monetization strategy change';\n      break;\n    case 'gating_change':\n      strategic_interpretation = 'Feature gating adjustment reveals conversion optimization or competitive response';\n      break;\n    case 'limit_change':\n      strategic_interpretation = 'Usage limit changes signal capacity adjustment or margin optimization';\n      break;\n    case 'trial_change':\n      strategic_interpretation = 'Trial structure change targets acquisition funnel optimization';\n      break;\n    case 'free_tier_change':\n      strategic_interpretation = 'Free tier modification impacts bottom-of-funnel strategy';\n      break;\n    case 'enterprise_change':\n      strategic_interpretation = 'Enterprise tier change targets upmarket positioning';\n      break;\n    default:\n      strategic_interpretation = d.interpretation || 'Packaging change detected requiring strategic review';\n      break;\n  }\n\n  // Response recommendations\n  const recommendations = [\n    {\n      action: 'Monitor',\n      description: 'Track follow-on changes from this competitor over next 30 days',\n      priority: 'medium'\n    }\n  ];\n\n  if (d.significance === 'high' || d.significance === 'critical') {\n    recommendations.push({\n      action: 'Review positioning',\n      description: 'Assess whether your positioning needs adjustment in response',\n      priority: 'high'\n    });\n  }\n\n  if (d.change_type === 'gating_change' || d.change_type === 'model_change') {\n    recommendations.push({\n      action: 'Update battlecard',\n      description: 'Refresh competitive battlecard with new packaging details',\n      priority: 'high'\n    });\n  }\n\n  if (d.change_type === 'plan_added' || d.change_type === 'free_tier_change') {\n    recommendations.push({\n      action: 'Evaluate response',\n      description: 'Consider whether a packaging counter-move is warranted',\n      priority: 'medium'\n    });\n  }\n\n  // Severity\n  const severity = (d.significance === 'high' || d.significance === 'critical') ? 'major' : 'minor';\n\n  // Signal type mapping\n  let signal_type;\n  switch (d.change_type) {\n    case 'plan_added':\n    case 'plan_removed':\n      signal_type = 'packaging_tier_change';\n      break;\n    case 'model_change':\n      signal_type = 'packaging_metric_shift';\n      break;\n    case 'gating_change':\n      signal_type = 'packaging_gate_change';\n      break;\n    default:\n      signal_type = 'packaging_tier_change';\n      break;\n  }\n\n  results.push({\n    json: {\n      user_id: d.user_id,\n      company_name: d.company_name,\n      company_id: d.company_id,\n      change_id: d.change_id,\n      change_type: d.change_type,\n      strategic_interpretation,\n      response_recommendations: JSON.stringify(recommendations),\n      severity,\n      change_details: typeof d.change_details === 'string' ? d.change_details : JSON.stringify(d.change_details),\n      signal_type\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "pkgib-code-01",
+      "name": "Build Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO packaging.briefs (user_id, company_name, company_id, change_id, change_type, strategic_interpretation, response_recommendations, severity, change_details)\nVALUES (\n  '{{ $json.user_id }}'::uuid,\n  '{{ $json.company_name.replace(/'/g, \"''\") }}',\n  '{{ $json.company_id }}'::uuid,\n  '{{ $json.change_id }}'::uuid,\n  '{{ $json.change_type }}',\n  '{{ $json.strategic_interpretation.replace(/'/g, \"''\") }}',\n  '{{ $json.response_recommendations }}'::jsonb,\n  '{{ $json.severity }}',\n  '{{ $json.change_details }}'::jsonb\n)\nON CONFLICT (user_id, change_id) DO NOTHING;",
+        "options": {}
+      },
+      "id": "pkgib-pg-02",
+      "name": "Write Brief",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO control_plane.signals (signal_type, source_platform, company_id, severity, confidence, title, summary, evidence_urls, source_schema, source_table, source_id, meta)\nVALUES (\n  '{{ $json.signal_type }}',\n  'app_store',\n  {{ $json.company_id ? \"'\" + $json.company_id + \"'::uuid\" : 'NULL' }},\n  CASE '{{ $json.severity }}' WHEN 'major' THEN 4 ELSE 2 END,\n  0.8,\n  '{{ $json.company_name.replace(/'/g, \"''\") }} \u2014 {{ $json.change_type.replace(/_/g, \" \") }}',\n  '{{ $json.strategic_interpretation.replace(/'/g, \"''\") }}',\n  '{}',\n  'packaging',\n  'briefs',\n  '{{ $json.change_id }}'::uuid,\n  '{}'::jsonb\n)\nON CONFLICT (signal_type, source_schema, source_table, source_id) DO NOTHING;",
+        "options": {}
+      },
+      "id": "pkgib-pg-03",
+      "name": "Emit Signal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Wed+Sat 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Unprocessed Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Unprocessed Changes": {
+      "main": [
+        [
+          {
+            "node": "Build Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Brief": {
+      "main": [
+        [
+          {
+            "node": "Write Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Brief": {
+      "main": [
+        [
+          {
+            "node": "Emit Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

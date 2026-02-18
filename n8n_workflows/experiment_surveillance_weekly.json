@@ -40,7 +40,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -61,7 +64,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -82,7 +88,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -103,7 +112,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -221,7 +233,10 @@
           "id": "tiqqmgq14G2sygfA",
           "name": "Anthropic API Key"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -255,7 +270,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -276,7 +294,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -297,7 +318,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -465,7 +489,8 @@
   },
   "settings": {
     "executionOrder": "v0",
-    "availableInMCP": false
+    "availableInMCP": false,
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   },
   "staticData": null,
   "tags": [

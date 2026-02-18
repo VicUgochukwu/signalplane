@@ -152,7 +152,9 @@ const parseMarketWinners = (data: unknown): IntelPacket['market_winners'] => {
         survival_weeks: typeof winner.survival_weeks === 'number' ? winner.survival_weeks : 0,
         propagation_count: typeof winner.propagation_count === 'number' ? winner.propagation_count : 0,
         why_it_matters: typeof winner.why_it_matters === 'string' ? winner.why_it_matters : '',
-        implementation_guidance: typeof winner.implementation_guidance === 'string' ? winner.implementation_guidance : '',
+        trend: typeof winner.trend === 'string' ? winner.trend as 'accelerating' | 'stable' | 'fading' : undefined,
+        your_gap: typeof winner.your_gap === 'string' ? winner.your_gap : undefined,
+        implementation_guidance: typeof winner.implementation_guidance === 'string' ? winner.implementation_guidance : undefined,
       };
     });
   };

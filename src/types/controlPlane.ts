@@ -1,7 +1,7 @@
 // Control Plane v2 Types
 
 // Signal Types
-export type SignalType = 
+export type SignalType =
   | 'pricing'
   | 'proof'
   | 'distribution'
@@ -10,7 +10,47 @@ export type SignalType =
   | 'experiment'
   | 'messaging'
   | 'positioning'
-  | 'packaging';
+  | 'packaging'
+  // External source types
+  | 'social'       // Twitter/X, LinkedIn mentions
+  | 'review'       // G2, App Store, Product Hunt reviews
+  | 'video'        // YouTube videos/transcripts
+  | 'code'         // GitHub repos, Stack Overflow
+  | 'launch'       // Product Hunt launches
+  | 'community'    // Reddit, forums
+  | 'funding'      // Crunchbase funding/M&A
+  | 'talent'       // LinkedIn, Glassdoor headcount/culture
+  | 'patent'       // Patent filings
+  | 'crm_intel';   // CRM win/loss data
+
+// External source platforms
+export type SourcePlatform =
+  | 'twitter'
+  | 'youtube'
+  | 'github'
+  | 'app_store'
+  | 'product_hunt'
+  | 'linkedin'
+  | 'reddit'
+  | 'g2'
+  | 'stack_overflow'
+  | 'crunchbase'
+  | 'glassdoor'
+  | 'google_patents'
+  | 'hubspot'
+  | 'salesforce'
+  | 'job_board';
+
+export interface ExternalSourceConfig {
+  id: string;
+  user_id: string;
+  platform: SourcePlatform;
+  config: Record<string, unknown>;
+  enabled: boolean;
+  last_polled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 // Market Winners
 export type WinnerCategory = 
@@ -20,6 +60,8 @@ export type WinnerCategory =
   | 'positioning'
   | 'distribution';
 
+export type WinnerTrend = 'accelerating' | 'stable' | 'fading';
+
 export interface MarketWinner {
   pattern_label: string;
   category: WinnerCategory;
@@ -28,7 +70,10 @@ export interface MarketWinner {
   survival_weeks: number;
   propagation_count: number;
   why_it_matters: string;
-  implementation_guidance: string;
+  trend?: WinnerTrend;           // is this pattern accelerating, stable, or fading?
+  your_gap?: string;             // "3 of 5 competitors do this. You don't."
+  // Deprecated: kept for backward compat with existing seed data
+  implementation_guidance?: string;
 }
 
 export interface MarketWinnersData {
@@ -142,6 +187,76 @@ export const SIGNAL_TYPE_CONFIG: Record<SignalType, SignalTypeConfig> = {
     bgColor: 'bg-indigo-500/20',
     borderColor: 'border-indigo-500/30',
     icon: 'Package',
+  },
+  social: {
+    label: 'Social',
+    color: 'text-sky-400',
+    bgColor: 'bg-sky-500/20',
+    borderColor: 'border-sky-500/30',
+    icon: 'Twitter',
+  },
+  review: {
+    label: 'Review',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/20',
+    borderColor: 'border-yellow-500/30',
+    icon: 'Star',
+  },
+  video: {
+    label: 'Video',
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+    borderColor: 'border-red-500/30',
+    icon: 'Play',
+  },
+  code: {
+    label: 'Code',
+    color: 'text-gray-400',
+    bgColor: 'bg-gray-500/20',
+    borderColor: 'border-gray-500/30',
+    icon: 'Code',
+  },
+  launch: {
+    label: 'Launch',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-500/30',
+    icon: 'Rocket',
+  },
+  community: {
+    label: 'Community',
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-500/20',
+    borderColor: 'border-violet-500/30',
+    icon: 'Users',
+  },
+  funding: {
+    label: 'Funding',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/30',
+    icon: 'Banknote',
+  },
+  talent: {
+    label: 'Talent',
+    color: 'text-teal-400',
+    bgColor: 'bg-teal-500/20',
+    borderColor: 'border-teal-500/30',
+    icon: 'UserPlus',
+  },
+  patent: {
+    label: 'Patent',
+    color: 'text-lime-400',
+    bgColor: 'bg-lime-500/20',
+    borderColor: 'border-lime-500/30',
+    icon: 'FileText',
+  },
+  crm_intel: {
+    label: 'CRM Intel',
+    color: 'text-fuchsia-400',
+    bgColor: 'bg-fuchsia-500/20',
+    borderColor: 'border-fuchsia-500/30',
+    icon: 'Database',
   },
 };
 

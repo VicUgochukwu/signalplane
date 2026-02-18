@@ -1,0 +1,184 @@
+{
+  "name": "Enablement Scorecard Weekly [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "enb-cron-01",
+      "name": "Weekly Monday 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute the week range: last Monday \u2192 Sunday\nconst now = new Date();\nconst dayOfWeek = now.getUTCDay();\nconst diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;\nconst monday = new Date(now);\nmonday.setUTCDate(now.getUTCDate() - diffToMonday - 7);\nmonday.setUTCHours(0, 0, 0, 0);\nconst sunday = new Date(monday);\nsunday.setUTCDate(monday.getUTCDate() + 6);\nsunday.setUTCHours(23, 59, 59, 999);\n\nreturn [{\n  json: {\n    week_start: monday.toISOString().split('T')[0],\n    week_end: sunday.toISOString().split('T')[0],\n    week_start_iso: monday.toISOString(),\n    week_end_iso: sunday.toISOString()\n  }\n}];"
+      },
+      "id": "enb-code-01",
+      "name": "Compute Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT user_id FROM enablement.deliveries WHERE delivered_at >= '{{ $json.week_start_iso }}'::timestamptz AND delivered_at <= '{{ $json.week_end_iso }}'::timestamptz UNION SELECT DISTINCT user_id FROM enablement.feedback WHERE submitted_at >= '{{ $json.week_start_iso }}'::timestamptz AND submitted_at <= '{{ $json.week_end_iso }}'::timestamptz UNION SELECT DISTINCT owner_id AS user_id FROM enablement.view_events WHERE viewed_at >= '{{ $json.week_start_iso }}'::timestamptz AND viewed_at <= '{{ $json.week_end_iso }}'::timestamptz;",
+        "options": {}
+      },
+      "id": "enb-pg-01",
+      "name": "Get Active Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH week_range AS (SELECT '{{ $('Compute Week Range').item.json.week_start_iso }}'::timestamptz AS ws, '{{ $('Compute Week Range').item.json.week_end_iso }}'::timestamptz AS we),\ndelivery_stats AS (SELECT COUNT(*) AS deliveries_count, COUNT(DISTINCT artifact_type) AS artifacts_updated FROM enablement.deliveries, week_range WHERE user_id = '{{ $json.user_id }}'::uuid AND delivered_at >= ws AND delivered_at <= we),\nfeedback_stats AS (SELECT COUNT(*) AS feedback_count, ROUND(AVG(rating)::numeric, 2) AS avg_rating FROM enablement.feedback, week_range WHERE user_id = '{{ $json.user_id }}'::uuid AND submitted_at >= ws AND submitted_at <= we),\nview_stats AS (SELECT COUNT(*) AS views_count, COUNT(DISTINCT viewer_id) AS unique_viewers FROM enablement.view_events, week_range WHERE owner_id = '{{ $json.user_id }}'::uuid AND viewed_at >= ws AND viewed_at <= we),\ntop_sections AS (SELECT unnest(useful_sections) AS section FROM enablement.feedback, week_range WHERE user_id = '{{ $json.user_id }}'::uuid AND submitted_at >= ws AND submitted_at <= we),\ntop_missing AS (SELECT unnest(missing_items) AS item FROM enablement.feedback, week_range WHERE user_id = '{{ $json.user_id }}'::uuid AND submitted_at >= ws AND submitted_at <= we),\nopen_gaps AS (SELECT gap_type, description, severity, competitor_name FROM enablement.gaps WHERE user_id = '{{ $json.user_id }}'::uuid AND resolved_at IS NULL ORDER BY CASE severity WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END LIMIT 10)\nSELECT d.deliveries_count, d.artifacts_updated, f.feedback_count, COALESCE(f.avg_rating, 0) AS avg_rating, v.views_count, v.unique_viewers, (SELECT ARRAY_AGG(section ORDER BY cnt DESC) FROM (SELECT section, COUNT(*) AS cnt FROM top_sections GROUP BY section ORDER BY cnt DESC LIMIT 5) sub) AS top_referenced_sections, (SELECT ARRAY_AGG(item ORDER BY cnt DESC) FROM (SELECT item, COUNT(*) AS cnt FROM top_missing GROUP BY item ORDER BY cnt DESC LIMIT 5) sub) AS unaddressed_items, (SELECT json_agg(json_build_object('gap_type', gap_type, 'description', description, 'severity', severity, 'competitor_name', competitor_name)) FROM open_gaps) AS coverage_gaps FROM delivery_stats d, feedback_stats f, view_stats v;",
+        "options": {}
+      },
+      "id": "enb-pg-02",
+      "name": "Gather Week Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const metrics = $input.first().json;\nconst weekRange = $('Compute Week Range').first().json;\nconst userId = $('Get Active Users').item.json.user_id;\n\n// Build scorecard data payload\nconst scorecardData = {\n  deliveries_count: metrics.deliveries_count || 0,\n  artifacts_updated: metrics.artifacts_updated || 0,\n  feedback_count: metrics.feedback_count || 0,\n  avg_rating: parseFloat(metrics.avg_rating) || 0,\n  top_referenced_sections: metrics.top_referenced_sections || [],\n  unaddressed_objections: metrics.unaddressed_items || [],\n  coverage_gaps: metrics.coverage_gaps || [],\n  actions_recommended: [],\n  views_count: metrics.views_count || 0,\n  unique_viewers: metrics.unique_viewers || 0\n};\n\n// Generate recommended actions\nconst actions = [];\nif (scorecardData.avg_rating > 0 && scorecardData.avg_rating < 3.5) {\n  actions.push('Content quality is below target. Review feedback to identify improvement areas.');\n}\nif ((scorecardData.coverage_gaps || []).filter(g => g && g.severity === 'high').length > 0) {\n  actions.push('Address high-severity coverage gaps before next sales cycle.');\n}\nif (scorecardData.deliveries_count === 0) {\n  actions.push('No artifacts delivered this week. Check if sales team needs updated content.');\n}\nif (scorecardData.views_count > 0 && scorecardData.feedback_count === 0) {\n  actions.push('Artifacts viewed but no feedback collected. Prompt reps for ratings.');\n}\nif (scorecardData.unaddressed_objections.length > 0) {\n  actions.push(`Top missing items: ${scorecardData.unaddressed_objections.slice(0, 3).join(', ')}. Consider adding these.`);\n}\nscorecardData.actions_recommended = actions;\n\nreturn [{\n  json: {\n    user_id: userId,\n    week_start: weekRange.week_start,\n    week_end: weekRange.week_end,\n    scorecard_data: JSON.stringify(scorecardData)\n  }\n}];"
+      },
+      "id": "enb-code-02",
+      "name": "Build Scorecard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO enablement.scorecards (user_id, week_start, week_end, data) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.week_start }}'::date, '{{ $json.week_end }}'::date, '{{ $json.scorecard_data }}'::jsonb) ON CONFLICT (user_id, week_start) DO UPDATE SET data = EXCLUDED.data, created_at = now() RETURNING id;",
+        "options": {}
+      },
+      "id": "enb-pg-03",
+      "name": "Upsert Scorecard",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Weekly Monday 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Compute Week Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Week Range": {
+      "main": [
+        [
+          {
+            "node": "Get Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Users": {
+      "main": [
+        [
+          {
+            "node": "Gather Week Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gather Week Metrics": {
+      "main": [
+        [
+          {
+            "node": "Build Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Upsert Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

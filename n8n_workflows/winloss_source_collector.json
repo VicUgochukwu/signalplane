@@ -1,0 +1,184 @@
+{
+  "name": "Win/Loss Source Collector [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 3,6"
+            }
+          ]
+        }
+      },
+      "id": "wlsc-cron-01",
+      "name": "Wed+Sat 06:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT u.id AS user_id, c.id AS company_id, c.company_name, smt.platform, smt.target_identifier FROM public.social_monitoring_targets smt JOIN public.companies c ON c.id = smt.company_id JOIN auth.users u ON u.id = smt.user_id WHERE smt.is_active = true AND smt.platform IN ('g2', 'reddit', 'capterra') ORDER BY u.id, c.company_name;",
+        "options": {}
+      },
+      "id": "wlsc-pg-01",
+      "name": "Get Monitoring Targets",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -600,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Group targets by user_id + company for batch processing\nconst grouped = {};\nfor (const item of items) {\n  const key = `${item.json.user_id}__${item.json.company_name}`;\n  if (!grouped[key]) {\n    grouped[key] = {\n      user_id: item.json.user_id,\n      company_id: item.json.company_id,\n      company_name: item.json.company_name,\n      targets: []\n    };\n  }\n  grouped[key].targets.push({\n    platform: item.json.platform,\n    target_identifier: item.json.target_identifier\n  });\n}\n\nreturn Object.values(grouped).map(g => ({ json: g }));"
+      },
+      "id": "wlsc-code-01",
+      "name": "Group by User+Company",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.source_url FROM winloss.indicators i WHERE i.user_id = '{{ $json.user_id }}'::uuid AND i.company_name = '{{ $json.company_name.replace(/'/g, \"''\") }}' AND i.detected_at >= now() - INTERVAL '90 days' ORDER BY i.detected_at DESC LIMIT 200;",
+        "options": {}
+      },
+      "id": "wlsc-pg-02",
+      "name": "Get Existing URLs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const group = $('Group by User+Company').item.json;\nconst existingUrls = new Set($('Get Existing URLs').all().map(i => i.json.source_url));\n\n// Build scrape tasks for each platform\nconst tasks = [];\nfor (const target of group.targets) {\n  if (target.platform === 'g2') {\n    tasks.push({\n      user_id: group.user_id,\n      company_id: group.company_id,\n      company_name: group.company_name,\n      platform: 'g2',\n      scrape_url: target.target_identifier,\n      existing_urls: [...existingUrls]\n    });\n  } else if (target.platform === 'reddit') {\n    tasks.push({\n      user_id: group.user_id,\n      company_id: group.company_id,\n      company_name: group.company_name,\n      platform: 'reddit',\n      scrape_url: target.target_identifier,\n      existing_urls: [...existingUrls]\n    });\n  } else if (target.platform === 'capterra') {\n    tasks.push({\n      user_id: group.user_id,\n      company_id: group.company_id,\n      company_name: group.company_name,\n      platform: 'capterra',\n      scrape_url: target.target_identifier,\n      existing_urls: [...existingUrls]\n    });\n  }\n}\n\nreturn tasks.map(t => ({ json: t }));"
+      },
+      "id": "wlsc-code-02",
+      "name": "Build Scrape Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO winloss.indicators (user_id, indicator_type, company_name, company_id, reason, source_url, source_platform, sentiment_score, raw_snippet, detected_at, meta) SELECT '{{ $json.user_id }}'::uuid, 'loss', '{{ $json.company_name.replace(/'/g, \"''\") }}', {{ $json.company_id ? \"'\" + $json.company_id + \"'::uuid\" : 'NULL' }}, '(pending classification)', '{{ $json.scrape_url.replace(/'/g, \"''\") }}', '{{ $json.platform }}', 0, '(raw content pending)', now(), '{\"status\": \"pending_classification\"}'::jsonb ON CONFLICT (user_id, source_url) DO NOTHING RETURNING id;",
+        "options": {}
+      },
+      "id": "wlsc-pg-03",
+      "name": "Insert Pending Indicators",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Wed+Sat 06:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Get Monitoring Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Monitoring Targets": {
+      "main": [
+        [
+          {
+            "node": "Group by User+Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group by User+Company": {
+      "main": [
+        [
+          {
+            "node": "Get Existing URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing URLs": {
+      "main": [
+        [
+          {
+            "node": "Build Scrape Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Scrape Tasks": {
+      "main": [
+        [
+          {
+            "node": "Insert Pending Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

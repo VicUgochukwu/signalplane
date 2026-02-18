@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { ActionBoardCard, BoardColumn as BoardColumnType } from '@/types/actionBoard';
 import { BoardCard } from './BoardCard';
 import { cn } from '@/lib/utils';
-import { Inbox, Calendar, Play, CheckCircle2 } from 'lucide-react';
+import { Inbox, Calendar, Play, CheckCircle2, ThumbsUp, Minus, ThumbsDown } from 'lucide-react';
 
 const COLUMN_ICONS: Record<BoardColumnType, React.ElementType> = {
   inbox: Inbox,
@@ -19,6 +19,12 @@ const COLUMN_BG: Record<BoardColumnType, string> = {
   done: 'bg-emerald-500/5',
 };
 
+interface OutcomeStats {
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
 interface BoardColumnProps {
   columnKey: BoardColumnType;
   label: string;
@@ -26,11 +32,14 @@ interface BoardColumnProps {
   cards: ActionBoardCard[];
   onCardClick: (card: ActionBoardCard) => void;
   onArchive: (cardId: string) => void;
+  outcomeStats?: OutcomeStats;
 }
 
-export function BoardColumn({ columnKey, label, color, cards, onCardClick, onArchive }: BoardColumnProps) {
+export function BoardColumn({ columnKey, label, color, cards, onCardClick, onArchive, outcomeStats }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
   const Icon = COLUMN_ICONS[columnKey];
+
+  const hasOutcomes = outcomeStats && (outcomeStats.positive + outcomeStats.neutral + outcomeStats.negative > 0);
 
   return (
     <div
@@ -46,9 +55,31 @@ export function BoardColumn({ columnKey, label, color, cards, onCardClick, onArc
           <Icon className={cn('h-4 w-4', color)} />
           <span className="text-sm font-medium text-foreground">{label}</span>
         </div>
-        <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', color, 'bg-muted/30')}>
-          {cards.length}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {/* Outcome stats in Done column header */}
+          {hasOutcomes && (
+            <span className="flex items-center gap-1 text-[10px]">
+              {outcomeStats!.positive > 0 && (
+                <span className="flex items-center gap-0.5 text-emerald-400">
+                  <ThumbsUp className="h-2.5 w-2.5" />{outcomeStats!.positive}
+                </span>
+              )}
+              {outcomeStats!.neutral > 0 && (
+                <span className="flex items-center gap-0.5 text-muted-foreground">
+                  <Minus className="h-2.5 w-2.5" />{outcomeStats!.neutral}
+                </span>
+              )}
+              {outcomeStats!.negative > 0 && (
+                <span className="flex items-center gap-0.5 text-rose-400">
+                  <ThumbsDown className="h-2.5 w-2.5" />{outcomeStats!.negative}
+                </span>
+              )}
+            </span>
+          )}
+          <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', color, 'bg-muted/30')}>
+            {cards.length}
+          </span>
+        </div>
       </div>
 
       {/* Cards — the entire content area is the droppable */}

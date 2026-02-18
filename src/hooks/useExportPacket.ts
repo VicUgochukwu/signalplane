@@ -51,6 +51,15 @@ export function useExportPacket() {
   };
 }
 
+// ──────────────────────────────────────────────────────
+// Merged section mapping (matches ReportDetail 3-tab layout)
+// ──────────────────────────────────────────────────────
+const MERGED_SECTIONS = [
+  { title: 'Competitive Changes', keys: ['messaging', 'narrative'] },
+  { title: 'Market Direction', keys: ['icp', 'horizon'] },
+  { title: 'Objections & Risk', keys: ['objection'] },
+] as const;
+
 function generateMarkdown(report: IntelPacket): string {
   const lines: string[] = [];
 
@@ -58,12 +67,22 @@ function generateMarkdown(report: IntelPacket): string {
   lines.push(`**${report.week_start} — ${report.week_end}**`);
   lines.push('');
 
-  // Metrics
+  // Metrics + prediction accuracy (inline)
   if (report.metrics) {
     const items: string[] = [];
     if (report.metrics.signals_detected != null) items.push(`Signals: ${report.metrics.signals_detected}`);
     if (report.metrics.confidence_score != null) items.push(`Confidence: ${report.metrics.confidence_score}%`);
     if (report.metrics.impact_score != null) items.push(`Impact: ${report.metrics.impact_score}`);
+
+    // Inline prediction accuracy (replaces Judgment Loop)
+    const allPreds = mergedPredictions(report);
+    const scored = allPreds.filter(p => p.outcome && p.outcome !== 'pending');
+    if (scored.length > 0) {
+      const correct = scored.filter(p => p.outcome === 'correct').length;
+      const pct = Math.round((correct / scored.length) * 100);
+      items.push(`Prediction Accuracy: ${pct}% (${scored.length} scored)`);
+    }
+
     if (items.length) {
       lines.push(items.join(' | '));
       lines.push('');
@@ -79,54 +98,79 @@ function generateMarkdown(report: IntelPacket): string {
     lines.push('');
   }
 
-  // Intel Sections
-  const sectionNames: Record<string, string> = {
-    messaging: 'Messaging Intel',
-    narrative: 'Narrative Intel',
-    icp: 'ICP Intel',
-    horizon: 'Horizon Intel',
-    objection: 'Objection Intel',
-  };
+  // Key Questions (moved up — primes reader before intel)
+  if (report.key_questions?.length) {
+    lines.push('## This Week\'s Key Questions');
+    lines.push('');
+    for (let i = 0; i < report.key_questions.length; i++) {
+      lines.push(`${i + 1}. ${report.key_questions[i]}`);
+    }
+    lines.push('');
+  }
 
+  // Intel Sections — merged 3-tab structure
   if (report.sections) {
-    for (const [key, section] of Object.entries(report.sections)) {
-      if (!section || (!section.summary && !section.highlights?.length)) continue;
+    for (const group of MERGED_SECTIONS) {
+      const summaryParts: string[] = [];
+      const highlights: string[] = [];
 
-      lines.push(`## ${sectionNames[key] || key}`);
+      for (const key of group.keys) {
+        const s = report.sections[key as keyof typeof report.sections];
+        if (!s) continue;
+        if (s.summary) summaryParts.push(s.summary);
+        if (s.highlights?.length) highlights.push(...s.highlights);
+      }
 
-      if (section.summary) {
-        lines.push(section.summary);
+      if (!summaryParts.length && !highlights.length) continue;
+
+      lines.push(`## ${group.title}`);
+
+      if (summaryParts.length) {
+        lines.push(summaryParts.join(' '));
         lines.push('');
       }
 
-      if (section.highlights?.length) {
+      if (highlights.length) {
         lines.push('### Highlights');
-        for (const h of section.highlights) {
+        for (const h of highlights) {
           lines.push(`- ${h}`);
-        }
-        lines.push('');
-      }
-
-      if (section.action_items?.length) {
-        lines.push('### Action Items');
-        for (const a of section.action_items) {
-          lines.push(`- ${a}`);
         }
         lines.push('');
       }
     }
   }
 
-  // Predictions
-  if (report.predictions?.length) {
-    lines.push('## Predictions');
+  // Predictions & Hypotheses (bets folded in)
+  const allPredictions = mergedPredictions(report);
+  if (allPredictions.length) {
+    lines.push('## Predictions & Hypotheses');
     lines.push('');
     lines.push('| Prediction | Timeframe | Confidence |');
     lines.push('|------------|-----------|------------|');
-    for (const p of report.predictions) {
+    for (const p of allPredictions) {
       lines.push(`| ${p.prediction} | ${p.timeframe} | ${p.confidence}% |`);
     }
     lines.push('');
+  }
+
+  // Market Winners
+  if (report.market_winners) {
+    const proven = report.market_winners.proven || [];
+    const emerging = report.market_winners.emerging || [];
+    if (proven.length || emerging.length) {
+      lines.push('## What\'s Winning in Your Market');
+      lines.push('');
+      for (const tier of [{ label: 'Proven', items: proven }, { label: 'Emerging', items: emerging }]) {
+        if (!tier.items.length) continue;
+        lines.push(`### ${tier.label}`);
+        for (const w of tier.items) {
+          lines.push(`- **${w.pattern_label}** (${w.where_seen.join(', ')}) — ${w.survival_weeks}w, ${w.propagation_count} adopted`);
+          if (w.your_gap) lines.push(`  - ⚠️ ${w.your_gap}`);
+          if (w.what_changed) lines.push(`  - ${w.what_changed}`);
+        }
+        lines.push('');
+      }
+    }
   }
 
   // Action Mapping
@@ -154,28 +198,32 @@ function generateMarkdown(report: IntelPacket): string {
     }
   }
 
-  // Strategic Bets
-  if (report.bets?.length) {
-    lines.push('## Strategic Bets');
-    lines.push('');
-    for (const b of report.bets) {
-      lines.push(`- **${b.hypothesis}** (Confidence: ${b.confidence}%, ${b.signal_ids.length} signals)`);
-    }
-    lines.push('');
-  }
-
-  // Key Questions
-  if (report.key_questions?.length) {
-    lines.push('## Key Questions');
-    lines.push('');
-    for (let i = 0; i < report.key_questions.length; i++) {
-      lines.push(`${i + 1}. ${report.key_questions[i]}`);
-    }
-    lines.push('');
-  }
-
   lines.push('---');
   lines.push('*Generated by [Signal Plane](https://signalplane.dev)*');
 
   return lines.join('\n');
+}
+
+/** Fold bets into predictions (deduped) — mirrors ReportDetail logic */
+function mergedPredictions(report: IntelPacket): Array<{ prediction: string; timeframe: string; confidence: number; outcome?: string }> {
+  const preds = [...(report.predictions || [])].map(p => ({
+    prediction: p.prediction,
+    timeframe: p.timeframe,
+    confidence: p.confidence,
+    outcome: p.outcome,
+  }));
+  for (const bet of (report.bets || [])) {
+    const isDuplicate = preds.some(p =>
+      p.prediction.toLowerCase().includes(bet.hypothesis.toLowerCase().slice(0, 40)) ||
+      bet.hypothesis.toLowerCase().includes(p.prediction.toLowerCase().slice(0, 40))
+    );
+    if (!isDuplicate) {
+      preds.push({
+        prediction: bet.hypothesis,
+        timeframe: 'Ongoing',
+        confidence: bet.confidence,
+      });
+    }
+  }
+  return preds;
 }

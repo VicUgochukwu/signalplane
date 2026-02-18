@@ -1,0 +1,213 @@
+{
+  "name": "Packaging Landscape Map [cloud]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "pkglm-cron-01",
+      "name": "Monthly 1st Monday 10:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst year = now.getUTCFullYear();\nconst month = String(now.getUTCMonth() + 1).padStart(2, '0');\nconst reportMonth = `${year}-${month}-01`;\nreturn [{ json: { report_month: reportMonth } }];"
+      },
+      "id": "pkglm-code-00",
+      "name": "Compute Month",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT tp.user_id FROM core.tracked_pages tp WHERE tp.page_type = 'pricing' AND tp.is_active = true;",
+        "options": {}
+      },
+      "id": "pkglm-pg-01",
+      "name": "Get Users With Pricing Pages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT ON (tp.company_id) tp.user_id, tp.company_id, tp.company_name, tp.url AS pricing_url, ps.plan_count, ps.plan_names, ps.has_free_tier, ps.has_enterprise, ps.pricing_model, ps.gating_signals, ps.snapshot_date, ps.meta FROM core.tracked_pages tp JOIN pricing_tracker.pricing_snapshots ps ON ps.tracked_page_id = tp.id WHERE tp.user_id = '{{ $json.user_id }}'::uuid AND tp.page_type = 'pricing' AND tp.is_active = true ORDER BY tp.company_id, ps.snapshot_date DESC;",
+        "options": {}
+      },
+      "id": "pkglm-pg-02",
+      "name": "Get Latest Snapshots",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Get Users With Pricing Pages').item.json.user_id;\nconst reportMonth = $('Compute Month').item.json.report_month;\nconst snapshots = $('Get Latest Snapshots').all().map(i => i.json);\n\nif (!snapshots || snapshots.length === 0) {\n  return [{ json: { skip: true, user_id: userId, report_month: reportMonth } }];\n}\n\n// --- Helper: map pricing_model string to canonical value_metric ---\nfunction mapValueMetric(pricingModel) {\n  if (!pricingModel) return 'unknown';\n  const pm = pricingModel.toLowerCase().trim();\n  if (pm.includes('seat') || pm.includes('per user') || pm.includes('per-user')) return 'seat';\n  if (pm.includes('usage') || pm.includes('consumption') || pm.includes('metered')) return 'usage';\n  if (pm.includes('flat') || pm.includes('fixed')) return 'flat';\n  if (pm.includes('hybrid') || pm.includes('mixed') || pm.includes('seat') && pm.includes('usage')) return 'hybrid';\n  return 'unknown';\n}\n\n// --- Helper: parse plan_names into tier_structure ---\nfunction parseTierStructure(planNames) {\n  if (!planNames) return [];\n  let names = [];\n  if (Array.isArray(planNames)) {\n    names = planNames;\n  } else if (typeof planNames === 'string') {\n    try {\n      const parsed = JSON.parse(planNames);\n      names = Array.isArray(parsed) ? parsed : [planNames];\n    } catch {\n      names = planNames.split(',').map(s => s.trim()).filter(Boolean);\n    }\n  }\n  return names.map((name, idx) => ({\n    name: String(name).trim(),\n    position: idx + 1\n  }));\n}\n\n// --- Helper: parse gating_signals ---\nfunction parseGatingStrategy(gatingSignals) {\n  if (!gatingSignals) return {};\n  if (typeof gatingSignals === 'object' && !Array.isArray(gatingSignals)) return gatingSignals;\n  if (typeof gatingSignals === 'string') {\n    try {\n      return JSON.parse(gatingSignals);\n    } catch {\n      return {};\n    }\n  }\n  return {};\n}\n\n// --- Build landscape entries ---\nconst landscapeEntries = snapshots.map(snap => {\n  const tierStructure = parseTierStructure(snap.plan_names);\n  const valueMetric = mapValueMetric(snap.pricing_model);\n  const gatingStrategy = parseGatingStrategy(snap.gating_signals);\n\n  return {\n    user_id: userId,\n    company_id: snap.company_id,\n    company_name: snap.company_name,\n    tier_structure: JSON.stringify(tierStructure),\n    value_metric: valueMetric,\n    gating_strategy: JSON.stringify(gatingStrategy),\n    pricing_url: snap.pricing_url,\n    plan_count: snap.plan_count || tierStructure.length,\n    has_free_tier: snap.has_free_tier || false,\n    has_enterprise: snap.has_enterprise || false,\n    snapshot_date: snap.snapshot_date\n  };\n});\n\n// --- Trend detection ---\nconst totalCompanies = landscapeEntries.length;\nconst metricCounts = { seat: 0, usage: 0, flat: 0, hybrid: 0, unknown: 0 };\nlet freeTierCount = 0;\nlet enterpriseCount = 0;\nlet totalPlans = 0;\n\nlandscapeEntries.forEach(entry => {\n  metricCounts[entry.value_metric] = (metricCounts[entry.value_metric] || 0) + 1;\n  if (entry.has_free_tier) freeTierCount++;\n  if (entry.has_enterprise) enterpriseCount++;\n  totalPlans += entry.plan_count;\n});\n\nconst avgPlanCount = totalCompanies > 0 ? Math.round((totalPlans / totalCompanies) * 10) / 10 : 0;\nconst freeTierPct = totalCompanies > 0 ? Math.round((freeTierCount / totalCompanies) * 100) : 0;\nconst enterprisePct = totalCompanies > 0 ? Math.round((enterpriseCount / totalCompanies) * 100) : 0;\n\n// Determine dominant pricing model\nconst dominantMetric = Object.entries(metricCounts)\n  .filter(([k]) => k !== 'unknown')\n  .sort((a, b) => b[1] - a[1])[0];\nconst dominantPct = dominantMetric && totalCompanies > 0\n  ? Math.round((dominantMetric[1] / totalCompanies) * 100)\n  : 0;\n\n// Detect category-wide trends\nconst trends = [];\nlet categoryShift = false;\n\nif (dominantMetric && dominantPct >= 60) {\n  trends.push({\n    type: 'dominant_model',\n    detail: `${dominantPct}% of tracked competitors use ${dominantMetric[0]}-based pricing`,\n    significance: 'high'\n  });\n}\n\nif (metricCounts.usage > 0 && metricCounts.usage >= totalCompanies * 0.4) {\n  trends.push({\n    type: 'usage_adoption',\n    detail: `${Math.round((metricCounts.usage / totalCompanies) * 100)}% have adopted usage-based pricing \u2014 signals category shift toward consumption models`,\n    significance: 'high'\n  });\n  categoryShift = true;\n}\n\nif (freeTierPct >= 70) {\n  trends.push({\n    type: 'free_tier_standard',\n    detail: `${freeTierPct}% of competitors offer a free tier \u2014 free has become table stakes`,\n    significance: 'medium'\n  });\n} else if (freeTierPct <= 20 && totalCompanies >= 3) {\n  trends.push({\n    type: 'free_tier_rare',\n    detail: `Only ${freeTierPct}% offer a free tier \u2014 market prefers gated entry`,\n    significance: 'medium'\n  });\n}\n\nif (enterprisePct >= 80) {\n  trends.push({\n    type: 'enterprise_tier_universal',\n    detail: `${enterprisePct}% include an enterprise tier \u2014 upmarket motion is dominant`,\n    significance: 'medium'\n  });\n}\n\nif (avgPlanCount >= 5) {\n  trends.push({\n    type: 'tier_proliferation',\n    detail: `Average plan count is ${avgPlanCount} \u2014 competitors are micro-segmenting`,\n    significance: 'low'\n  });\n}\n\n// If more than one high-significance trend, flag category shift\nconst highTrends = trends.filter(t => t.significance === 'high');\nif (highTrends.length >= 2) categoryShift = true;\n\n// --- Build landscape map ---\nconst companiesIncluded = landscapeEntries.map(e => e.company_name);\nconst title = `Packaging Landscape \\u2014 ${reportMonth.substring(0, 7)}`;\n\nconst contentJson = JSON.stringify({\n  total_companies: totalCompanies,\n  avg_plan_count: avgPlanCount,\n  free_tier_pct: freeTierPct,\n  enterprise_pct: enterprisePct,\n  metric_distribution: metricCounts,\n  trend_count: trends.length,\n  category_shift: categoryShift\n});\n\n// Markdown summary\nconst trendsMd = trends.length > 0\n  ? trends.map(t => `- **[${t.significance.toUpperCase()}]** ${t.detail}`).join('\\\\n')\n  : '- No significant category-wide trends detected this month.';\n\nconst companyListMd = landscapeEntries.map(e => {\n  const ft = e.has_free_tier ? 'Yes' : 'No';\n  const ent = e.has_enterprise ? 'Yes' : 'No';\n  return `| ${e.company_name} | ${e.plan_count} | ${e.value_metric} | ${ft} | ${ent} |`;\n}).join('\\\\n');\n\nconst contentMd = `# ${title}\\\\n\\\\n**Report Month:** ${reportMonth}\\\\n**Companies Tracked:** ${totalCompanies}\\\\n**Average Plans Per Company:** ${avgPlanCount}\\\\n\\\\n---\\\\n\\\\n## Pricing Model Distribution\\\\n- Seat-based: ${metricCounts.seat}\\\\n- Usage-based: ${metricCounts.usage}\\\\n- Flat-rate: ${metricCounts.flat}\\\\n- Hybrid: ${metricCounts.hybrid}\\\\n- Unknown: ${metricCounts.unknown}\\\\n\\\\n## Key Metrics\\\\n- Free tier adoption: ${freeTierPct}%\\\\n- Enterprise tier adoption: ${enterprisePct}%\\\\n\\\\n## Trends\\\\n${trendsMd}\\\\n\\\\n## Company Landscape\\\\n| Company | Plans | Metric | Free Tier | Enterprise |\\\\n|---------|-------|--------|-----------|------------|\\\\n${companyListMd}\\\\n\\\\n---\\\\n*Generated by Signal Plane Packaging Landscape Monitor*`;\n\n// --- Emit output items ---\n// Each landscape entry becomes a separate output item for the upsert node,\n// plus the map data and category_shift flag are attached to each.\nconst output = landscapeEntries.map(entry => ({\n  json: {\n    ...entry,\n    report_month: reportMonth,\n    title: title,\n    content_json: contentJson,\n    content_md: contentMd,\n    trends: JSON.stringify(trends),\n    companies_included: companiesIncluded,\n    category_shift: categoryShift\n  }\n}));\n\nreturn output;"
+      },
+      "id": "pkglm-code-01",
+      "name": "Build Landscape + Map",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO packaging.landscape (user_id, company_id, company_name, tier_structure, value_metric, gating_strategy, pricing_url, plan_count, has_free_tier, has_enterprise, snapshot_date, meta) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.company_id }}'::uuid, '{{ $json.company_name }}', '{{ $json.tier_structure }}'::jsonb, '{{ $json.value_metric }}', '{{ $json.gating_strategy }}'::jsonb, '{{ $json.pricing_url }}', {{ $json.plan_count }}, {{ $json.has_free_tier }}, {{ $json.has_enterprise }}, '{{ $json.snapshot_date }}'::date, '{}'::jsonb) ON CONFLICT (user_id, company_id, snapshot_date) DO UPDATE SET tier_structure = EXCLUDED.tier_structure, value_metric = EXCLUDED.value_metric, gating_strategy = EXCLUDED.gating_strategy, pricing_url = EXCLUDED.pricing_url, plan_count = EXCLUDED.plan_count, has_free_tier = EXCLUDED.has_free_tier, has_enterprise = EXCLUDED.has_enterprise;",
+        "options": {}
+      },
+      "id": "pkglm-pg-03",
+      "name": "Upsert Landscape Entries",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        -100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO packaging.landscape_maps (user_id, report_month, title, content_json, content_md, trends, companies_included) VALUES ('{{ $json.user_id }}'::uuid, '{{ $json.report_month }}'::date, '{{ $json.title }}', '{{ $json.content_json }}'::jsonb, '{{ $json.content_md }}', '{{ $json.trends }}'::jsonb, '{{ $json.companies_included }}'::text[]) ON CONFLICT (user_id, report_month) DO UPDATE SET title = EXCLUDED.title, content_json = EXCLUDED.content_json, content_md = EXCLUDED.content_md, trends = EXCLUDED.trends, companies_included = EXCLUDED.companies_included;",
+        "options": {}
+      },
+      "id": "pkglm-pg-04",
+      "name": "Write Landscape Map",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        200,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "OEiOQ9USQlfL1K62",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Monthly 1st Monday 10:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Compute Month",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Month": {
+      "main": [
+        [
+          {
+            "node": "Get Users With Pricing Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Users With Pricing Pages": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Build Landscape + Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Landscape + Map": {
+      "main": [
+        [
+          {
+            "node": "Upsert Landscape Entries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Write Landscape Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

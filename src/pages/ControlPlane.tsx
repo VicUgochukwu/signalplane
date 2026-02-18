@@ -1,24 +1,39 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { IntelPacket } from '@/types/report';
 import { useReports } from '@/hooks/useReports';
 import { ReportList } from '@/components/control-plane/ReportList';
 import { ReportDetail } from '@/components/control-plane/ReportDetail';
 import { Loader2 } from 'lucide-react';
 import { invokeEdgeFunctionSilent } from '@/lib/edge-functions';
+import { useDemo } from '@/contexts/DemoContext';
 
 // Extracted content component — reused by DemoControlPlane
 export const ControlPlaneContent = () => {
-  const [selectedReport, setSelectedReport] = useState<IntelPacket | null>(null);
+  const { packetId, sectorSlug } = useParams<{ packetId?: string; sectorSlug?: string }>();
+  const navigate = useNavigate();
+  const demo = useDemo();
   const { data: reports = [], isLoading, error } = useReports();
 
+  // Build base path for navigation (demo vs authenticated)
+  const basePath = demo?.isDemo ? `/demo/${sectorSlug || demo.sectorSlug}` : '/control-plane';
+
+  const selectedReport = packetId
+    ? reports.find(r => r.id === packetId) || null
+    : null;
+
   const handleSelectReport = useCallback((report: IntelPacket) => {
-    setSelectedReport(report);
+    navigate(`${basePath}/packet/${report.id}`);
     invokeEdgeFunctionSilent('loops-sync', {
       action: 'track_event',
       event_name: 'packet_viewed',
       properties: { packet_title: report.packet_title, week_start: report.week_start },
     });
-  }, []);
+  }, [navigate, basePath]);
+
+  const handleBack = useCallback(() => {
+    navigate(basePath);
+  }, [navigate, basePath]);
 
   if (isLoading) {
     return (
@@ -42,12 +57,30 @@ export const ControlPlaneContent = () => {
     );
   }
 
+  // Handle stale deep links — packetId in URL but not found in loaded data
+  if (packetId && !selectedReport && reports.length > 0) {
+    return (
+      <div className="container max-w-6xl mx-auto px-4 py-8">
+        <div className="rounded-xl bg-muted/30 border border-border/50 p-6 text-center space-y-3">
+          <p className="font-medium text-foreground">Packet not found</p>
+          <p className="text-sm text-muted-foreground">This packet may have been archived or removed.</p>
+          <button
+            onClick={handleBack}
+            className="text-sm text-primary hover:underline"
+          >
+            ← Back to Control Plane
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container max-w-6xl mx-auto px-4 py-6 md:py-8 flex-1">
       {selectedReport ? (
         <ReportDetail
           report={selectedReport}
-          onBack={() => setSelectedReport(null)}
+          onBack={handleBack}
         />
       ) : (
         <ReportList

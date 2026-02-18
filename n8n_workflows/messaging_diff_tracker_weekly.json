@@ -1,5 +1,5 @@
 {
-  "name": "Messaging Diff Tracker – Weekly",
+  "name": "Messaging Diff Tracker \u2013 Weekly",
   "nodes": [
     {
       "parameters": {
@@ -51,7 +51,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -95,11 +98,14 @@
         750,
         200
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
-        "jsCode": "// ── Normalize HTML to plain text ──\nconst html = $input.first().json.data || $input.first().json.body || '';\n\n// Check for HTTP failure from previous node\nif ($input.first().json.error) {\n  return [{ json: {\n    error: true,\n    errorMessage: $input.first().json.error.message || 'HTTP request failed',\n    tracked_page_id: $('Loop Over Pages').first().json.id,\n    company_name: $('Loop Over Pages').first().json.company_name\n  }}];\n}\n\n// Strip script, style, nav, footer, header, cookie-banner tags and their content\nlet text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<nav[\\s\\S]*?<\\/nav>/gi, '')\n  .replace(/<footer[\\s\\S]*?<\\/footer>/gi, '')\n  .replace(/<header[\\s\\S]*?<\\/header>/gi, '')\n  .replace(/<div[^>]*(?:cookie|consent|banner)[^>]*>[\\s\\S]*?<\\/div>/gi, '');\n\n// Strip remaining HTML tags\ntext = text.replace(/<[^>]+>/g, ' ');\n\n// Decode common HTML entities\ntext = text\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"')\n  .replace(/&#39;/g, \"'\")\n  .replace(/&nbsp;/g, ' ');\n\n// Collapse whitespace\ntext = text.replace(/\\s+/g, ' ').trim();\n\n// Compute content hash (FNV-1a 64-bit, no require needed)\nfunction fnv1a64(str) {\n  let h1 = 0x811c9dc5 >>> 0;\n  let h2 = 0xcbf29ce4 >>> 0;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (c >> 8 | c), 0x01000193) >>> 0;\n  }\n  return h2.toString(16).padStart(8, '0') + h1.toString(16).padStart(8, '0');\n}\nconst contentHash = fnv1a64(text);\n\n// Compute week_start_date (Monday of current ISO week, UTC)\nconst now = new Date();\nconst day = now.getUTCDay(); // 0=Sun\nconst diff = day === 0 ? 6 : day - 1;\nconst monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - diff));\nconst weekStartDate = monday.toISOString().slice(0, 10);\n\nconst page = $('Loop Over Pages').first().json;\n\nreturn [{ json: {\n  error: false,\n  tracked_page_id: page.id,\n  company_name: page.company_name,\n  company_slug: page.company_slug,\n  url: page.url,\n  url_type: page.url_type,\n  week_start_date: weekStartDate,\n  text_content: text,\n  content_hash: contentHash,\n  http_status: $input.first().json.statusCode || 200\n}}];"
+        "jsCode": "// \u2500\u2500 Normalize HTML to plain text \u2500\u2500\nconst html = $input.first().json.data || $input.first().json.body || '';\n\n// Check for HTTP failure from previous node\nif ($input.first().json.error) {\n  return [{ json: {\n    error: true,\n    errorMessage: $input.first().json.error.message || 'HTTP request failed',\n    tracked_page_id: $('Loop Over Pages').first().json.id,\n    company_name: $('Loop Over Pages').first().json.company_name\n  }}];\n}\n\n// Strip script, style, nav, footer, header, cookie-banner tags and their content\nlet text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<nav[\\s\\S]*?<\\/nav>/gi, '')\n  .replace(/<footer[\\s\\S]*?<\\/footer>/gi, '')\n  .replace(/<header[\\s\\S]*?<\\/header>/gi, '')\n  .replace(/<div[^>]*(?:cookie|consent|banner)[^>]*>[\\s\\S]*?<\\/div>/gi, '');\n\n// Strip remaining HTML tags\ntext = text.replace(/<[^>]+>/g, ' ');\n\n// Decode common HTML entities\ntext = text\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"')\n  .replace(/&#39;/g, \"'\")\n  .replace(/&nbsp;/g, ' ');\n\n// Collapse whitespace\ntext = text.replace(/\\s+/g, ' ').trim();\n\n// Compute content hash (FNV-1a 64-bit, no require needed)\nfunction fnv1a64(str) {\n  let h1 = 0x811c9dc5 >>> 0;\n  let h2 = 0xcbf29ce4 >>> 0;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (c >> 8 | c), 0x01000193) >>> 0;\n  }\n  return h2.toString(16).padStart(8, '0') + h1.toString(16).padStart(8, '0');\n}\nconst contentHash = fnv1a64(text);\n\n// Compute week_start_date (Monday of current ISO week, UTC)\nconst now = new Date();\nconst day = now.getUTCDay(); // 0=Sun\nconst diff = day === 0 ? 6 : day - 1;\nconst monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - diff));\nconst weekStartDate = monday.toISOString().slice(0, 10);\n\nconst page = $('Loop Over Pages').first().json;\n\nreturn [{ json: {\n  error: false,\n  tracked_page_id: page.id,\n  company_name: page.company_name,\n  company_slug: page.company_slug,\n  url: page.url,\n  url_type: page.url_type,\n  week_start_date: weekStartDate,\n  text_content: text,\n  content_hash: contentHash,\n  http_status: $input.first().json.statusCode || 200\n}}];"
       },
       "id": "normalize-and-hash",
       "name": "Normalize HTML & Hash",
@@ -161,7 +167,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -182,11 +191,14 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
-        "jsCode": "// ── Helpers ──\nfunction truncateText(text, maxLen) {\n  if (!text) return '';\n  if (text.length <= maxLen) return text;\n  return text.slice(0, maxLen) + '\\n[...truncated]';\n}\n\nfunction computeSimpleDiff(oldText, newText) {\n  if (!oldText || !newText) return 'No previous text available for comparison.';\n  const oldSentences = new Set(oldText.split(/(?<=[.!?])\\s+/).filter(s => s.length > 10));\n  const newSentences = new Set(newText.split(/(?<=[.!?])\\s+/).filter(s => s.length > 10));\n  const added = [...newSentences].filter(s => !oldSentences.has(s));\n  const removed = [...oldSentences].filter(s => !newSentences.has(s));\n  let summary = '';\n  if (added.length > 0) {\n    summary += 'ADDED (' + added.length + ' sentences):\\n' + added.slice(0, 15).map(s => '+ ' + s.slice(0, 200)).join('\\n') + '\\n';\n  }\n  if (removed.length > 0) {\n    summary += 'REMOVED (' + removed.length + ' sentences):\\n' + removed.slice(0, 15).map(s => '- ' + s.slice(0, 200)).join('\\n') + '\\n';\n  }\n  if (!summary) summary = 'Minor wording changes detected (no full sentences added or removed).';\n  return summary;\n}\n\n// ── Main ──\nconst current = $('Postgres: Upsert Snapshot').first().json;\nconst prevRows = $('Postgres: Get Previous Snapshot').all();\nconst pageData = $('Normalize HTML & Hash').first().json;\n\nif (!prevRows.length || prevRows[0].json.content_hash === undefined) {\n  return [{ json: { changed: false, reason: 'no_previous_snapshot' } }];\n}\n\nconst prev = prevRows[0].json;\n\nif (prev.content_hash === current.content_hash) {\n  return [{ json: { changed: false, reason: 'hash_unchanged' } }];\n}\n\n// Truncate texts to ~3K tokens each for LLM efficiency\nconst MAX_TEXT_LEN = 12000;\nconst oldTextTruncated = truncateText(prev.text_content, MAX_TEXT_LEN);\nconst newTextTruncated = truncateText(current.text_content, MAX_TEXT_LEN);\nconst diffSummaryText = computeSimpleDiff(prev.text_content, current.text_content);\n\nreturn [{ json: {\n  changed: true,\n  tracked_page_id: current.tracked_page_id,\n  week_start_date: current.week_start_date,\n  new_snapshot_id: current.id,\n  old_snapshot_id: prev.id,\n  new_hash: current.content_hash,\n  old_hash: prev.content_hash,\n  company_name: pageData.company_name,\n  company_slug: pageData.company_slug,\n  url: pageData.url,\n  url_type: pageData.url_type,\n  old_text_truncated: oldTextTruncated,\n  new_text_truncated: newTextTruncated,\n  diff_summary_text: diffSummaryText\n}}];"
+        "jsCode": "// \u2500\u2500 Helpers \u2500\u2500\nfunction truncateText(text, maxLen) {\n  if (!text) return '';\n  if (text.length <= maxLen) return text;\n  return text.slice(0, maxLen) + '\\n[...truncated]';\n}\n\nfunction computeSimpleDiff(oldText, newText) {\n  if (!oldText || !newText) return 'No previous text available for comparison.';\n  const oldSentences = new Set(oldText.split(/(?<=[.!?])\\s+/).filter(s => s.length > 10));\n  const newSentences = new Set(newText.split(/(?<=[.!?])\\s+/).filter(s => s.length > 10));\n  const added = [...newSentences].filter(s => !oldSentences.has(s));\n  const removed = [...oldSentences].filter(s => !newSentences.has(s));\n  let summary = '';\n  if (added.length > 0) {\n    summary += 'ADDED (' + added.length + ' sentences):\\n' + added.slice(0, 15).map(s => '+ ' + s.slice(0, 200)).join('\\n') + '\\n';\n  }\n  if (removed.length > 0) {\n    summary += 'REMOVED (' + removed.length + ' sentences):\\n' + removed.slice(0, 15).map(s => '- ' + s.slice(0, 200)).join('\\n') + '\\n';\n  }\n  if (!summary) summary = 'Minor wording changes detected (no full sentences added or removed).';\n  return summary;\n}\n\n// \u2500\u2500 Main \u2500\u2500\nconst current = $('Postgres: Upsert Snapshot').first().json;\nconst prevRows = $('Postgres: Get Previous Snapshot').all();\nconst pageData = $('Normalize HTML & Hash').first().json;\n\nif (!prevRows.length || prevRows[0].json.content_hash === undefined) {\n  return [{ json: { changed: false, reason: 'no_previous_snapshot' } }];\n}\n\nconst prev = prevRows[0].json;\n\nif (prev.content_hash === current.content_hash) {\n  return [{ json: { changed: false, reason: 'hash_unchanged' } }];\n}\n\n// Truncate texts to ~3K tokens each for LLM efficiency\nconst MAX_TEXT_LEN = 12000;\nconst oldTextTruncated = truncateText(prev.text_content, MAX_TEXT_LEN);\nconst newTextTruncated = truncateText(current.text_content, MAX_TEXT_LEN);\nconst diffSummaryText = computeSimpleDiff(prev.text_content, current.text_content);\n\nreturn [{ json: {\n  changed: true,\n  tracked_page_id: current.tracked_page_id,\n  week_start_date: current.week_start_date,\n  new_snapshot_id: current.id,\n  old_snapshot_id: prev.id,\n  new_hash: current.content_hash,\n  old_hash: prev.content_hash,\n  company_name: pageData.company_name,\n  company_slug: pageData.company_slug,\n  url: pageData.url,\n  url_type: pageData.url_type,\n  old_text_truncated: oldTextTruncated,\n  new_text_truncated: newTextTruncated,\n  diff_summary_text: diffSummaryText\n}}];"
       },
       "id": "check-diff",
       "name": "Check If Changed",
@@ -269,7 +281,10 @@
           "name": "Anthropic API Key"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -303,7 +318,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -324,7 +342,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -358,12 +379,15 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {},
       "id": "no-op-unchanged",
-      "name": "No Change – Skip",
+      "name": "No Change \u2013 Skip",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
@@ -435,7 +459,10 @@
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     }
   ],
   "connections": {
@@ -590,7 +617,7 @@
         ],
         [
           {
-            "node": "No Change – Skip",
+            "node": "No Change \u2013 Skip",
             "type": "main",
             "index": 0
           }
@@ -681,7 +708,7 @@
         ]
       ]
     },
-    "No Change – Skip": {
+    "No Change \u2013 Skip": {
       "main": [
         [
           {
@@ -694,7 +721,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v0"
+    "executionOrder": "v0",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   },
   "staticData": null,
   "tags": [

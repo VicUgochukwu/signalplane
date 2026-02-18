@@ -17,6 +17,7 @@ import { ControlPlaneLayout } from "./components/control-plane/ControlPlaneLayou
 // ---------------------------------------------------------------------------
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import AuthCallback from "./pages/AuthCallback";
 import ControlPlane from "./pages/ControlPlane";
 import NotFound from "./pages/NotFound";
 
@@ -92,10 +93,12 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
 
                 {/* ── Sidebar layout: all authenticated app pages ── */}
                 <Route element={<ProtectedRoute skipOnboarding><ControlPlaneLayout /></ProtectedRoute>}>
                   <Route path="/control-plane" element={<ControlPlane />} />
+                  <Route path="/control-plane/packet/:packetId" element={<ControlPlane />} />
                   <Route path="/control-plane/artifacts" element={<Artifacts />} />
                   <Route path="/messaging-diff" element={<Index />} />
                   <Route path="/control-plane/submit" element={<SubmitSignal />} />
@@ -127,6 +130,7 @@ const App = () => (
                 {/* ── Demo routes — public, sidebar layout, no auth required ── */}
                 <Route path="/demo/:sectorSlug" element={<DemoLayout />}>
                   <Route index element={<DemoControlPlane />} />
+                  <Route path="packet/:packetId" element={<DemoControlPlane />} />
                   <Route path="artifacts" element={<DemoArtifacts />} />
                   <Route path="board" element={<DemoActionBoard />} />
                   <Route path="signals" element={<DemoCompetitorMessaging />} />

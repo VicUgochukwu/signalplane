@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ChangelogEntry } from '@/types/changelog';
 
-export function useChangelog() {
+export function useChangelog(enabled = true) {
   return useQuery({
     queryKey: ['changelog'],
     queryFn: async () => {
@@ -10,5 +10,6 @@ export function useChangelog() {
       if (error) throw error;
       return data as ChangelogEntry[];
     },
+    enabled,
   });
 }

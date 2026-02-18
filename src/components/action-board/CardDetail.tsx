@@ -11,7 +11,14 @@ import { cn } from '@/lib/utils';
 import {
   Archive, ExternalLink, FileText, Clock, CheckCircle2,
   Calendar, Inbox, Play, ArrowRight, Sparkles, Loader2,
+  ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
+
+const OUTCOME_DISPLAY: Record<string, { label: string; icon: typeof ThumbsUp; cls: string }> = {
+  positive: { label: 'Positive outcome', icon: ThumbsUp, cls: 'text-emerald-400' },
+  neutral: { label: 'Neutral outcome', icon: Minus, cls: 'text-muted-foreground' },
+  negative: { label: 'Negative outcome', icon: ThumbsDown, cls: 'text-rose-400' },
+};
 
 interface CardDetailProps {
   card: ActionBoardCard | null;
@@ -19,9 +26,10 @@ interface CardDetailProps {
   onUpdateNotes: (cardId: string, notes: string) => void;
   onArchive: (cardId: string) => void;
   onMoveCard: (cardId: string, newColumn: string, newOrder: number) => void;
+  onRecordOutcome?: (cardId: string, outcome: string, outcomeNotes: string) => void;
 }
 
-export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard }: CardDetailProps) {
+export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard, onRecordOutcome }: CardDetailProps) {
   const [notes, setNotes] = useState('');
   const { generateKit, isGenerating, reset: resetKit } = useExecutionKit();
   const demo = useDemo();
@@ -47,6 +55,8 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
   const currentIdx = columnOrder.indexOf(card.column_status as BoardColumn);
   const nextColumn = currentIdx >= 0 && currentIdx < columnOrder.length - 1 ? columnOrder[currentIdx + 1] : null;
   const nextColumnLabel = nextColumn ? BOARD_COLUMNS.find(c => c.key === nextColumn)?.label : null;
+
+  const outcomeInfo = card.outcome ? OUTCOME_DISPLAY[card.outcome] : null;
 
   return (
     <Sheet open={!!card} onOpenChange={() => onClose()}>
@@ -83,7 +93,44 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
                 vs {card.competitor_name}
               </Badge>
             )}
+            <Badge variant="outline" className="text-xs text-muted-foreground/70">
+              sev {card.severity}/5
+            </Badge>
           </div>
+
+          {/* Outcome display (if already recorded) */}
+          {outcomeInfo && (
+            <div className={cn('flex items-center gap-2 text-sm', outcomeInfo.cls)}>
+              <outcomeInfo.icon className="h-4 w-4" />
+              <span className="font-medium">{outcomeInfo.label}</span>
+              {card.outcome_notes && (
+                <span className="text-xs text-muted-foreground ml-1">— {card.outcome_notes}</span>
+              )}
+            </div>
+          )}
+
+          {/* Record outcome button (if in done column and no outcome yet) */}
+          {card.column_status === 'done' && !card.outcome && onRecordOutcome && (
+            <div className="flex gap-2">
+              {(['positive', 'neutral', 'negative'] as const).map((o) => {
+                const info = OUTCOME_DISPLAY[o];
+                const Icon = info.icon;
+                return (
+                  <button
+                    key={o}
+                    onClick={() => onRecordOutcome(card.id, o, '')}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-border/30 text-xs font-medium transition-colors hover:border-border',
+                      info.cls
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {o.charAt(0).toUpperCase() + o.slice(1)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Quick move button */}
           {nextColumn && (

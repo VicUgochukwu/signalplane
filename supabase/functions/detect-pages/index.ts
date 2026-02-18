@@ -3,6 +3,8 @@
 // Uses HEAD requests, sitemap parsing, and industry-aware path checking
 
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { createSupabaseClient } from "../_shared/supabase.ts";
+import { enforceRateLimit } from "../_shared/rate-limit.ts";
 
 // ── Path definitions ─────────────────────────────────────────────────
 
@@ -89,6 +91,58 @@ const INDUSTRY_PATHS: Record<string, PathDef[]> = {
     { path: '/partners', type: 'partners', label: 'Partners' },
     { path: '/compliance', type: 'compliance', label: 'Compliance' },
   ],
+  'AI / Automation': [
+    { path: '/api', type: 'api', label: 'API' },
+    { path: '/docs', type: 'docs', label: 'Documentation' },
+    { path: '/changelog', type: 'changelog', label: 'Changelog' },
+    { path: '/security', type: 'security', label: 'Security' },
+    { path: '/playground', type: 'playground', label: 'Playground' },
+    { path: '/models', type: 'product', label: 'Models' },
+    { path: '/use-cases', type: 'solutions', label: 'Use Cases' },
+  ],
+  'GEO / AEO': [
+    { path: '/partners', type: 'partners', label: 'Partners' },
+    { path: '/marketplace', type: 'marketplace', label: 'Marketplace' },
+    { path: '/api', type: 'api', label: 'API' },
+  ],
+  'Intent Data': [
+    { path: '/api', type: 'api', label: 'API' },
+    { path: '/integrations', type: 'integrations', label: 'Integrations' },
+    { path: '/partners', type: 'partners', label: 'Partners' },
+    { path: '/security', type: 'security', label: 'Security' },
+    { path: '/compliance', type: 'compliance', label: 'Compliance' },
+  ],
+  'Events / Webinars': [
+    { path: '/partners', type: 'partners', label: 'Partners' },
+    { path: '/marketplace', type: 'marketplace', label: 'Marketplace' },
+    { path: '/integrations', type: 'integrations', label: 'Integrations' },
+  ],
+  'ABM Platforms': [
+    { path: '/integrations', type: 'integrations', label: 'Integrations' },
+    { path: '/partners', type: 'partners', label: 'Partners' },
+    { path: '/api', type: 'api', label: 'API' },
+    { path: '/security', type: 'security', label: 'Security' },
+  ],
+  'Content Tools': [
+    { path: '/api', type: 'api', label: 'API' },
+    { path: '/changelog', type: 'changelog', label: 'Changelog' },
+    { path: '/integrations', type: 'integrations', label: 'Integrations' },
+    { path: '/partners', type: 'partners', label: 'Partners' },
+  ],
+  'Data Enrichment': [
+    { path: '/api', type: 'api', label: 'API' },
+    { path: '/integrations', type: 'integrations', label: 'Integrations' },
+    { path: '/security', type: 'security', label: 'Security' },
+    { path: '/compliance', type: 'compliance', label: 'Compliance' },
+    { path: '/partners', type: 'partners', label: 'Partners' },
+  ],
+  'Stack Consolidation': [
+    { path: '/integrations', type: 'integrations', label: 'Integrations' },
+    { path: '/marketplace', type: 'marketplace', label: 'Marketplace' },
+    { path: '/partners', type: 'partners', label: 'Partners' },
+    { path: '/security', type: 'security', label: 'Security' },
+    { path: '/changelog', type: 'changelog', label: 'Changelog' },
+  ],
 };
 
 // Type ordering for result ranking (lower = more important)
@@ -145,21 +199,22 @@ async function resolveBaseUrl(domain: string): Promise<string> {
   const candidates = [`https://${domain}`, `https://www.${domain}`];
 
   for (const url of candidates) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
       const resp = await fetch(url, {
         method: 'HEAD',
         redirect: 'follow',
         signal: controller.signal,
         headers: { 'User-Agent': 'SignalPlane/1.0 (page-detection)' },
       });
-      clearTimeout(timeout);
       if (resp.ok || resp.status === 301 || resp.status === 302) {
         return url;
       }
     } catch {
       // try next
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -199,15 +254,19 @@ async function probePages(
           // HEAD might be blocked, try GET with early abort
           const getController = new AbortController();
           const getTimeout = setTimeout(() => getController.abort(), 3000);
-          resp = await fetch(url, {
-            method: 'GET',
-            redirect: 'follow',
-            signal: getController.signal,
-            headers: { 'User-Agent': 'SignalPlane/1.0 (page-detection)' },
-          });
-          clearTimeout(getTimeout);
+          try {
+            resp = await fetch(url, {
+              method: 'GET',
+              redirect: 'follow',
+              signal: getController.signal,
+              headers: { 'User-Agent': 'SignalPlane/1.0 (page-detection)' },
+            });
+          } finally {
+            clearTimeout(getTimeout);
+          }
+        } finally {
+          clearTimeout(timeout);
         }
-        clearTimeout(timeout);
 
         if (resp.ok) {
           // Check if it's a real page (not a soft 404 / redirect to homepage)
@@ -383,6 +442,20 @@ Deno.serve(async (req) => {
         { status: 405, headers: jsonHeaders },
       );
     }
+
+    // Auth: require authenticated user
+    const supabase = createSupabaseClient(req);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: jsonHeaders },
+      );
+    }
+
+    // Rate limit: 20 requests per minute per user
+    const rateLimitResponse = enforceRateLimit(req, jsonHeaders, user.id, 20);
+    if (rateLimitResponse) return rateLimitResponse;
 
     const body = await req.json();
     const { domain: rawDomain, industry } = body;

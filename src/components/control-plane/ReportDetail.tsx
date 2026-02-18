@@ -5,23 +5,24 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  ArrowLeft, HelpCircle, Target,
-  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2, Eye
+  ArrowLeft, HelpCircle,
+  Clock, AlertTriangle, CheckCircle2, Mail, Download, Loader2, Eye, Brain
 } from 'lucide-react';
 import {
   IconSignalRadio, IconSignalCount, IconConfidence,
-  IconSignalMessaging, IconSignalNarrative, IconSignalICP,
-  IconSignalHorizon, IconSignalObjection
+  IconSignalMessaging, IconSignalICP, IconSignalObjection
 } from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 import { MarketWinnersCard } from './MarketWinnersCard';
-import { JudgmentLoopCard } from './JudgmentLoopCard';
+import { IconSignalHorizon } from '@/components/icons';
 import { useExportPacket } from '@/hooks/useExportPacket';
+import { mergedPredictions, computeAccuracy } from '@/lib/packetUtils';
 import { useDemo } from '@/contexts/DemoContext';
 import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
 import { useTeam } from '@/hooks/useTeam';
 import { useTierGate } from '@/hooks/useTierGate';
 import type { TeamRole } from '@/types/teams';
+import type { Prediction } from '@/types/report';
 
 interface ReportDetailProps {
   report: IntelPacket;
@@ -51,28 +52,73 @@ const statusConfig: Record<PacketStatus, { label: string; dotClass: string; badg
   },
 };
 
-interface SectionConfig {
-  key: SectionKey;
+// ──────────────────────────────────────────────────────
+// Merged 3-tab structure:
+//   "Competitive Changes" = messaging + narrative
+//   "Market Direction"    = icp + horizon
+//   "Objections"          = objection (standalone)
+// ──────────────────────────────────────────────────────
+type MergedTabKey = 'competitive' | 'market' | 'objections';
+
+interface MergedTabConfig {
+  key: MergedTabKey;
   title: string;
+  shortTitle: string;
   icon: (props: { className?: string }) => React.JSX.Element;
   color: string;
+  sourceKeys: SectionKey[];
 }
 
-const sectionConfigs: SectionConfig[] = [
-  { key: 'messaging', title: 'Messaging Intel', icon: IconSignalMessaging, color: 'text-sky-400' },
-  { key: 'narrative', title: 'Narrative Intel', icon: IconSignalNarrative, color: 'text-violet-400' },
-  { key: 'icp', title: 'ICP Intel', icon: IconSignalICP, color: 'text-emerald-400' },
-  { key: 'horizon', title: 'Horizon Intel', icon: IconSignalHorizon, color: 'text-amber-400' },
-  { key: 'objection', title: 'Objection Intel', icon: IconSignalObjection, color: 'text-rose-400' },
+const mergedTabConfigs: MergedTabConfig[] = [
+  {
+    key: 'competitive',
+    title: 'Competitive Changes',
+    shortTitle: 'Changes',
+    icon: IconSignalMessaging,
+    color: 'text-sky-400',
+    sourceKeys: ['messaging', 'narrative'],
+  },
+  {
+    key: 'market',
+    title: 'Market Direction',
+    shortTitle: 'Market',
+    icon: IconSignalICP,
+    color: 'text-emerald-400',
+    sourceKeys: ['icp', 'horizon'],
+  },
+  {
+    key: 'objections',
+    title: 'Objections & Risk',
+    shortTitle: 'Objections',
+    icon: IconSignalObjection,
+    color: 'text-rose-400',
+    sourceKeys: ['objection'],
+  },
 ];
 
+/** Merge highlights from multiple source sections */
+function mergeSections(report: IntelPacket, sourceKeys: SectionKey[]): { summary: string; highlights: string[] } {
+  const summaryParts: string[] = [];
+  const highlights: string[] = [];
+
+  for (const key of sourceKeys) {
+    const s = report.sections[key];
+    if (!s) continue;
+    if (s.summary) summaryParts.push(s.summary);
+    if (s.highlights?.length) highlights.push(...s.highlights);
+  }
+
+  return {
+    summary: summaryParts.join(' '),
+    highlights,
+  };
+}
+
 /**
- * Role-based visibility rules:
- * - executive: exec_summary, metrics, bets, predictions, judgment_loop, market_winners
- * - sales: exec_summary, metrics, objection section, action_mapping
- * - pmm: full packet (all sections)
- * - admin: full packet (all sections) + annotations (future)
- * - null (no team/no role): full packet (default PMM view)
+ * Role-based visibility rules (updated):
+ * - executive: exec_summary, metrics, key_questions, predictions, market_winners
+ * - sales: exec_summary, metrics, key_questions, objection tab, action_mapping
+ * - pmm/admin: full packet
  */
 type ViewMode = 'full' | 'executive' | 'sales';
 
@@ -83,14 +129,12 @@ const ROLE_VIEW_MAP: Record<TeamRole, ViewMode> = {
   executive: 'executive',
 };
 
-/** Which intel section keys are visible per view mode */
-const VIEW_SECTION_KEYS: Record<ViewMode, SectionKey[] | 'all'> = {
+const VIEW_TAB_KEYS: Record<ViewMode, MergedTabKey[] | 'all'> = {
   full: 'all',
-  executive: [], // executives don't see individual intel sections
-  sales: ['objection'], // sales only sees objection intel
+  executive: [],
+  sales: ['objections'],
 };
 
-/** Label for the view mode badge */
 const VIEW_MODE_LABELS: Record<ViewMode, { label: string; color: string }> = {
   full: { label: 'Full View', color: 'bg-primary/10 text-primary border-primary/20' },
   executive: { label: 'Exec View', color: 'bg-violet-500/10 text-violet-400 border-violet-500/20' },
@@ -109,9 +153,8 @@ const getConfidenceBg = (confidence: number) => {
   return 'bg-rose-500/5 border-rose-500/20';
 };
 
-/** Normalize raw impact score (could be 0-10 or 0-100) to a 0-10 scale */
 const normalizeImpact = (raw: number): number => {
-  if (raw > 10) return Math.round(raw / 10 * 10) / 10; // e.g. 84 → 8.4
+  if (raw > 10) return Math.round(raw / 10 * 10) / 10;
   return raw;
 };
 
@@ -132,6 +175,8 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
+// computeAccuracy and mergedPredictions imported from @/lib/packetUtils
+
 export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
   const status = statusConfig[report.status];
   const formattedStartDate = format(parseISO(report.week_start), 'MMM d');
@@ -141,37 +186,36 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
   const { role } = useTeam();
   const { canUse } = useTierGate();
 
-  // Determine the default view based on user's team role
   const defaultView: ViewMode = role ? ROLE_VIEW_MAP[role] : 'full';
   const [activeView, setActiveView] = useState<ViewMode>(defaultView);
-
-  // Role-based views are only available on Growth+ tiers
   const roleViewsEnabled = canUse('role_views');
 
-  // Update activeView if role changes
   useEffect(() => {
     if (role && roleViewsEnabled) {
       setActiveView(ROLE_VIEW_MAP[role]);
     }
   }, [role, roleViewsEnabled]);
 
-  // Filter section configs based on view mode
-  const visibleSectionConfigs = useMemo(() => {
-    const allowedKeys = VIEW_SECTION_KEYS[activeView];
-    if (allowedKeys === 'all') return sectionConfigs;
-    return sectionConfigs.filter(c => allowedKeys.includes(c.key));
+  // Merged tab visibility
+  const visibleTabs = useMemo(() => {
+    const allowedKeys = VIEW_TAB_KEYS[activeView];
+    if (allowedKeys === 'all') return mergedTabConfigs;
+    return mergedTabConfigs.filter(c => allowedKeys.includes(c.key));
   }, [activeView]);
 
-  // Visibility helpers for each packet section
-  const showExecSummary = true; // All views see exec summary
-  const showMetrics = true; // All views see metrics
-  const showIntelSections = visibleSectionConfigs.length > 0;
+  const showExecSummary = true;
+  const showMetrics = true;
+  const showKeyQuestions = true;
+  const showIntelSections = visibleTabs.length > 0;
   const showPredictions = activeView === 'full' || activeView === 'executive';
-  const showJudgmentLoop = activeView === 'full' || activeView === 'executive';
   const showActionMapping = activeView === 'full' || activeView === 'sales';
-  const showBets = activeView === 'full' || activeView === 'executive';
-  const showKeyQuestions = activeView === 'full';
   const showMarketWinners = activeView === 'full' || activeView === 'executive';
+
+  // Merged predictions (bets folded in)
+  const allPredictions = useMemo(() => mergedPredictions(report), [report]);
+
+  // Judgment loop as inline stat in header
+  const accuracyStat = useMemo(() => computeAccuracy(allPredictions), [allPredictions]);
 
   useEffect(() => {
     demo?.trackExploration('view_packet');
@@ -179,7 +223,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
 
   return (
     <div className="animate-slide-up space-y-6">
-      {/* Header */}
+      {/* ─── Header ─── */}
       <div>
         <Button
           variant="ghost"
@@ -204,7 +248,16 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
                 {status.label}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{formattedStartDate} – {formattedEndDate}</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-sm text-muted-foreground">{formattedStartDate} – {formattedEndDate}</p>
+              {/* Judgment loop accuracy — inline header stat */}
+              {accuracyStat && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 gap-1 border-violet-500/20 bg-violet-500/5 text-violet-400">
+                  <Brain className="h-3 w-3" />
+                  {accuracyStat.accuracy}% prediction accuracy ({accuracyStat.scored} scored)
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-3">
               <Button
                 variant="outline"
@@ -234,7 +287,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </div>
       </div>
 
-      {/* Role-based View Switcher — only shown if role_views feature is enabled */}
+      {/* ─── View Switcher ─── */}
       {roleViewsEnabled && (
         <div className="flex items-center gap-2">
           <Eye className="h-3.5 w-3.5 text-muted-foreground" />
@@ -261,7 +314,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </div>
       )}
 
-      {/* Metrics Grid */}
+      {/* ─── 1. Metrics Grid ─── */}
       {showMetrics && report.metrics && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-border/50 bg-card p-4">
@@ -343,7 +396,7 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </div>
       )}
 
-      {/* Executive Summary */}
+      {/* ─── 2. Executive Summary ─── */}
       {showExecSummary && (
         <Card className="rounded-xl border border-border/50">
           <CardHeader className="pb-3">
@@ -364,8 +417,33 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Card>
       )}
 
-      {/* Intel Sections - Tabbed Interface (filtered by role) */}
-      {showIntelSections && visibleSectionConfigs.length > 0 && (
+      {/* ─── 3. Key Questions — primes the reader before intel ─── */}
+      {showKeyQuestions && report.key_questions && report.key_questions.length > 0 && (
+        <Card className="rounded-xl border border-sky-500/20 bg-sky-500/[0.02]">
+          <CardHeader className="pb-3">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 text-sky-400" />
+              This Week&apos;s Key Questions
+            </h2>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {report.key_questions.map((question, index) => (
+                <li
+                  key={index}
+                  className="flex items-start gap-3 text-sm text-muted-foreground"
+                >
+                  <span className="text-sky-400 text-xs mt-0.5 font-semibold shrink-0">Q{index + 1}</span>
+                  <span>{question}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─── 4. Intelligence Signals — 3 merged tabs ─── */}
+      {showIntelSections && visibleTabs.length > 0 && (
         <Card className="rounded-xl border border-border/50">
           <CardHeader className="pb-3">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">
@@ -373,14 +451,19 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             </h2>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={visibleSectionConfigs.find(c => {
-              const s = report.sections[c.key];
-              return s && (s.summary || s.highlights.length > 0);
-            })?.key || visibleSectionConfigs[0]?.key} className="w-full">
+            <Tabs
+              defaultValue={
+                visibleTabs.find(t => {
+                  const merged = mergeSections(report, t.sourceKeys);
+                  return merged.summary || merged.highlights.length > 0;
+                })?.key || visibleTabs[0]?.key
+              }
+              className="w-full"
+            >
               <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/30 p-1 rounded-lg">
-                {visibleSectionConfigs.map((config) => {
-                  const section = report.sections[config.key];
-                  const hasContent = section && (section.summary || section.highlights.length > 0);
+                {visibleTabs.map((config) => {
+                  const merged = mergeSections(report, config.sourceKeys);
+                  const hasContent = merged.summary || merged.highlights.length > 0;
                   const Icon = config.icon;
                   return (
                     <TabsTrigger
@@ -390,69 +473,45 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
                       className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md ${!hasContent ? 'opacity-40' : ''}`}
                     >
                       <Icon className={`h-3.5 w-3.5 ${config.color}`} />
-                      <span className="hidden sm:inline">{config.title.replace(' Intel', '')}</span>
-                      <span className="sm:hidden">{config.key.slice(0, 3).toUpperCase()}</span>
+                      <span className="hidden sm:inline">{config.title}</span>
+                      <span className="sm:hidden">{config.shortTitle}</span>
                     </TabsTrigger>
                   );
                 })}
               </TabsList>
 
-              {visibleSectionConfigs.map((config) => {
-                const section = report.sections[config.key];
-                if (!section) return null;
+              {visibleTabs.map((config) => {
+                const merged = mergeSections(report, config.sourceKeys);
+                if (!merged.summary && merged.highlights.length === 0) return null;
                 const Icon = config.icon;
 
                 return (
                   <TabsContent key={config.key} value={config.key} className="mt-4">
                     <div className="space-y-4">
-                      {/* Section Header */}
                       <div className="flex items-center gap-2 pb-2 border-b border-border/30">
                         <Icon className={`h-5 w-5 ${config.color}`} />
                         <h3 className="text-base font-semibold text-foreground">{config.title}</h3>
                       </div>
 
-                      {/* Summary */}
-                      {section.summary && (
+                      {merged.summary && (
                         <p className="text-muted-foreground text-sm leading-relaxed">
-                          {section.summary}
+                          {merged.summary}
                         </p>
                       )}
 
-                      {/* Highlights */}
-                      {section.highlights.length > 0 && (
+                      {merged.highlights.length > 0 && (
                         <div>
                           <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
                             Key Highlights
                           </h4>
                           <ul className="space-y-2">
-                            {section.highlights.map((highlight, index) => (
+                            {merged.highlights.map((highlight, index) => (
                               <li
                                 key={index}
                                 className="flex items-start gap-3 text-sm text-foreground p-2.5 rounded-lg bg-muted/20"
                               >
                                 <span className={`mt-0.5 ${config.color}`}>›</span>
                                 <span>{highlight}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Action Items */}
-                      {section.action_items && section.action_items.length > 0 && (
-                        <div className="pt-3 border-t border-border/30">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                            Recommended Actions
-                          </h4>
-                          <ul className="space-y-2">
-                            {section.action_items.map((item, index) => (
-                              <li
-                                key={index}
-                                className="flex items-start gap-3 text-sm text-emerald-400 p-2.5 rounded-lg bg-emerald-500/5"
-                              >
-                                <span className="mt-0.5">→</span>
-                                <span>{item}</span>
                               </li>
                             ))}
                           </ul>
@@ -467,18 +526,18 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Card>
       )}
 
-      {/* Predictions */}
-      {showPredictions && report.predictions && report.predictions.length > 0 && (
+      {/* ─── 5. Predictions & Hypotheses (bets merged in) ─── */}
+      {showPredictions && allPredictions.length > 0 && (
         <Card className="rounded-xl border border-border/50">
           <CardHeader className="pb-3">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
               <IconSignalHorizon className="h-4 w-4 text-violet-400" />
-              Predictions
+              Predictions &amp; Hypotheses
             </h2>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {report.predictions.map((pred, index) => {
+              {allPredictions.map((pred, index) => {
                 const outcomeBadge = pred.outcome ? {
                   correct: { label: '✓ Correct', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
                   incorrect: { label: '✗ Incorrect', cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
@@ -522,18 +581,17 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
         </Card>
       )}
 
-      {/* Judgment Loop */}
-      {showJudgmentLoop && report.judgment_loop && (
-        <JudgmentLoopCard
-          judgmentLoop={report.judgment_loop}
-          predictions={report.predictions}
+      {/* ─── 6. Market Winners ─── */}
+      {showMarketWinners && report.market_winners && (
+        <MarketWinnersCard
+          proven={report.market_winners.proven || []}
+          emerging={report.market_winners.emerging || []}
         />
       )}
 
-      {/* Action Mapping */}
+      {/* ─── 7. Action Mapping ─── */}
       {showActionMapping && report.action_mapping && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* This Week Actions */}
           {report.action_mapping.this_week.length > 0 && (
             <Card className="rounded-xl border border-border/50">
               <CardHeader className="pb-3">
@@ -560,7 +618,6 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             </Card>
           )}
 
-          {/* Monitor Items */}
           {report.action_mapping.monitor.length > 0 && (
             <Card className="rounded-xl border border-border/50">
               <CardHeader className="pb-3">
@@ -587,69 +644,6 @@ export const ReportDetail = ({ report, onBack }: ReportDetailProps) => {
             </Card>
           )}
         </div>
-      )}
-
-      {/* Bets */}
-      {showBets && report.bets && report.bets.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider px-1 mb-4 flex items-center gap-2">
-            <Target className="h-4 w-4 text-amber-400" />
-            Strategic Bets
-          </h2>
-          <div className="space-y-3">
-            {report.bets.map((bet, index) => (
-              <div
-                key={index}
-                className={`p-4 rounded-xl border ${getConfidenceBg(bet.confidence)}`}
-              >
-                <p className="text-foreground text-sm mb-3 leading-relaxed">
-                  {bet.hypothesis}
-                </p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Confidence: <span className={getConfidenceColor(bet.confidence)}>{bet.confidence}%</span>
-                  </span>
-                  <span>
-                    {bet.signal_ids.length} signal{bet.signal_ids.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Key Questions */}
-      {showKeyQuestions && report.key_questions && report.key_questions.length > 0 && (
-        <Card className="rounded-xl border border-border/50">
-          <CardHeader className="pb-3">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <HelpCircle className="h-4 w-4 text-sky-400" />
-              Key Questions
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {report.key_questions.map((question, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-3 text-sm text-muted-foreground"
-                >
-                  <span className="text-sky-400 text-xs mt-0.5 font-medium">Q{index + 1}</span>
-                  <span>{question}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Market Winners */}
-      {showMarketWinners && report.market_winners && (
-        <MarketWinnersCard
-          proven={report.market_winners.proven || []}
-          emerging={report.market_winners.emerging || []}
-        />
       )}
 
       {/* Demo CTA */}

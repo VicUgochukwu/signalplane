@@ -3,11 +3,13 @@ import { ReportCard } from './ReportCard';
 import { OnboardingBanner } from './OnboardingBanner';
 import { PilotStatusBar } from './PilotStatusBar';
 import { IntelligenceOverview } from './IntelligenceOverview';
-import { Target } from 'lucide-react';
-import { IconPacket, IconSignalCount, IconConfidence, IconSignalRadio, IconPersonaRevenue } from '@/components/icons';
+import { Target, Brain, AlertTriangle } from 'lucide-react';
+import { IconPacket, IconSignalCount, IconSignalRadio } from '@/components/icons';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDemo } from '@/contexts/DemoContext';
 import { DemoCtaBanner } from '@/components/demo/DemoCtaBanner';
+import { mergedPredictions, computeAccuracy, countMarketGaps } from '@/lib/packetUtils';
+import { useActionBoardCounts } from '@/hooks/useActionBoardCounts';
 
 interface ReportListProps {
   reports: IntelPacket[];
@@ -17,10 +19,27 @@ interface ReportListProps {
 export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
   const demo = useDemo();
   const { profile, competitors } = useOnboarding();
-  const totalSignals = reports.reduce((sum, r) => sum + (r.metrics?.signals_detected || 0), 0);
-  const avgConfidence = reports.length > 0
-    ? Math.round(reports.reduce((sum, r) => sum + (r.metrics?.confidence_score || 0), 0) / reports.length)
-    : 0;
+
+  // Aggregate prediction accuracy across all packets
+  const avgAccuracy = (() => {
+    let totalScored = 0;
+    let totalCorrect = 0;
+    for (const r of reports) {
+      const preds = mergedPredictions(r);
+      const stat = computeAccuracy(preds);
+      if (stat) {
+        totalScored += stat.scored;
+        totalCorrect += Math.round(stat.accuracy * stat.scored / 100);
+      }
+    }
+    return totalScored > 0 ? Math.round((totalCorrect / totalScored) * 100) : null;
+  })();
+
+  const totalGaps = reports.reduce((sum, r) => sum + countMarketGaps(r), 0);
+
+  // Action board counts per packet
+  const packetIds = reports.map(r => r.id);
+  const { data: boardCounts } = useActionBoardCounts(packetIds);
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -32,13 +51,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
               <IconSignalRadio className="h-5 w-5 text-primary" />
             </div>
           )}
-          {demo?.isDemo ? (
-            <span className="cursor-blink">Control Plane</span>
-          ) : profile?.company_name ? (
-            <span className="cursor-blink">{profile.company_name} Control Plane</span>
-          ) : (
-            <span className="cursor-blink">Control Plane</span>
-          )}
+          <span className="cursor-blink">Control Plane</span>
         </h1>
         <p className="text-muted-foreground text-sm flex items-center gap-2">
           {demo?.isDemo ? (
@@ -84,25 +97,25 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
         </div>
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-sky-500/10">
-              <IconPersonaRevenue className="h-3.5 w-3.5 text-sky-400" />
+            <div className="p-1.5 rounded-md bg-amber-500/10">
+              <Brain className="h-3.5 w-3.5 text-amber-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-sky-400 tabular-nums">
-            {totalSignals}
+          <div className="text-2xl font-bold text-amber-400 tabular-nums">
+            {avgAccuracy !== null ? `${avgAccuracy}%` : '--'}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">Signals Detected</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Prediction Accuracy</div>
         </div>
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-violet-500/10">
-              <IconConfidence className="h-3.5 w-3.5 text-violet-400" />
+            <div className="p-1.5 rounded-md bg-rose-500/10">
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-violet-400 tabular-nums">
-            {avgConfidence}%
+          <div className="text-2xl font-bold text-rose-400 tabular-nums">
+            {totalGaps}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">Avg Confidence</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Market Gaps</div>
         </div>
       </div>
 
@@ -117,6 +130,7 @@ export const ReportList = ({ reports, onSelectReport }: ReportListProps) => {
             report={report}
             onClick={() => onSelectReport(report)}
             isPersonalized={!!profile?.company_name}
+            actionBoardCount={boardCounts?.[report.id] || 0}
           />
         ))}
       </div>

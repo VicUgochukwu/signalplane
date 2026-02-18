@@ -84,6 +84,19 @@ async function handleSyncNewUser(
     .eq('user_id', user.id)
     .maybeSingle();
 
+  // Capture location from request headers (Cloudflare/Deno Deploy geo data)
+  const country = req.headers.get('cf-ipcountry') || req.headers.get('x-country') || undefined;
+  const city = req.headers.get('cf-ipcity') || req.headers.get('x-city') || undefined;
+
+  // Save location to user_company_profiles (fire-and-forget)
+  if (country) {
+    serviceClient.rpc('save_user_location', {
+      p_user_id: user.id,
+      p_country: country,
+      p_city: city || null,
+    }).then(() => {}).catch((err: Error) => console.warn('Location save failed:', err.message));
+  }
+
   const contactSynced = await createOrUpdateContact({
     email,
     firstName,
@@ -98,7 +111,7 @@ async function handleSyncNewUser(
   const eventSent = await sendEvent(email, 'signup', { source });
 
   return new Response(
-    JSON.stringify({ success: true, contactSynced, eventSent }),
+    JSON.stringify({ success: true, contactSynced, eventSent, country, city }),
     { headers }
   );
 }

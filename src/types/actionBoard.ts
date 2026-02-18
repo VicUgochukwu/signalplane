@@ -27,6 +27,7 @@ export interface ActionBoardCard {
   kit_generated_at: string | null;
   outcome: 'positive' | 'neutral' | 'negative' | null;
   outcome_notes: string | null;
+  outcome_recorded_at: string | null;
   packet_title: string;
   packet_week_start: string;
   created_at: string;

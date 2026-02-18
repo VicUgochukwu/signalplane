@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react';
 import { useDemo } from '@/contexts/DemoContext';
 import { FilterBar } from '@/components/FilterBar';
 import { WeekSection } from '@/components/WeekSection';
+import { NarrativeArcCard } from '@/components/NarrativeArcCard';
+import { ConvergenceAlert } from '@/components/ConvergenceAlert';
 import { Card, CardContent } from '@/components/ui/card';
-import { Globe, ArrowRight } from 'lucide-react';
+import { Globe, ArrowRight, ChevronDown, ChevronUp, GitBranch } from 'lucide-react';
 import { IconSignalCount, IconPersonaRevenue, IconCompany } from '@/components/icons';
 import { Link } from 'react-router-dom';
 import type { ChangelogEntry } from '@/types/changelog';
+import type { NarrativeArc, Convergence } from '@/types/narrativeGraph';
 
 // ── Helper to build entries concisely ──
 const s = (
@@ -131,11 +134,596 @@ const SECTOR_SIGNALS: Record<string, ChangelogEntry[]> = {
   ],
 };
 
+// ── Demo narrative arcs per sector ──
+const SECTOR_ARCS: Record<string, NarrativeArc[]> = {
+  'developer-tools': [
+    {
+      arc_id: 'demo-arc-1', company_id: 'demo-gitlab', company_name: 'GitLab',
+      arc_title: 'AI-Native Platform Repositioning',
+      arc_theme: 'Shifting from DevSecOps to AI-powered development platform narrative',
+      arc_status: 'escalating', first_seen_week: '2025-01-13', last_seen_week: '2025-02-03',
+      weeks_active: 4, escalation_count: 4, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 3, confidence_level: 'high',
+      strategic_summary: 'We assess GitLab is executing a deliberate, multi-week AI repositioning campaign. Indicators across 3 page types (homepage, blog, product) over 4 consecutive weeks are consistent with a board-level narrative shift, not a routine web update.',
+      alternative_explanation: 'These changes could reflect independent web team updates rather than a coordinated strategy. Evidence against: 4-week persistence across homepage, blog, and product pages is inconsistent with routine refreshes.',
+      edges: [
+        { edge_id: 'e1', signal_source: 'narrative_drift', source_id: 'd1', week_start_date: '2025-01-13', edge_label: 'origin', llm_reasoning: 'First mention of AI-powered in product page subtitle', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e2', signal_source: 'classified_change', source_id: 'd2', week_start_date: '2025-01-20', edge_label: 'escalation', llm_reasoning: 'Blog post "Why DevSecOps is Dead" signals narrative escalation', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'e3', signal_source: 'narrative_drift', source_id: 'd3', week_start_date: '2025-01-27', edge_label: 'reinforcement', llm_reasoning: 'Category page updated with AI-first language', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e4', signal_source: 'narrative_drift', source_id: 'd4', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage headline changed to "AI-Powered DevSecOps Platform"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-2', company_id: 'demo-snyk', company_name: 'Snyk',
+      arc_title: 'Platform Engineering Expansion',
+      arc_theme: 'Broadening ICP from developer security to platform engineering teams',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'Indicators suggest Snyk is broadening its ICP toward platform engineering teams. Two corroborating signals across partners and product pages over 2 weeks are consistent with a deliberate expansion, though the pattern is still early.',
+      alternative_explanation: 'The ServiceNow partnership may be a one-off integration deal rather than a strategic ICP shift. The product page change could be A/B testing. Monitor for 2 more weeks to confirm sustained intent.',
+      edges: [
+        { edge_id: 'e5', signal_source: 'narrative_drift', source_id: 'd5', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'ServiceNow partnership targets ITSM-integrated vulnerability workflows', evidence_weight: 'low', page_type: 'partners' },
+        { edge_id: 'e6', signal_source: 'classified_change', source_id: 'd6', week_start_date: '2025-02-03', edge_label: 'reinforcement', llm_reasoning: 'Platform Engineering Teams added as primary audience on product page', evidence_weight: 'medium', page_type: 'product' },
+      ],
+    },
+  ],
+  'product-analytics': [
+    {
+      arc_id: 'demo-arc-3', company_id: 'demo-amplitude', company_name: 'Amplitude',
+      arc_title: 'Marketing Analytics Land Grab',
+      arc_theme: 'Expanding from product analytics into marketing team use cases',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 3, confidence_level: 'moderate-high',
+      strategic_summary: 'We assess Amplitude is executing a coordinated ICP expansion into marketing teams. Three signals across product docs, blog, and homepage over 3 weeks indicate deliberate audience broadening, not incidental copy changes.',
+      alternative_explanation: 'The "Growth Operators" blog series could be a content experiment rather than a strategic ICP shift. Homepage changes may reflect seasonal campaign testing. However, the 3-week cross-page consistency argues against this.',
+      edges: [
+        { edge_id: 'e7', signal_source: 'narrative_drift', source_id: 'd7', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Initial signals targeting marketing use cases in product docs', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e8', signal_source: 'classified_change', source_id: 'd8', week_start_date: '2025-01-27', edge_label: 'escalation', llm_reasoning: 'Blog series targeting "Growth Operators" as a new buyer persona', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'e9', signal_source: 'narrative_drift', source_id: 'd9', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage hero changed to explicitly include marketing teams', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-4', company_id: 'demo-posthog', company_name: 'PostHog',
+      arc_title: 'Data Platform Convergence',
+      arc_theme: 'Moving from analytics tool to unified product and data platform',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: PostHog repositioned from analytics tool to data platform on their product page. Single signal on one page type — this could be a routine copy refresh. Monitor for corroborating changes on homepage or pricing.',
+      alternative_explanation: 'A single product page rewording is insufficient to confirm a strategic platform pivot. This may be a content refresh or SEO optimization. Requires homepage or pricing page corroboration within 2 weeks.',
+      edges: [
+        { edge_id: 'e10', signal_source: 'narrative_drift', source_id: 'd10', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Repositioned from "open-source product analytics" to "all-in-one product and data platform"', evidence_weight: 'medium', page_type: 'product' },
+      ],
+    },
+  ],
+  'sales-engagement': [
+    {
+      arc_id: 'demo-arc-5', company_id: 'demo-outreach', company_name: 'Outreach',
+      arc_title: 'Revenue Execution Repositioning',
+      arc_theme: 'Evolving from sales engagement to full-cycle revenue execution platform',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 3, confidence_level: 'high',
+      strategic_summary: 'We assess with high confidence that Outreach is executing a deliberate rebrand from sales engagement to revenue execution. Three corroborating signals across product, blog, and homepage — combined with the Salesforce Revenue Cloud partnership — indicate a coordinated enterprise repositioning.',
+      alternative_explanation: 'The "Revenue Execution" language could be a marketing experiment rather than a permanent rebrand. However, the Salesforce partnership investment and 3-week homepage persistence argue strongly against a temporary change.',
+      edges: [
+        { edge_id: 'e11', signal_source: 'narrative_drift', source_id: 'd11', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Initial shift in product marketing to revenue execution language', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e12', signal_source: 'classified_change', source_id: 'd12', week_start_date: '2025-01-27', edge_label: 'reinforcement', llm_reasoning: 'Salesforce Revenue Cloud integration announcement deepens enterprise positioning', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'e13', signal_source: 'narrative_drift', source_id: 'd13', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage headline changed from Sales Engagement to Revenue Execution Platform', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-6', company_id: 'demo-gong', company_name: 'Gong',
+      arc_title: 'AI Agent Automation Push',
+      arc_theme: 'Shifting from revenue intelligence to autonomous AI-driven sales workflows',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Gong replaced "Revenue Intelligence" with "Revenue AI Platform" on their homepage. Single high-weight signal, but insufficient evidence to confirm a sustained strategic pivot. Monitor for product page and pricing changes.',
+      alternative_explanation: 'Homepage messaging changes at Gong may reflect a marketing campaign rather than a product direction shift. AI branding is widespread — this could be following a trend rather than signaling autonomous capabilities.',
+      edges: [
+        { edge_id: 'e14', signal_source: 'narrative_drift', source_id: 'd14', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Replaced "Revenue Intelligence" with "Revenue AI Platform" with autonomous follow-up features', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'cybersecurity': [
+    {
+      arc_id: 'demo-arc-7', company_id: 'demo-crowdstrike', company_name: 'CrowdStrike',
+      arc_title: 'AI-Native Security Identity',
+      arc_theme: 'Full identity shift from endpoint security to AI-native cybersecurity platform',
+      arc_status: 'escalating', first_seen_week: '2025-01-13', last_seen_week: '2025-02-03',
+      weeks_active: 4, escalation_count: 4, trajectory: 'accelerating', current_severity: 5,
+      corroboration_score: 'strong', page_type_diversity: 3, confidence_level: 'high',
+      strategic_summary: 'We assess with high confidence that CrowdStrike is executing a deliberate identity shift to AI-native security. Four signals across product, homepage, and blog over 4 weeks — including a homepage headline change and an AWS partnership — are consistent with a board-level repositioning.',
+      alternative_explanation: 'AI branding is an industry-wide trend. CrowdStrike may be following competitive pressure rather than leading a strategic pivot. Evidence against: The homepage headline change (high-weight signal) combined with 4-week cross-page persistence exceeds what trend-following would produce.',
+      edges: [
+        { edge_id: 'e15', signal_source: 'narrative_drift', source_id: 'd15', week_start_date: '2025-01-13', edge_label: 'origin', llm_reasoning: 'Charlotte AI introduced as co-pilot feature in product pages', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e16', signal_source: 'classified_change', source_id: 'd16', week_start_date: '2025-01-20', edge_label: 'escalation', llm_reasoning: 'AI capabilities elevated to primary navigation', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e17', signal_source: 'narrative_drift', source_id: 'd17', week_start_date: '2025-01-27', edge_label: 'reinforcement', llm_reasoning: 'AWS partnership announcement leads with AI-powered cloud detection', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'e18', signal_source: 'narrative_drift', source_id: 'd18', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Core positioning changed from Endpoint Security to AI-Native Cybersecurity Platform', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'ai-ml-platforms': [
+    {
+      arc_id: 'demo-arc-8', company_id: 'demo-openai', company_name: 'OpenAI',
+      arc_title: 'Enterprise API Elevation',
+      arc_theme: 'Systematically elevating the API platform to match ChatGPT consumer product',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 3, confidence_level: 'moderate-high',
+      strategic_summary: 'We assess OpenAI is deliberately building a two-track business: consumer ChatGPT and enterprise API. Three signals across blog, product docs, and homepage over 3 weeks — including the Microsoft Fabric partnership — are consistent with a coordinated enterprise GTM push.',
+      alternative_explanation: 'The API elevation could be a response to developer community feedback rather than a strategic enterprise pivot. The Fabric integration may have been Microsoft-driven. However, the homepage parity change is a high-weight signal that suggests internal prioritization.',
+      edges: [
+        { edge_id: 'e19', signal_source: 'narrative_drift', source_id: 'd19', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Microsoft Fabric integration signals enterprise-first data strategy', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'e20', signal_source: 'classified_change', source_id: 'd20', week_start_date: '2025-01-27', edge_label: 'reinforcement', llm_reasoning: 'API documentation and developer portal redesigned for enterprise workflows', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e21', signal_source: 'narrative_drift', source_id: 'd21', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage now gives ChatGPT Enterprise and API Platform equal billing', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-9', company_id: 'demo-anthropic', company_name: 'Anthropic',
+      arc_title: 'Safety-First Differentiation',
+      arc_theme: 'Positioning AI safety as the primary competitive differentiator over capability',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 2,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Anthropic elevated AI Safety to top-level navigation. Single signal on one page type. Insufficient evidence for a confident assessment — this could reflect existing values being made more visible rather than a new strategic direction.',
+      alternative_explanation: 'Navigation changes may be a UX improvement rather than a strategic repositioning. Anthropic has always emphasized safety — this could be surfacing existing positioning rather than creating new narrative.',
+      edges: [
+        { edge_id: 'e22', signal_source: 'narrative_drift', source_id: 'd22', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'AI Safety elevated to top-level navigation alongside Products', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'cloud-infrastructure': [
+    {
+      arc_id: 'demo-arc-10', company_id: 'demo-vercel', company_name: 'Vercel',
+      arc_title: 'AI Deployment Cloud Pivot',
+      arc_theme: 'Transforming from frontend cloud to AI application deployment infrastructure',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 3, confidence_level: 'moderate-high',
+      strategic_summary: 'We assess Vercel is deliberately pivoting from frontend cloud to AI deployment infrastructure. Three signals across blog, product docs, and homepage over 3 weeks — including the Cloudflare security partnership — indicate a coordinated repositioning, not opportunistic AI branding.',
+      alternative_explanation: 'Vercel may be adding AI messaging to ride the trend without fundamentally changing their product focus. The Cloudflare partnership could be a security play unrelated to AI strategy. However, the homepage redesign (high-weight signal) suggests genuine strategic commitment.',
+      edges: [
+        { edge_id: 'e23', signal_source: 'narrative_drift', source_id: 'd23', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Cloudflare partnership for enterprise security fills AI deployment gap', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'e24', signal_source: 'classified_change', source_id: 'd24', week_start_date: '2025-01-27', edge_label: 'reinforcement', llm_reasoning: 'AI SDK documentation promoted to primary developer resource', evidence_weight: 'medium', page_type: 'product' },
+        { edge_id: 'e25', signal_source: 'narrative_drift', source_id: 'd25', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage redesigned around "AI-powered frontend cloud"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'customer-success': [
+    {
+      arc_id: 'demo-arc-cs-1', company_id: 'demo-gainsight', company_name: 'Gainsight',
+      arc_title: 'AI-First CS Platform Repositioning',
+      arc_theme: 'Shifting from traditional CS software to AI-powered predictive customer success',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 2, confidence_level: 'moderate-high',
+      strategic_summary: 'We assess Gainsight is executing a deliberate AI repositioning. The "Death of Reactive CS" blog post followed by an AI-first homepage rebrand within 2 weeks — across blog and homepage — indicates a board-level narrative shift toward predictive, proactive customer success.',
+      alternative_explanation: 'AI branding may be a marketing experiment to justify premium pricing. The blog post could be a content marketing play without product backing. However, the homepage headline change (high-weight signal) combined with the provocative manifesto argues for genuine strategic commitment.',
+      edges: [
+        { edge_id: 'ecs1', signal_source: 'narrative_drift', source_id: 'dcs1', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: '"The Death of Reactive CS" manifesto challenges industry orthodoxy', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'ecs2', signal_source: 'narrative_drift', source_id: 'dcs2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage headline changed to "The AI-First Customer Success Platform"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-cs-2', company_id: 'demo-vitally', company_name: 'Vitally',
+      arc_title: 'Beyond CS: Proactive Customer Platform',
+      arc_theme: 'Expanding from CS-only tool to cross-functional proactive customer platform',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 2,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Vitally repositioned from "Customer Success for B2B SaaS" to "The Proactive Customer Platform." Single homepage signal — could be a routine tagline refresh or a genuine ICP broadening toward CX and account management teams.',
+      alternative_explanation: 'Homepage tagline changes are often A/B tested and may not represent a permanent strategic direction. Vitally may be testing broader positioning without committing to a multi-team product roadmap.',
+      edges: [
+        { edge_id: 'ecs3', signal_source: 'narrative_drift', source_id: 'dcs3', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Repositioned from B2B SaaS CS to "The Proactive Customer Platform"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'marketing-automation': [
+    {
+      arc_id: 'demo-arc-ma-1', company_id: 'demo-hubspot', company_name: 'HubSpot',
+      arc_title: 'Unified Customer Platform Consolidation',
+      arc_theme: 'Moving from hub-based messaging to a single unified platform narrative',
+      arc_status: 'escalating', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'We assess HubSpot is consolidating its multi-hub messaging into a unified "Customer Platform" narrative. The homepage rebrand from "Grow Better" to "The Customer Platform for Scaling Companies" — combined with aggressive commerce integration — signals a platform consolidation play to make point solutions harder to justify.',
+      alternative_explanation: 'HubSpot frequently rotates homepage heroes for campaigns. The Shopify integration may be a partnership team initiative rather than a strategic commerce play. However, the "Customer Platform" language replacing the iconic "Grow Better" tagline suggests a permanent directional shift.',
+      edges: [
+        { edge_id: 'ema1', signal_source: 'classified_change', source_id: 'dma1', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Shopify integration deepens commerce positioning', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'ema2', signal_source: 'narrative_drift', source_id: 'dma2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage headline shifted from "Grow Better" to "The Customer Platform for Scaling Companies"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-ma-2', company_id: 'demo-klaviyo', company_name: 'Klaviyo',
+      arc_title: 'B2B Market Entry',
+      arc_theme: 'Expanding from e-commerce-only to B2B marketing automation',
+      arc_status: 'building', first_seen_week: '2025-02-03', last_seen_week: '2025-02-03',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Klaviyo launched a B2B tier at $400/mo — previously e-commerce only. Single signal on the pricing page. Insufficient data to confirm sustained B2B commitment vs. opportunistic market testing.',
+      alternative_explanation: 'The B2B tier could be a limited experiment or a response to customer requests rather than a full market entry. Pricing page additions are relatively low-commitment and easily reversible.',
+      edges: [
+        { edge_id: 'ema3', signal_source: 'classified_change', source_id: 'dma3', week_start_date: '2025-02-03', edge_label: 'origin', llm_reasoning: 'B2B tier at $400/mo signals market expansion beyond e-commerce', evidence_weight: 'medium', page_type: 'pricing' },
+      ],
+    },
+  ],
+  'data-infrastructure': [
+    {
+      arc_id: 'demo-arc-di-1', company_id: 'demo-snowflake', company_name: 'Snowflake',
+      arc_title: 'AI Data Cloud Identity Shift',
+      arc_theme: 'Repositioning from data warehousing to AI/ML workload platform',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 5,
+      corroboration_score: 'strong', page_type_diversity: 2, confidence_level: 'high',
+      strategic_summary: 'We assess with high confidence that Snowflake is executing a deliberate identity shift to center AI workloads. The Anthropic Claude integration followed by a homepage rebrand from "The Data Cloud" to "The AI Data Cloud" over 3 weeks indicates a board-level strategic pivot to compete with Databricks on AI/ML.',
+      alternative_explanation: 'The AI rebrand could be defensive positioning in response to Databricks rather than a genuine product pivot. The Anthropic partnership may have been opportunistic. Evidence against: homepage headline changes (highest-weight signal) plus a multi-week pattern argue for deliberate strategic commitment.',
+      edges: [
+        { edge_id: 'edi1', signal_source: 'classified_change', source_id: 'ddi1', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Anthropic Claude integration for in-warehouse AI processing', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'edi2', signal_source: 'narrative_drift', source_id: 'ddi2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage headline shifted from "The Data Cloud" to "The AI Data Cloud"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-di-2', company_id: 'demo-dbt-labs', company_name: 'dbt Labs',
+      arc_title: 'Analytics Engineering Platform Play',
+      arc_theme: 'Evolving from transformation tool to full analytics engineering platform',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: dbt Labs repositioned from "Transform data in your warehouse" to "The analytics engineering platform" with semantic layer and metrics store in top-level navigation. Single homepage signal — needs corroboration on pricing or product pages.',
+      alternative_explanation: 'Homepage messaging updates at dbt could reflect a marketing refresh to align with the growing "analytics engineering" category term. The semantic layer may be a feature addition, not a platform strategy shift.',
+      edges: [
+        { edge_id: 'edi3', signal_source: 'narrative_drift', source_id: 'ddi3', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Repositioned to "analytics engineering platform" with semantic layer as top-level feature', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'fintech-infrastructure': [
+    {
+      arc_id: 'demo-arc-fi-1', company_id: 'demo-stripe', company_name: 'Stripe',
+      arc_title: 'Revenue Growth Platform Expansion',
+      arc_theme: 'Expanding from payments infrastructure to full revenue growth platform',
+      arc_status: 'escalating', first_seen_week: '2025-01-20', last_seen_week: '2025-02-03',
+      weeks_active: 3, escalation_count: 3, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'strong', page_type_diversity: 2, confidence_level: 'moderate-high',
+      strategic_summary: 'We assess Stripe is deliberately expanding its narrative from payments to revenue growth. The Salesforce Revenue Cloud integration followed by a homepage rebrand from "payments infrastructure" to "financial infrastructure to grow revenue" over 3 weeks signals a coordinated TAM expansion encroaching on billing and revenue platforms.',
+      alternative_explanation: 'The "grow revenue" messaging could be a marketing optimization rather than a product pivot. The Salesforce integration may be a partnership team initiative. However, homepage headline changes combined with the strategic partnership pattern argue for genuine directional commitment.',
+      edges: [
+        { edge_id: 'efi1', signal_source: 'classified_change', source_id: 'dfi1', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Salesforce Revenue Cloud integration for billing reconciliation', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'efi2', signal_source: 'narrative_drift', source_id: 'dfi2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage evolved from "payments infrastructure" to "financial infrastructure to grow revenue"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-fi-2', company_id: 'demo-plaid', company_name: 'Plaid',
+      arc_title: 'Traditional Finance Expansion',
+      arc_theme: 'Moving from fintech startup customers to banks and credit unions',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Plaid launched "Plaid for Lending" targeting banks and credit unions directly. Single product page signal — could represent a vertical product experiment rather than a fundamental ICP shift away from fintech startups.',
+      alternative_explanation: 'The lending vertical could be a targeted product expansion without fundamentally changing Plaid\'s core fintech startup focus. Many API companies add vertical pages without shifting overall strategy.',
+      edges: [
+        { edge_id: 'efi3', signal_source: 'classified_change', source_id: 'dfi3', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: '"Plaid for Lending" vertical targeting banks and credit unions directly', evidence_weight: 'medium', page_type: 'product' },
+      ],
+    },
+  ],
+  'hr-tech': [
+    {
+      arc_id: 'demo-arc-hr-1', company_id: 'demo-rippling', company_name: 'Rippling',
+      arc_title: 'Workforce Operations Platform Play',
+      arc_theme: 'Expanding from HR platform to unified workforce management across IT, finance, and HR',
+      arc_status: 'escalating', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'We assess Rippling is executing a deliberate expansion from HR into the full employee operations stack. The Navan integration for travel policy enforcement followed by a homepage rebrand from "HR Platform" to "Workforce Management Platform" signals a coordinated TAM expansion that threatens BambooHR, Gusto, and Deel simultaneously.',
+      alternative_explanation: 'The Navan partnership could be an integration team initiative unrelated to positioning strategy. The "Workforce Management" rebrand may be testing broader language without product commitment. However, the homepage change (high-weight) combined with expanding integration partnerships argues for a genuine platform play.',
+      edges: [
+        { edge_id: 'ehr1', signal_source: 'classified_change', source_id: 'dhr1', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Navan integration deepens the "employee graph" across travel and expense workflows', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'ehr2', signal_source: 'narrative_drift', source_id: 'dhr2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Rebranded from "HR Platform" to "Workforce Management Platform" spanning IT, finance, HR', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-hr-2', company_id: 'demo-gusto', company_name: 'Gusto',
+      arc_title: 'Embedded Payroll API Channel',
+      arc_theme: 'Opening developer/embedded channel alongside direct SMB business',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Gusto added embedded payroll API messaging to their homepage alongside their traditional SMB positioning. Single signal — could reflect a new product line or a developer marketing experiment.',
+      alternative_explanation: 'The API messaging may target a small embedded payroll audience without changing Gusto\'s core SMB focus. Many SaaS companies add developer documentation without fundamentally shifting their go-to-market.',
+      edges: [
+        { edge_id: 'ehr3', signal_source: 'narrative_drift', source_id: 'dhr3', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Added embedded payroll API messaging targeting developers alongside HR managers', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'collaboration': [
+    {
+      arc_id: 'demo-arc-co-1', company_id: 'demo-notion', company_name: 'Notion',
+      arc_title: 'Everything App for Work',
+      arc_theme: 'Declaring super-app positioning against the entire productivity stack',
+      arc_status: 'escalating', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'We assess Notion is deliberately positioning as the "everything app for work" — a super-app strategy that challenges Confluence, Asana, and Linear simultaneously. The blog manifesto followed by unbundled AI product messaging over 2 weeks indicates a coordinated narrative escalation.',
+      alternative_explanation: 'The "everything app" blog post could be aspirational content marketing rather than a realistic product roadmap. AI unbundling may be a monetization experiment. However, the combination of a provocative manifesto plus product changes argues for genuine strategic intent.',
+      edges: [
+        { edge_id: 'eco1', signal_source: 'narrative_drift', source_id: 'dco1', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: '"Why We Are Building the Everything App for Work" declares super-app positioning', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'eco2', signal_source: 'classified_change', source_id: 'dco2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Notion AI unbundled as standalone product — separate monetization of AI features', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-co-2', company_id: 'demo-linear', company_name: 'Linear',
+      arc_title: 'Product Development Platform Expansion',
+      arc_theme: 'Expanding from issue tracking into full product development management',
+      arc_status: 'building', first_seen_week: '2025-01-20', last_seen_week: '2025-01-20',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 2,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Linear dropped "Issue Tracking" language and repositioned as "the purpose-built tool for modern product development" with roadmapping features. Single homepage signal — needs product page or pricing corroboration.',
+      alternative_explanation: 'Linear may be evolving its marketing language to match what users already do (project management) without fundamentally expanding the product. Roadmapping features could be incremental additions, not a pivot.',
+      edges: [
+        { edge_id: 'eco3', signal_source: 'narrative_drift', source_id: 'dco3', week_start_date: '2025-01-20', edge_label: 'origin', llm_reasoning: 'Dropped "Issue Tracking" for "modern product development" with roadmapping and project views', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'devops-observability': [
+    {
+      arc_id: 'demo-arc-do-1', company_id: 'demo-datadog', company_name: 'Datadog',
+      arc_title: 'Observability + Security Convergence',
+      arc_theme: 'Merging security products into core observability platform narrative',
+      arc_status: 'escalating', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'We assess Datadog is deliberately converging observability and security under one platform. The TCO calculator blog post attacking cost objections followed by a homepage rebrand from "Cloud Monitoring" to "Observability & Security Platform" signals a coordinated repositioning that challenges standalone SIEM vendors.',
+      alternative_explanation: 'The security messaging could be a marketing expansion to justify higher ACV without substantial product investment. The TCO calculator may be a content marketing play. However, the homepage headline change (high-weight) argues for genuine product-backed positioning.',
+      edges: [
+        { edge_id: 'edo1', signal_source: 'narrative_drift', source_id: 'ddo1', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'TCO calculator attacks cost objections while positioning security as core value', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'edo2', signal_source: 'narrative_drift', source_id: 'ddo2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Repositioned from "Cloud Monitoring" to "The Observability & Security Platform"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-do-2', company_id: 'demo-newrelic', company_name: 'New Relic',
+      arc_title: 'AI Monitoring First-Mover Play',
+      arc_theme: 'First to market with LLM observability as a dedicated product category',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: New Relic added "AI Monitoring" as a primary product category — tracking LLM performance, token usage, and hallucination rates. Single product page signal — could be a feature launch or a category-defining move.',
+      alternative_explanation: 'AI monitoring could be a minor feature addition marketed as a product category for visibility. Many APM vendors add AI monitoring without it becoming a core positioning element. Monitor for homepage and pricing page corroboration.',
+      edges: [
+        { edge_id: 'edo3', signal_source: 'classified_change', source_id: 'ddo3', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'AI Monitoring added as primary product category alongside traditional APM', evidence_weight: 'medium', page_type: 'product' },
+      ],
+    },
+  ],
+  'ecommerce-platforms': [
+    {
+      arc_id: 'demo-arc-ec-1', company_id: 'demo-shopify', company_name: 'Shopify',
+      arc_title: 'Omnichannel Commerce Repositioning',
+      arc_theme: 'Moving from online-first to omnichannel "everywhere commerce" narrative',
+      arc_status: 'escalating', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'We assess Shopify is deliberately expanding its narrative from online stores to omnichannel commerce. The "Why DTC is Dead" blog post followed by a homepage rebrand emphasizing "online, in-person, and everywhere in between" signals a coordinated push to own the full commerce stack, including POS and wholesale.',
+      alternative_explanation: 'The DTC critique may be thought leadership without product implications. The "everywhere" positioning could be aspirational rather than reflective of actual product capabilities. However, the blog + homepage combination over 2 weeks argues for deliberate narrative coordination.',
+      edges: [
+        { edge_id: 'eec1', signal_source: 'narrative_drift', source_id: 'dec1', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: '"Why DTC is Dead" editorial argues for multi-channel commerce', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'eec2', signal_source: 'narrative_drift', source_id: 'dec2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage shifted to "online, in-person, and everywhere in between" omnichannel messaging', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+  'nocode-lowcode': [
+    {
+      arc_id: 'demo-arc-nc-1', company_id: 'demo-retool', company_name: 'Retool',
+      arc_title: 'AI App Builder Transformation',
+      arc_theme: 'Pivoting from drag-and-drop internal tools to AI-generated enterprise apps',
+      arc_status: 'escalating', first_seen_week: '2025-01-27', last_seen_week: '2025-02-03',
+      weeks_active: 2, escalation_count: 2, trajectory: 'accelerating', current_severity: 4,
+      corroboration_score: 'moderate', page_type_diversity: 2, confidence_level: 'moderate',
+      strategic_summary: 'We assess Retool is deliberately pivoting from manual internal tool building to AI-generated enterprise apps. The Snowflake integration followed by a homepage rebrand from "Build internal tools, remarkably fast" to "The universal AI app builder for enterprise" signals a coordinated AI-first repositioning.',
+      alternative_explanation: 'The AI messaging could be trend-following without substantial product changes behind it. The Snowflake integration may be a feature addition rather than a strategic pivot. However, the homepage headline change (high-weight signal) replacing their iconic tagline suggests genuine commitment.',
+      edges: [
+        { edge_id: 'enc1', signal_source: 'classified_change', source_id: 'dnc1', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Snowflake integration with AI-powered SQL generation in internal tools', evidence_weight: 'low', page_type: 'blog' },
+        { edge_id: 'enc2', signal_source: 'narrative_drift', source_id: 'dnc2', week_start_date: '2025-02-03', edge_label: 'escalation', llm_reasoning: 'Homepage changed from "Build internal tools" to "The universal AI app builder for enterprise"', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+    {
+      arc_id: 'demo-arc-nc-2', company_id: 'demo-webflow', company_name: 'Webflow',
+      arc_title: 'AI-Assisted Design Democratization',
+      arc_theme: 'Shifting from visual development to AI-assisted design for non-developers',
+      arc_status: 'building', first_seen_week: '2025-01-27', last_seen_week: '2025-01-27',
+      weeks_active: 1, escalation_count: 1, trajectory: 'steady', current_severity: 3,
+      corroboration_score: 'weak', page_type_diversity: 1, confidence_level: 'low',
+      strategic_summary: 'Early indicator: Webflow dropped "Visual web development" for "The site you want. Without the dev time." with AI-assisted design as a primary feature. Single homepage signal — could represent a messaging refresh or a genuine shift toward a non-developer audience.',
+      alternative_explanation: 'Webflow may be simplifying their tagline for marketing purposes without fundamentally changing their product. AI-assisted design could be a feature badge rather than a core repositioning. Monitor for product page and pricing changes.',
+      edges: [
+        { edge_id: 'enc3', signal_source: 'narrative_drift', source_id: 'dnc3', week_start_date: '2025-01-27', edge_label: 'origin', llm_reasoning: 'Dropped "Visual web development" for "Without the dev time" — AI-assisted design leads', evidence_weight: 'high', page_type: 'homepage' },
+      ],
+    },
+  ],
+};
+
+// ── Demo convergences per sector ──
+const SECTOR_CONVERGENCES: Record<string, Convergence[]> = {
+  'developer-tools': [
+    {
+      convergence_id: 'demo-conv-1', convergence_theme: 'AI-First Platform Repositioning',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-gitlab', 'demo-datadog'],
+      company_names: ['GitLab', 'Datadog'],
+      arc_ids: ['demo-arc-1'],
+      severity: 4,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'Indicators suggest GitLab and Datadog are independently converging on AI-first platform positioning within the same 4-week window. This pattern is consistent with a category-level shift toward AI as table stakes, though the companies may be responding to the same market pressure rather than coordinating.',
+      alternative_explanation: 'Both companies may be independently responding to the same analyst narrative ("AI is the future of DevOps") rather than executing parallel strategies. The timing overlap could be coincidental — driven by the same industry conference cycle.',
+    },
+  ],
+  'sales-engagement': [
+    {
+      convergence_id: 'demo-conv-2', convergence_theme: 'Revenue Platform Convergence',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-outreach', 'demo-salesloft'],
+      company_names: ['Outreach', 'Salesloft'],
+      arc_ids: ['demo-arc-5'],
+      severity: 3,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess that Outreach and Salesloft are converging on "revenue orchestration" positioning. Both shifted messaging within the same 3-week window, suggesting the category definition is evolving from "sales engagement" to a broader revenue platform framing.',
+      alternative_explanation: 'Post-acquisition language changes at Salesloft (Vista Equity) may be driving messaging shifts unrelated to organic strategy. Outreach may be responding to Salesloft rather than both responding to the same market signal.',
+    },
+  ],
+  'cybersecurity': [
+    {
+      convergence_id: 'demo-conv-3', convergence_theme: 'AI-Native Security Arms Race',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-crowdstrike', 'demo-sentinelone'],
+      company_names: ['CrowdStrike', 'SentinelOne'],
+      arc_ids: ['demo-arc-7'],
+      severity: 5,
+      corroboration_score: 'strong', confidence_level: 'high',
+      summary: 'We assess with high confidence that CrowdStrike and SentinelOne are in a direct AI positioning race. Both introduced AI copilots (Charlotte AI, Purple AI) within 2 weeks of each other, across homepage and product pages. This convergence is strongly corroborated across multiple high-weight signals.',
+      alternative_explanation: 'Both companies attend the same industry events (RSA, Black Hat) and may be responding to the same analyst briefing cycle. However, the simultaneous homepage headline changes — the highest-weight signal type — make coincidence unlikely.',
+    },
+  ],
+  'ai-ml-platforms': [
+    {
+      convergence_id: 'demo-conv-4', convergence_theme: 'Enterprise AI Platform War',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-openai', 'demo-cohere', 'demo-huggingface'],
+      company_names: ['OpenAI', 'Cohere', 'Hugging Face'],
+      arc_ids: ['demo-arc-8'],
+      severity: 4,
+      corroboration_score: 'moderate', confidence_level: 'moderate-high',
+      summary: 'We assess three major AI providers are converging on enterprise-grade positioning. OpenAI elevated its API, Cohere cut enterprise pricing, and Hugging Face launched Enterprise Hub — all within the same 3-week window. This pattern suggests the enterprise AI market is crystallizing around security, customization, and data sovereignty.',
+      alternative_explanation: 'These moves may be driven by different catalysts: OpenAI by Microsoft partnership pressure, Cohere by competitive pricing dynamics, and Hugging Face by Series D investor expectations. The convergence in timing may be coincidental rather than reflecting a shared market signal.',
+    },
+  ],
+  'customer-success': [
+    {
+      convergence_id: 'demo-conv-cs', convergence_theme: 'AI-Powered Proactive CS',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-gainsight', 'demo-vitally'],
+      company_names: ['Gainsight', 'Vitally'],
+      arc_ids: ['demo-arc-cs-1', 'demo-arc-cs-2'],
+      severity: 3,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess Gainsight and Vitally are converging on proactive, AI-first customer success positioning. Gainsight rebranded to "AI-First CS Platform" while Vitally shifted to "The Proactive Customer Platform" within the same 2-week window, suggesting the CS category is evolving from reactive health scoring to predictive AI-driven engagement.',
+      alternative_explanation: 'Both companies may be independently following the broader SaaS trend of adding "AI" to their positioning. Vitally may be repositioning for differentiation from Gainsight rather than converging with them.',
+    },
+  ],
+  'marketing-automation': [
+    {
+      convergence_id: 'demo-conv-ma', convergence_theme: 'Platform Consolidation War',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-hubspot', 'demo-activecampaign'],
+      company_names: ['HubSpot', 'ActiveCampaign'],
+      arc_ids: ['demo-arc-ma-1'],
+      severity: 3,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess HubSpot and ActiveCampaign are converging on unified revenue platform positioning. HubSpot rebranded to "The Customer Platform" while ActiveCampaign added "Revenue Teams" targeting — both moving beyond marketing-only messaging within the same window.',
+      alternative_explanation: 'ActiveCampaign may be responding to HubSpot rather than both responding to the same market signal. The "revenue teams" language is widespread in B2B SaaS and may not indicate strategic convergence.',
+    },
+  ],
+  'data-infrastructure': [
+    {
+      convergence_id: 'demo-conv-di', convergence_theme: 'AI Workload Identity Race',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-snowflake', 'demo-databricks'],
+      company_names: ['Snowflake', 'Databricks'],
+      arc_ids: ['demo-arc-di-1'],
+      severity: 5,
+      corroboration_score: 'strong', confidence_level: 'high',
+      summary: 'We assess with high confidence that Snowflake and Databricks are in a direct AI workload positioning race. Snowflake rebranded to "The AI Data Cloud" while Databricks slashed serverless SQL pricing by 30% — each attacking the other\'s stronghold. This convergence is strongly corroborated by simultaneous product and pricing moves.',
+      alternative_explanation: 'Both companies report similar quarterly timelines and may independently respond to the same board/investor pressure to show AI momentum. However, the simultaneous offensive moves against each other\'s core business make coincidence unlikely.',
+    },
+  ],
+  'hr-tech': [
+    {
+      convergence_id: 'demo-conv-hr', convergence_theme: 'Platform vs. Point Solution War',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-rippling', 'demo-deel'],
+      company_names: ['Rippling', 'Deel'],
+      arc_ids: ['demo-arc-hr-1'],
+      severity: 4,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess Rippling and Deel are converging on platform expansion strategies that threaten single-function HR tools. Rippling expanded to "Workforce Management Platform" spanning IT, finance, and HR, while Deel launched a free HR tier to create a PLG funnel — both moves compress the market for BambooHR, Gusto, and other point solutions.',
+      alternative_explanation: 'Rippling and Deel may be executing independent strategies driven by different investor expectations (IPO readiness for Rippling, growth velocity for Deel). The simultaneous timing may reflect quarterly planning cycles rather than market convergence.',
+    },
+  ],
+  'collaboration': [
+    {
+      convergence_id: 'demo-conv-co', convergence_theme: 'Super-App vs. Purpose-Built Tools',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-notion', 'demo-coda'],
+      company_names: ['Notion', 'Coda'],
+      arc_ids: ['demo-arc-co-1'],
+      severity: 3,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess Notion and Coda are converging on "do everything" platform positioning. Notion declared super-app intent while Coda simplified pricing and included AI in all plans — both are removing reasons for teams to use separate project management, wiki, and docs tools.',
+      alternative_explanation: 'Coda\'s pricing simplification may be a churn reduction tactic rather than a strategic convergence with Notion. The collaboration market has always had bundling tendencies — this may be incremental rather than a category-defining shift.',
+    },
+  ],
+  'devops-observability': [
+    {
+      convergence_id: 'demo-conv-do', convergence_theme: 'Observability + Security Bundling',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-datadog', 'demo-elastic'],
+      company_names: ['Datadog', 'Elastic'],
+      arc_ids: ['demo-arc-do-1'],
+      severity: 4,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess Datadog and Elastic are converging on platform strategies that merge observability with adjacent capabilities. Datadog bundled security into core positioning while Elastic pivoted to AI-powered enterprise search — both expanding beyond traditional monitoring into broader platform narratives.',
+      alternative_explanation: 'These moves may target different buyers (Datadog: SecOps, Elastic: enterprise search) and the convergence may be superficial. Both companies face growth pressure that incentivizes TAM expansion regardless of market dynamics.',
+    },
+  ],
+  'ecommerce-platforms': [
+    {
+      convergence_id: 'demo-conv-ec', convergence_theme: 'Omnichannel + B2B Commerce Push',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-shopify', 'demo-bigcommerce'],
+      company_names: ['Shopify', 'BigCommerce'],
+      arc_ids: ['demo-arc-ec-1'],
+      severity: 3,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess Shopify and BigCommerce are converging on omnichannel and B2B commerce positioning. Shopify declared "DTC is Dead" while BigCommerce launched an enterprise B2B tier — both signaling that online-only commerce is no longer sufficient and that B2B features are becoming table stakes.',
+      alternative_explanation: 'Shopify and BigCommerce may be responding to different competitive pressures (Shopify: Amazon, BigCommerce: Shopify Plus). The B2B push could be driven by different customer demand profiles rather than a shared market signal.',
+    },
+  ],
+  'nocode-lowcode': [
+    {
+      convergence_id: 'demo-conv-nc', convergence_theme: 'AI as the New No-Code',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-retool', 'demo-appsmith'],
+      company_names: ['Retool', 'Appsmith'],
+      arc_ids: ['demo-arc-nc-1'],
+      severity: 4,
+      corroboration_score: 'moderate', confidence_level: 'moderate-high',
+      summary: 'We assess Retool and Appsmith are converging on AI-generated app narratives that may redefine the no-code/low-code category. Retool rebranded to "AI app builder" while Appsmith added "AI Agents" product section — both suggesting that manual drag-and-drop building is being replaced by AI-generated applications.',
+      alternative_explanation: 'AI features in no-code tools may be incremental additions rather than category-redefining shifts. Both companies face pressure to show AI capabilities and may be adding surface-level features without fundamentally changing the product.',
+    },
+  ],
+  'fintech-infrastructure': [
+    {
+      convergence_id: 'demo-conv-fi', convergence_theme: 'Revenue Platform Expansion',
+      week_detected: '2025-02-03',
+      company_ids: ['demo-stripe', 'demo-adyen'],
+      company_names: ['Stripe', 'Adyen'],
+      arc_ids: ['demo-arc-fi-1'],
+      severity: 4,
+      corroboration_score: 'moderate', confidence_level: 'moderate',
+      summary: 'We assess Stripe and Adyen are converging on broader revenue platform positioning beyond pure payments. Stripe rebranded to "financial infrastructure to grow revenue" while Adyen published transparent interchange-plus pricing — both expanding the competitive frame from processing fees to revenue growth outcomes.',
+      alternative_explanation: 'Stripe\'s revenue messaging may target billing/subscription tools rather than converging with Adyen. Adyen\'s pricing transparency could be a downmarket push unrelated to Stripe\'s platform play. However, the simultaneous repositioning suggests a shared market dynamic.',
+    },
+  ],
+};
+
 function DemoSignalFeed() {
   const demo = useDemo();
   const sectorSlug = demo?.sectorSlug || '';
   const signals = SECTOR_SIGNALS[sectorSlug] || SECTOR_SIGNALS['developer-tools'];
+  const arcs = SECTOR_ARCS[sectorSlug] || [];
+  const convergences = SECTOR_CONVERGENCES[sectorSlug] || [];
 
+  const [arcsExpanded, setArcsExpanded] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState('all');
   const [selectedTag, setSelectedTag] = useState('all');
   const [selectedMagnitude, setSelectedMagnitude] = useState('all');
@@ -232,6 +820,41 @@ function DemoSignalFeed() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Narrative Intelligence */}
+      {(arcs.length > 0 || convergences.length > 0) && (
+        <div className="space-y-4">
+          <button
+            onClick={() => setArcsExpanded(!arcsExpanded)}
+            className="flex items-center gap-2 w-full group"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <GitBranch className="h-4 w-4 text-primary" />
+              Narrative Intelligence
+            </div>
+            <div className="flex-1 h-px bg-border/50" />
+            <span className="text-xs text-muted-foreground font-medium">
+              {arcs.length} arc{arcs.length !== 1 ? 's' : ''}
+            </span>
+            {arcsExpanded
+              ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+
+          {arcsExpanded && (
+            <div className="space-y-4">
+              {convergences.map((c) => (
+                <ConvergenceAlert key={c.convergence_id} convergence={c} />
+              ))}
+              <div className="grid gap-4 md:grid-cols-2">
+                {arcs.map((arc) => (
+                  <NarrativeArcCard key={arc.arc_id} arc={arc} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="space-y-4 border-t border-border/50 pt-6">

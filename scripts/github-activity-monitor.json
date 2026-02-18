@@ -1,0 +1,475 @@
+{
+  "name": "GitHub Activity Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9,
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/rest/v1/companies?select=id,name,slug",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Profile",
+              "value": "core"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-companies",
+      "name": "Get Tracked Companies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "H8tMhKgDqMwTB6An",
+          "name": "Supabase \u2013 Messaging Tracker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "batchSize": 1
+        }
+      },
+      "id": "node-loop",
+      "name": "Loop Over Companies",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/search/repositories?q={{ encodeURIComponent($json.name) }}+in:name&sort=updated&per_page=5",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalPlane-Bot"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-search-github",
+      "name": "Search GitHub Repos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const repos = $input.first().json.items || [];\nconst sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();\nconst companyName = $('Loop Over Companies').first().json.name;\nconst companyId = $('Loop Over Companies').first().json.id;\n\n// Filter to repos that were pushed to in last 7 days\nconst recentRepos = repos.filter(r => r.pushed_at > sevenDaysAgo).slice(0, 3);\n\nif (recentRepos.length === 0) {\n  return [{ json: { hasActivity: false, company_name: companyName, company_id: companyId } }];\n}\n\nreturn [{ json: {\n  hasActivity: true,\n  company_name: companyName,\n  company_id: companyId,\n  repos: recentRepos.map(r => ({\n    full_name: r.full_name,\n    description: r.description,\n    stars: r.stargazers_count,\n    language: r.language,\n    pushed_at: r.pushed_at,\n    html_url: r.html_url,\n    topics: r.topics || [],\n    open_issues: r.open_issues_count\n  }))\n}}];"
+      },
+      "id": "node-get-releases",
+      "name": "Get Recent Releases",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-activity",
+              "leftValue": "={{ $json.hasActivity }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-activity",
+      "name": "If Has Activity",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $json.repos[0].full_name }}/releases?per_page=3",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalPlane-Bot"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fetch-releases",
+      "name": "Fetch Release Notes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const repoData = $('Get Recent Releases').first().json;\nconst releases = $input.first().json || [];\nconst releasesArray = Array.isArray(releases) ? releases : [];\n\nreturn [{ json: {\n  company_name: repoData.company_name,\n  company_id: repoData.company_id,\n  repos: repoData.repos,\n  releases: releasesArray.slice(0, 5).map(r => ({\n    tag_name: r.tag_name,\n    name: r.name,\n    body: (r.body || '').slice(0, 500),\n    published_at: r.published_at,\n    html_url: r.html_url\n  }))\n}}];"
+      },
+      "id": "node-prepare-data",
+      "name": "Prepare GitHub Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\": \"claude-sonnet-4-20250514\", \"max_tokens\": 2000, \"messages\": [{\"role\": \"user\", \"content\": \"You are a competitive intelligence analyst monitoring GitHub activity for competitor {{ $json.company_name }}.\\n\\nAnalyze this GitHub data and identify competitive signals:\\n\\nRepositories with recent activity:\\n{{ JSON.stringify($json.repos) }}\\n\\nRecent releases:\\n{{ JSON.stringify($json.releases) }}\\n\\nFor each actionable signal, provide:\\n- signal_type: \\\"code\\\"\\n- severity: 1-5 (5=major SDK/product release, 3=significant update, 1=minor)\\n- confidence: 0-1\\n- title: concise signal title\\n- summary: what this reveals about their product direction (max 150 words)\\n- decision_type: positioning/packaging/distribution/proof/enablement/risk\\n- time_sensitivity: now/this_week/monitor\\n\\nOnly flag genuinely significant activity: major releases, new SDKs, breaking changes, new integrations, deprecated features. Skip routine maintenance.\\n\\nReturn JSON array of signals. Empty array [] if nothing significant.\"}]}",
+        "options": {}
+      },
+      "id": "node-llm-analyze",
+      "name": "LLM: Analyze GitHub Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2060,
+        -100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nlet text = '';\nif (response.content && response.content[0]) {\n  text = response.content[0].text || '';\n}\n\n// Extract JSON array from the response\nconst jsonMatch = text.match(/\\[[\\s\\S]*\\]/);\nlet signals = [];\nif (jsonMatch) {\n  try {\n    signals = JSON.parse(jsonMatch[0]);\n  } catch (e) {\n    signals = [];\n  }\n}\n\nconst repoData = $('Get Recent Releases').first().json;\n\nreturn [{ json: {\n  company_name: repoData.company_name,\n  company_id: repoData.company_id,\n  signals: signals,\n  hasSignals: signals.length > 0,\n  repos: repoData.repos || []\n}}];"
+      },
+      "id": "node-parse-llm",
+      "name": "Parse LLM Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2300,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-signals",
+              "leftValue": "={{ $json.hasSignals }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-signals",
+      "name": "If Signals Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2540,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dnqjzgfunvbofsuibcsk.supabase.co/functions/v1/ingest-external-signal",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-secret",
+              "value": "sp-n8n-ingest-2026"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ company_id: $json.company_id, company_name: $json.company_name, source_platform: \"github\", signals: $json.signals.map(s => ({ ...s, evidence_urls: ($json.repos || []).map(r => r.html_url) })) }) }}",
+        "options": {}
+      },
+      "id": "node-emit-signals",
+      "name": "Emit Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2800,
+        -200
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Tracked Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Tracked Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tracked Companies": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Companies": {
+      "main": [
+        [
+          {
+            "node": "Search GitHub Repos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Search GitHub Repos": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Releases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Releases": {
+      "main": [
+        [
+          {
+            "node": "If Has Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Has Activity": {
+      "main": [
+        [
+          {
+            "node": "Fetch Release Notes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Release Notes": {
+      "main": [
+        [
+          {
+            "node": "Prepare GitHub Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare GitHub Data": {
+      "main": [
+        [
+          {
+            "node": "LLM: Analyze GitHub Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM: Analyze GitHub Activity": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "If Signals Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Signals Found": {
+      "main": [
+        [
+          {
+            "node": "Emit Signals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Signals": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

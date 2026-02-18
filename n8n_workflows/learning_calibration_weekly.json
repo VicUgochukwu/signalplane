@@ -16,7 +16,10 @@
       "name": "Weekly Sunday 06:00 UTC",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 200]
+      "position": [
+        0,
+        200
+      ]
     },
     {
       "parameters": {},
@@ -24,25 +27,34 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Fetch all active users (pilot, growth, enterprise — not churned or free)\nSELECT\n  pa.user_id,\n  au.email,\n  pa.tier,\n  pa.status AS pilot_status\nFROM admin.pilot_accounts pa\nJOIN auth.users au ON au.id = pa.user_id\nWHERE pa.status NOT IN ('churned', 'free')\n  AND au.email IS NOT NULL\nORDER BY pa.created_at;",
+        "query": "-- Fetch all active users (pilot, growth, enterprise \u2014 not churned or free)\nSELECT\n  pa.user_id,\n  au.email,\n  pa.tier,\n  pa.status AS pilot_status\nFROM admin.pilot_accounts pa\nJOIN auth.users au ON au.id = pa.user_id\nWHERE pa.status NOT IN ('churned', 'free')\n  AND au.email IS NOT NULL\nORDER BY pa.created_at;",
         "options": {}
       },
       "id": "cal-fetch-users-001",
       "name": "Fetch Active Users",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [300, 100],
+      "position": [
+        300,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -53,7 +65,10 @@
       "name": "Loop Users",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 2,
-      "position": [550, 100]
+      "position": [
+        550,
+        100
+      ]
     },
     {
       "parameters": {
@@ -65,23 +80,32 @@
       "name": "Query Signal Velocity",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [800, 100],
+      "position": [
+        800,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
-        "jsCode": "// Calculate velocity multipliers and upsert baselines\nconst userId = $('Loop Users').first().json.user_id;\nconst velocityRows = $input.all();\nconst upserts = [];\nconst logEntries = [];\n\nfor (const row of velocityRows) {\n  const v = row.json;\n  const weeks = parseInt(v.weeks_tracked) || 0;\n  const avg = parseFloat(v.avg_signals_per_week) || 0;\n  const stddev = parseFloat(v.stddev_signals_per_week) || 1;\n\n  // Only calibrate after 8+ weeks of data\n  let multiplier = 1.0;\n  if (weeks >= 8) {\n    // Get this week's count (most recent week)\n    // For now, use avg as proxy — the actual deviation\n    // will be computed when we have this week's fresh data\n    // The key insight: we store the baseline and the pipeline\n    // uses it to boost/dampen scores at scoring time\n    multiplier = 1.0; // Will be updated by the scoring pipeline\n  }\n\n  upserts.push({\n    user_id: userId,\n    company_id: v.company_id,\n    company_name: v.company_name,\n    signal_type: v.signal_type,\n    weeks_tracked: weeks,\n    avg_signals_per_week: avg,\n    stddev_signals_per_week: stddev,\n    last_signal_at: v.last_signal_at,\n    velocity_multiplier: multiplier,\n  });\n}\n\nif (upserts.length === 0) {\n  return [{ json: { user_id: userId, velocity_count: 0, message: 'No velocity data' } }];\n}\n\nreturn [{ json: { user_id: userId, velocity_upserts: upserts, velocity_count: upserts.length } }];"
+        "jsCode": "// Calculate velocity multipliers and upsert baselines\nconst userId = $('Loop Users').first().json.user_id;\nconst velocityRows = $input.all();\nconst upserts = [];\nconst logEntries = [];\n\nfor (const row of velocityRows) {\n  const v = row.json;\n  const weeks = parseInt(v.weeks_tracked) || 0;\n  const avg = parseFloat(v.avg_signals_per_week) || 0;\n  const stddev = parseFloat(v.stddev_signals_per_week) || 1;\n\n  // Only calibrate after 8+ weeks of data\n  let multiplier = 1.0;\n  if (weeks >= 8) {\n    // Get this week's count (most recent week)\n    // For now, use avg as proxy \u2014 the actual deviation\n    // will be computed when we have this week's fresh data\n    // The key insight: we store the baseline and the pipeline\n    // uses it to boost/dampen scores at scoring time\n    multiplier = 1.0; // Will be updated by the scoring pipeline\n  }\n\n  upserts.push({\n    user_id: userId,\n    company_id: v.company_id,\n    company_name: v.company_name,\n    signal_type: v.signal_type,\n    weeks_tracked: weeks,\n    avg_signals_per_week: avg,\n    stddev_signals_per_week: stddev,\n    last_signal_at: v.last_signal_at,\n    velocity_multiplier: multiplier,\n  });\n}\n\nif (upserts.length === 0) {\n  return [{ json: { user_id: userId, velocity_count: 0, message: 'No velocity data' } }];\n}\n\nreturn [{ json: { user_id: userId, velocity_upserts: upserts, velocity_count: upserts.length } }];"
       },
       "id": "cal-velocity-calc-001",
       "name": "Calculate Velocity Baselines",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 100]
+      "position": [
+        1050,
+        100
+      ]
     },
     {
       "parameters": {
@@ -93,13 +117,19 @@
       "name": "Upsert Velocity Baselines",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1300, 100],
+      "position": [
+        1300,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -111,13 +141,19 @@
       "name": "Query Prediction Stats",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1550, 100],
+      "position": [
+        1550,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -127,7 +163,10 @@
       "name": "Calculate Prediction Calibration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1800, 100]
+      "position": [
+        1800,
+        100
+      ]
     },
     {
       "parameters": {
@@ -139,13 +178,19 @@
       "name": "Upsert Prediction Calibration",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2050, 100],
+      "position": [
+        2050,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -157,13 +202,19 @@
       "name": "Query Severity Percentiles",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2300, 100],
+      "position": [
+        2300,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -173,7 +224,10 @@
       "name": "Calculate Severity + Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2550, 100]
+      "position": [
+        2550,
+        100
+      ]
     },
     {
       "parameters": {
@@ -185,13 +239,19 @@
       "name": "Upsert Severity + Log",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2800, 100],
+      "position": [
+        2800,
+        100
+      ],
       "credentials": {
         "postgres": {
           "id": "R4dqt2sDzMKpQu7a",
           "name": "Supabase Postgres"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
     },
     {
       "parameters": {
@@ -201,55 +261,172 @@
       "name": "Log + Rate Limit",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3050, 100]
+      "position": [
+        3050,
+        100
+      ]
     }
   ],
   "connections": {
     "Weekly Sunday 06:00 UTC": {
-      "main": [[{"node": "Fetch Active Users", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Fetch Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Manual Trigger": {
-      "main": [[{"node": "Fetch Active Users", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Fetch Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Active Users": {
-      "main": [[{"node": "Loop Users", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Users": {
-      "main": [null, [{"node": "Query Signal Velocity", "type": "main", "index": 0}]]
+      "main": [
+        null,
+        [
+          {
+            "node": "Query Signal Velocity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Query Signal Velocity": {
-      "main": [[{"node": "Calculate Velocity Baselines", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Calculate Velocity Baselines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Calculate Velocity Baselines": {
-      "main": [[{"node": "Upsert Velocity Baselines", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Upsert Velocity Baselines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Upsert Velocity Baselines": {
-      "main": [[{"node": "Query Prediction Stats", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Query Prediction Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Query Prediction Stats": {
-      "main": [[{"node": "Calculate Prediction Calibration", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Calculate Prediction Calibration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Calculate Prediction Calibration": {
-      "main": [[{"node": "Upsert Prediction Calibration", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Upsert Prediction Calibration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Upsert Prediction Calibration": {
-      "main": [[{"node": "Query Severity Percentiles", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Query Severity Percentiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Query Severity Percentiles": {
-      "main": [[{"node": "Calculate Severity + Summary", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Calculate Severity + Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Calculate Severity + Summary": {
-      "main": [[{"node": "Upsert Severity + Log", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Upsert Severity + Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Upsert Severity + Log": {
-      "main": [[{"node": "Log + Rate Limit", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Log + Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Log + Rate Limit": {
-      "main": [[{"node": "Loop Users", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
   },
   "staticData": null,
   "tags": [],

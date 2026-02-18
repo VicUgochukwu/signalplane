@@ -1,0 +1,427 @@
+{
+  "name": "PMM Signal \u00b7 Maturity Model Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 1-7 * 1"
+            }
+          ]
+        }
+      },
+      "id": "n1-schedule",
+      "name": "Monthly 1st Monday 9am UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        192
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "n2-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute month range (current month)\nconst now = new Date();\nconst firstOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));\nconst lastOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));\n\nconst monthStart = firstOfMonth.toISOString().slice(0, 10);\nconst monthEnd = lastOfMonth.toISOString().slice(0, 10);\n\n// Also compute 90-day lookback for signals\nconst lookback = new Date(now);\nlookback.setUTCDate(lookback.getUTCDate() - 90);\nconst lookbackDate = lookback.toISOString().slice(0, 10);\n\nreturn [{ json: { month_start: monthStart, month_end: monthEnd, lookback_date: lookbackDate } }];"
+      },
+      "id": "n3-compute",
+      "name": "Compute Month Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, signal_type, company_id, severity, confidence, title, summary, evidence_urls, meta, created_at\nFROM control_plane.signals\nWHERE created_at >= '{{ $json.lookback_date }}'::date\nORDER BY severity DESC, created_at DESC\nLIMIT 100;",
+        "options": {}
+      },
+      "id": "n4-signals",
+      "name": "Load Signals (90 days)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        -64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT content_json, content_md\nFROM gtm_artifacts.objection_library_versions\nORDER BY created_at DESC\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "n5-objections",
+      "name": "Load Objection Library",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT content_json, content_md\nFROM gtm_artifacts.swipe_file_versions\nORDER BY created_at DESC\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "n6-swipe",
+      "name": "Load Swipe File",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        256
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT competitor_name, content_json\nFROM gtm_artifacts.battlecard_versions\nWHERE (competitor_name, created_at) IN (\n  SELECT competitor_name, MAX(created_at)\n  FROM gtm_artifacts.battlecard_versions\n  GROUP BY competitor_name\n)\nORDER BY competitor_name;",
+        "options": {}
+      },
+      "id": "n7-battlecards",
+      "name": "Load Battlecards",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        416
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build structured context for LLM synthesis\nconst monthRange = $('Compute Month Range').first().json;\nconst signals = $('Load Signals (90 days)').all().map(i => i.json);\n\n// Parse objection library\nlet objections = [];\ntry {\n  const objLib = $('Load Objection Library').first().json;\n  const contentJson = typeof objLib.content_json === 'string' ? JSON.parse(objLib.content_json) : objLib.content_json;\n  objections = contentJson?.objections || [];\n} catch (e) { /* no objection data yet */ }\n\n// Parse swipe file\nlet swipePhrases = [];\ntry {\n  const swipeData = $('Load Swipe File').first().json;\n  const contentJson = typeof swipeData.content_json === 'string' ? JSON.parse(swipeData.content_json) : swipeData.content_json;\n  swipePhrases = contentJson?.phrases || [];\n} catch (e) { /* no swipe data yet */ }\n\n// Parse battlecards\nlet competitors = [];\ntry {\n  competitors = $('Load Battlecards').all().map(i => {\n    const cj = typeof i.json.content_json === 'string' ? JSON.parse(i.json.content_json) : i.json.content_json;\n    return {\n      competitor_name: i.json.competitor_name,\n      what_changed: cj?.what_changed_this_week || [],\n      talk_tracks: cj?.talk_tracks || [],\n      win_themes: cj?.win_themes || [],\n      lose_themes: cj?.lose_themes || []\n    };\n  });\n} catch (e) { /* no battlecard data yet */ }\n\n// Group signals by type for dimension analysis\nconst signalsByType = {};\nfor (const s of signals) {\n  signalsByType[s.signal_type] = signalsByType[s.signal_type] || [];\n  signalsByType[s.signal_type].push({\n    title: s.title,\n    summary: (s.summary || '').substring(0, 200),\n    severity: s.severity,\n    signal_type: s.signal_type\n  });\n}\n\n// Top objections (max 20)\nconst topObjections = objections.slice(0, 20).map(o => ({\n  text: o.objection_text,\n  category: o.category,\n  frequency: o.frequency,\n  personas: o.personas\n}));\n\n// Top swipe phrases (max 25)\nconst topPhrases = swipePhrases.slice(0, 25).map(p => ({\n  phrase: p.phrase,\n  category: p.category,\n  persona: p.persona,\n  trend: p.trend\n}));\n\n// Competitor names\nconst competitorNames = competitors.map(c => c.competitor_name);\n\n// Build Anthropic API body\nconst systemPrompt = `You are a strategic GTM analyst building a Maturity Model \u2014 a 4-stage capability progression that helps buyers self-identify their current stage without naming competitors.\n\nOUTPUT: Strict JSON only. No markdown, no explanations outside JSON.\n\nSCHEMA:\n{\n  \"title\": \"string (e.g. 'The Competitive Intelligence Maturity Model')\",\n  \"dimensions\": [\n    {\n      \"id\": \"string (snake_case identifier)\",\n      \"label\": \"string (human-readable dimension name)\",\n      \"stages\": [\n        {\n          \"stage_number\": 1,\n          \"name\": \"string (e.g. 'Ad Hoc')\",\n          \"description\": \"string (what this stage looks like)\",\n          \"what_works\": \"string (strengths at this level)\",\n          \"what_breaks\": \"string (limitations that trigger need to level up)\",\n          \"trigger_to_next\": \"string (specific event that moves org to next stage)\",\n          \"discovery_questions\": [\"string (3-5 diagnostic questions)\"],\n          \"talk_track\": \"string (how to talk about this stage with buyers)\",\n          \"objection_reframes\": [\n            {\n              \"original_objection\": \"string (from objection library data)\",\n              \"readiness_reframe\": \"string (reframe as stage-based insight)\"\n            }\n          ],\n          \"swipe_phrases\": [\"string (buyer language typical at this stage)\"]\n        }\n      ]\n    }\n  ],\n  \"competitor_mapping\": [\n    {\n      \"competitor_name\": \"string\",\n      \"dimension_id\": \"string\",\n      \"stage_number\": 1|2|3|4,\n      \"evidence_summary\": \"string (based on signals and battlecard data)\",\n      \"confidence\": \"low|medium|high\"\n    }\n  ],\n  \"generation_metadata\": {\n    \"signal_count\": number,\n    \"objection_count\": number,\n    \"swipe_phrase_count\": number\n  }\n}\n\nRULES:\n1. Generate 2-4 capability dimensions based on what the signal data reveals about how the market segments\n2. Each dimension MUST have exactly 4 stages numbered 1-4\n3. Stage 4 is always the most advanced \u2014 where the user's product implicitly positions\n4. Stage naming should be progressive and aspirational:\n   - GOOD: \"Ad Hoc \u2192 Functional \u2192 Systematic \u2192 Predictive\"\n   - BAD: \"No Tool \u2192 Basic Tool \u2192 Good Tool \u2192 Best Tool\"\n5. NEVER name competitors in buyer-facing fields (stages, talk_tracks, discovery_questions, objection_reframes, swipe_phrases)\n6. competitor_mapping is internal only \u2014 populate for each competitor across each dimension\n7. Discovery questions must help sellers identify buyer's current stage through open-ended conversation\n8. Talk tracks should NOT attack \u2014 they should acknowledge the current stage and describe the next level\n9. Objection reframes must connect the original objection to a stage-specific readiness insight\n10. Swipe phrases should reflect real buyer language from the data\n11. If insufficient data for a dimension, omit it rather than hallucinate\n12. competitor_mapping confidence: \"high\" = strong signal evidence, \"medium\" = inferred from positioning, \"low\" = limited data`;\n\nconst userContent = \\`Build a maturity model from this market data:\n\nSIGNAL SUMMARY (last 90 days, \\${signals.length} total):\n\\${JSON.stringify(signalsByType, null, 2)}\n\nOBJECTIONS (\\${topObjections.length} entries):\n\\${JSON.stringify(topObjections, null, 2)}\n\nBUYER LANGUAGE / SWIPE PHRASES (\\${topPhrases.length} entries):\n\\${JSON.stringify(topPhrases, null, 2)}\n\nCOMPETITORS (for internal mapping):\n\\${JSON.stringify(competitorNames)}\n\nCOMPETITOR CONTEXT:\n\\${JSON.stringify(competitors.map(c => ({ name: c.competitor_name, win_themes: c.win_themes, lose_themes: c.lose_themes })), null, 2)}\n\nGenerate a maturity model with 2-4 dimensions, 4 stages each, with talk tracks, discovery questions, objection reframes, and competitor mapping.\\`;\n\nconst anthropicBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 6000,\n  temperature: 0.3,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }]\n};\n\nreturn [{\n  json: {\n    month_start: monthRange.month_start,\n    month_end: monthRange.month_end,\n    signal_count: signals.length,\n    objection_count: topObjections.length,\n    swipe_phrase_count: topPhrases.length,\n    signal_ids: signals.map(s => s.id),\n    anthropic_body: anthropicBody\n  }\n}];"
+      },
+      "id": "n8-build",
+      "name": "Build LLM Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {}
+      },
+      "id": "n9-anthropic",
+      "name": "Anthropic Synthesize Model",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tiqqmgq14G2sygfA",
+          "name": "Anthropic API Key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Anthropic response and generate markdown\nconst context = $('Build LLM Context').first().json;\nconst response = $input.first().json;\n\n// Extract text content from Anthropic response\nlet rawText = '';\nif (response.content && response.content[0]) {\n  rawText = response.content[0].text || '';\n}\n\n// Parse JSON (handle potential markdown code fences)\nlet content;\ntry {\n  const cleaned = rawText.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  content = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('Failed to parse LLM response as JSON: ' + e.message + '\\n\\nRaw: ' + rawText.substring(0, 500));\n}\n\n// Validate required fields\nif (!content.dimensions || !Array.isArray(content.dimensions)) {\n  throw new Error('Missing or invalid dimensions array in LLM response');\n}\n\n// Ensure generation_metadata\ncontent.generation_metadata = {\n  signal_count: context.signal_count || 0,\n  objection_count: context.objection_count || 0,\n  swipe_phrase_count: context.swipe_phrase_count || 0\n};\n\n// Generate markdown export\nlet md = `# ${content.title || 'Maturity Model'}\\n\\n`;\nmd += `*Generated: ${new Date().toISOString().slice(0, 10)}*\\n\\n`;\n\nfor (const dim of content.dimensions) {\n  md += `## ${dim.label}\\n\\n`;\n  for (const stage of dim.stages) {\n    md += `### Stage ${stage.stage_number}: ${stage.name}\\n\\n`;\n    md += `${stage.description}\\n\\n`;\n    md += `**What Works:** ${stage.what_works}\\n\\n`;\n    md += `**What Breaks:** ${stage.what_breaks}\\n\\n`;\n    md += `**Trigger to Next Stage:** ${stage.trigger_to_next}\\n\\n`;\n    \n    if (stage.discovery_questions && stage.discovery_questions.length > 0) {\n      md += `**Discovery Questions:**\\n`;\n      stage.discovery_questions.forEach(q => { md += `- ${q}\\n`; });\n      md += `\\n`;\n    }\n    \n    md += `**Talk Track:**\\n> ${stage.talk_track}\\n\\n`;\n    \n    if (stage.objection_reframes && stage.objection_reframes.length > 0) {\n      md += `**Objection Reframes:**\\n`;\n      stage.objection_reframes.forEach(r => {\n        md += `- \"${r.original_objection}\" \u2192 ${r.readiness_reframe}\\n`;\n      });\n      md += `\\n`;\n    }\n    \n    if (stage.swipe_phrases && stage.swipe_phrases.length > 0) {\n      md += `**Buyer Language:** ${stage.swipe_phrases.map(p => `\"${p}\"`).join(', ')}\\n\\n`;\n    }\n    \n    md += `---\\n\\n`;\n  }\n}\n\nreturn [{\n  json: {\n    month_start: context.month_start,\n    month_end: context.month_end,\n    content: content,\n    markdown: md,\n    signal_ids: context.signal_ids || [],\n    dimension_count: content.dimensions.length\n  }\n}];"
+      },
+      "id": "n10-parse",
+      "name": "Parse Response + Generate MD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO gtm_artifacts.maturity_model_versions (\n  week_start, week_end, content_json, content_md, included_signal_ids, dimension_count\n)\nVALUES (\n  '{{ $json.month_start }}'::date,\n  '{{ $json.month_end }}'::date,\n  '{{ JSON.stringify($json.content).replace(/'/g, \"''\") }}'::jsonb,\n  '{{ $json.markdown.replace(/'/g, \"''\") }}',\n  '{{ JSON.stringify($json.signal_ids) }}'::jsonb,\n  {{ $json.dimension_count }}\n)\nON CONFLICT (week_start, week_end) DO UPDATE SET\n  content_json = EXCLUDED.content_json,\n  content_md = EXCLUDED.content_md,\n  included_signal_ids = EXCLUDED.included_signal_ids,\n  dimension_count = EXCLUDED.dimension_count\nRETURNING id;",
+        "options": {}
+      },
+      "id": "n11-upsert",
+      "name": "Upsert Maturity Model",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1088,
+        96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract competitor positions for batch upsert\nconst modelId = $('Upsert Maturity Model').first().json.id;\nconst content = $('Parse Response + Generate MD').first().json.content;\nconst positions = content.competitor_mapping || [];\n\nif (positions.length === 0) {\n  return [{ json: { skip: true, message: 'No competitor positions to upsert' } }];\n}\n\n// Build batch SQL\nconst values = positions.map(p => {\n  const evidenceSafe = JSON.stringify({ summary: (p.evidence_summary || '').replace(/'/g, \"''\") });\n  return `('${modelId}', '${p.dimension_id}', '${(p.competitor_name || '').replace(/'/g, \"''\")}', ${p.stage_number}, '${evidenceSafe}'::jsonb, '${p.confidence || 'medium'}')`;\n}).join(',\\n');\n\nconst sql = `INSERT INTO gtm_artifacts.maturity_model_competitor_positions\n  (maturity_model_id, dimension_id, competitor_name, stage_number, evidence, confidence)\nVALUES\n${values}\nON CONFLICT (maturity_model_id, dimension_id, competitor_name) DO UPDATE SET\n  stage_number = EXCLUDED.stage_number,\n  evidence = EXCLUDED.evidence,\n  confidence = EXCLUDED.confidence,\n  previous_stage = maturity_model_competitor_positions.stage_number,\n  moved_at = CASE \n    WHEN maturity_model_competitor_positions.stage_number != EXCLUDED.stage_number \n    THEN now() \n    ELSE maturity_model_competitor_positions.moved_at \n  END;`;\n\nreturn [{ json: { sql: sql, position_count: positions.length } }];"
+      },
+      "id": "n12-positions-prep",
+      "name": "Prepare Competitor Positions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "id": "n13-positions-upsert",
+      "name": "Upsert Competitor Positions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1600,
+        96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "R4dqt2sDzMKpQu7a",
+          "name": "Supabase Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500
+    }
+  ],
+  "connections": {
+    "Monthly 1st Monday 9am UTC": {
+      "main": [
+        [
+          {
+            "node": "Compute Month Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compute Month Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Month Range": {
+      "main": [
+        [
+          {
+            "node": "Load Signals (90 days)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Objection Library",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Swipe File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Battlecards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Signals (90 days)": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Objection Library": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Swipe File": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Battlecards": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Context": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Synthesize Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Synthesize Model": {
+      "main": [
+        [
+          {
+            "node": "Parse Response + Generate MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Response + Generate MD": {
+      "main": [
+        [
+          {
+            "node": "Upsert Maturity Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Maturity Model": {
+      "main": [
+        [
+          {
+            "node": "Prepare Competitor Positions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Competitor Positions": {
+      "main": [
+        [
+          {
+            "node": "Upsert Competitor Positions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8o8quTMqNasL5GoW"
+  }
+}

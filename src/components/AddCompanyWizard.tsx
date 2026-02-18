@@ -52,16 +52,21 @@ export function AddCompanyWizard({ onSuccess, initialCompany, onInitialCompanyCo
   // Auto-generate domain from company name (only if user hasn't manually edited domain)
   useEffect(() => {
     if (domainManuallyEdited) return;
-    const slug = companyName
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-    if (slug) {
-      setCompanyDomain(`${slug}.com`);
+    const trimmed = companyName.trim().toLowerCase();
+    // If the input already looks like a domain (contains a dot with a valid TLD-like suffix), use it directly
+    const domainMatch = trimmed.match(/^([a-z0-9-]+\.(?:com|io|ai|so|co|dev|app|org|net|xyz|tech|tools|cloud|gg|sh|fm|tv|cc|me|to))$/);
+    if (domainMatch) {
+      setCompanyDomain(domainMatch[1]);
     } else {
-      setCompanyDomain('');
+      const slug = trimmed
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+      if (slug) {
+        setCompanyDomain(`${slug}.com`);
+      } else {
+        setCompanyDomain('');
+      }
     }
   }, [companyName, domainManuallyEdited]);
 
