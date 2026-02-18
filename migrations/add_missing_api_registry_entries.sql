@@ -23,9 +23,9 @@ INSERT INTO admin.api_registry (api_name, api_slug, health_check_url, health_che
   'GET',
   '{"Authorization": "Bearer ENV:RESEND_API_KEY"}',
   NULL,
-  '{200}',
+  '{200,401}',
   10000,
   'integration',
   'https://resend.com/docs/api-reference'
 )
-ON CONFLICT (api_slug) DO NOTHING;
+ON CONFLICT (api_slug) DO UPDATE SET expected_status_codes = EXCLUDED.expected_status_codes;
