@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Check, TrendingUp, TrendingDown, Minus, Sparkles, Filter, FileText, ArrowLeft, Search, X, List, LayoutGrid, Pencil } from 'lucide-react';
+import { Copy, Check, TrendingUp, TrendingDown, Minus, Wand2, Filter, FileText, ArrowLeft, Search, X, List, LayoutGrid, Pencil } from 'lucide-react';
 import { useSwipeFile } from '@/hooks/useArtifacts';
 import { ArtifactHeader } from './ArtifactHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -75,7 +75,7 @@ function PhraseCard({ phrase, versionId }: { phrase: SwipePhrase; versionId: str
     <Card className="relative group">
       {phrase.is_new_this_week && (
         <Badge className="absolute -top-2 -right-2 bg-accent-signal text-white gap-1">
-          <Sparkles className="h-3 w-3" />
+          <Wand2 className="h-3 w-3" />
           New
         </Badge>
       )}

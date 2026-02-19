@@ -5,7 +5,7 @@ import { WeekSection } from '@/components/WeekSection';
 import { NarrativeArcCard } from '@/components/NarrativeArcCard';
 import { ConvergenceAlert } from '@/components/ConvergenceAlert';
 import { Card, CardContent } from '@/components/ui/card';
-import { Globe, ArrowRight, ChevronDown, ChevronUp, GitBranch } from 'lucide-react';
+import { Radar, ArrowRight, ChevronDown, ChevronUp, Network } from 'lucide-react';
 import { IconSignalCount, IconPersonaRevenue, IconCompany } from '@/components/icons';
 import { Link } from 'react-router-dom';
 import type { ChangelogEntry } from '@/types/changelog';
@@ -829,7 +829,7 @@ function DemoSignalFeed() {
             className="flex items-center gap-2 w-full group"
           >
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <GitBranch className="h-4 w-4 text-primary" />
+              <Network className="h-4 w-4 text-primary" />
               Narrative Intelligence
             </div>
             <div className="flex-1 h-px bg-border/50" />
@@ -860,7 +860,7 @@ function DemoSignalFeed() {
       <div className="space-y-4 border-t border-border/50 pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Globe className="h-3.5 w-3.5" />
+            <Radar className="h-3.5 w-3.5" />
             Showing sample signals for this sector
           </div>
 

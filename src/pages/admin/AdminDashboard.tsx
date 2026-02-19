@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, UserPlus, Shield, ArrowRight, Activity, Crown, Rocket, FlaskConical, User } from 'lucide-react';
+import { Users, UserCheck, UserPlus, ShieldCheck, ArrowRight, Gauge, Crown, Rocket, FlaskConical, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
     { label: 'Total Users', value: stats?.total_users ?? 0, icon: Users, color: 'text-blue-400' },
     { label: 'Active Users', value: stats?.active_users ?? 0, icon: UserCheck, color: 'text-emerald-400' },
     { label: 'New (7d)', value: stats?.users_last_7_days ?? 0, icon: UserPlus, color: 'text-amber-400' },
-    { label: 'Admins', value: stats?.admins ?? 0, icon: Shield, color: 'text-purple-400' },
+    { label: 'Admins', value: stats?.admins ?? 0, icon: ShieldCheck, color: 'text-purple-400' },
   ];
 
   const quickLinks = [
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
         <Card className="bg-muted/50 border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-foreground flex items-center gap-2">
-              <Activity className="h-5 w-5 text-accent-signal" />
+              <Gauge className="h-5 w-5 text-accent-signal" />
               System Health
             </CardTitle>
             <Link 

@@ -7,7 +7,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { UserMenu } from './UserMenu';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Kanban } from 'lucide-react';
+import { Columns3 } from 'lucide-react';
 
 const navItems = [
   { to: '/control-plane', label: 'Intel Packets', icon: IconControlPlane },
@@ -16,7 +16,7 @@ const navItems = [
   { to: '/control-plane/submit', label: 'Submit Signal', icon: IconSubmitSignal },
   { to: '/control-plane/team', label: 'Team', icon: IconTeam },
   { to: '/control-plane/deals', label: 'Deals', icon: IconDeals },
-  { to: '/control-plane/board', label: 'Action Board', icon: Kanban },
+  { to: '/control-plane/board', label: 'Action Board', icon: Columns3 },
 ];
 
 const navItemFlags: Record<string, string> = {

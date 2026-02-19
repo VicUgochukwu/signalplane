@@ -5,8 +5,8 @@ import { useTierGate } from '@/hooks/useTierGate';
 import { useDemo } from '@/contexts/DemoContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Brain, Zap, Target, TrendingUp, CheckCircle2,
-  PenLine, Layers, Activity,
+  Orbit, RadioTower, Scan, ChevronsUp, PackageCheck,
+  PencilRuler, SlidersHorizontal, Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -87,12 +87,12 @@ export function IntelligenceOverview() {
             <div className="min-w-0">
               <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Intelligence</div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <Brain className="h-3 w-3 text-violet-400 shrink-0" />
+                <Orbit className="h-3 w-3 text-violet-400 shrink-0" />
                 <span className="text-xs text-muted-foreground">{weeksAge}w old</span>
                 {growth > 0 && (
                   <>
                     <span className="text-muted-foreground/30 mx-0.5">·</span>
-                    <TrendingUp className="h-3 w-3 text-emerald-400 shrink-0" />
+                    <ChevronsUp className="h-3 w-3 text-emerald-400 shrink-0" />
                     <span className="text-xs text-emerald-400">+{growth}%</span>
                   </>
                 )}
@@ -102,13 +102,13 @@ export function IntelligenceOverview() {
         ) : (
           <div className="flex items-center gap-3 p-4 md:pr-0 md:border-r border-border/30 shrink-0">
             <div className="p-2.5 rounded-lg bg-[hsl(var(--accent-signal)/0.1)]">
-              <Activity className="h-5 w-5 text-accent-signal" />
+              <Gauge className="h-5 w-5 text-accent-signal" />
             </div>
             <div className="min-w-0">
               <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Intelligence</div>
               {growth > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
-                  <TrendingUp className="h-3 w-3 text-emerald-400" />
+                  <ChevronsUp className="h-3 w-3 text-emerald-400" />
                   <span className="text-xs text-emerald-400">+{growth}% this week</span>
                 </div>
               )}
@@ -119,56 +119,56 @@ export function IntelligenceOverview() {
         {/* Metrics strip */}
         <div className="flex-1 grid grid-cols-3 md:grid-cols-6 divide-x divide-border/20">
           <MetricCell
-            icon={<Zap className="h-3 w-3 text-sky-400" />}
+            icon={<RadioTower className="h-3 w-3 text-sky-400" />}
             value={knowledge.total_signals_processed}
             label="Signals"
           />
           <MetricCell
-            icon={<Target className="h-3 w-3 text-accent-signal" />}
+            icon={<Scan className="h-3 w-3 text-accent-signal" />}
             value={knowledge.competitors_monitored}
             label="Competitors"
           />
           <MetricCell
-            icon={<Activity className="h-3 w-3 text-amber-400" />}
+            icon={<Gauge className="h-3 w-3 text-amber-400" />}
             value={latestAccuracy !== null ? `${Math.round(latestAccuracy)}%` : '--'}
             label="Accuracy"
             sparkline={compounding?.prediction_accuracy_trend}
           />
           {showCompounding ? (
             <MetricCell
-              icon={<CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+              icon={<PackageCheck className="h-3 w-3 text-emerald-400" />}
               value={compounding!.recommendations_adopted}
               label={adoptionRate > 0 ? `Adopted · ${adoptionRate}%` : 'Adopted'}
             />
           ) : (
             <MetricCell
-              icon={<CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+              icon={<PackageCheck className="h-3 w-3 text-emerald-400" />}
               value={knowledge.total_packets}
               label="Packets"
             />
           )}
           {showCompounding ? (
             <MetricCell
-              icon={<PenLine className="h-3 w-3 text-rose-400" />}
+              icon={<PencilRuler className="h-3 w-3 text-rose-400" />}
               value={compounding!.artifact_edits_total}
               label="Edits"
             />
           ) : (
             <MetricCell
-              icon={<PenLine className="h-3 w-3 text-violet-400" />}
+              icon={<PencilRuler className="h-3 w-3 text-violet-400" />}
               value={knowledge.total_knowledge_objects}
               label="Objects"
             />
           )}
           {showCompounding ? (
             <MetricCell
-              icon={<Layers className="h-3 w-3 text-sky-400" />}
+              icon={<SlidersHorizontal className="h-3 w-3 text-sky-400" />}
               value={calibrations}
               label="Calibrations"
             />
           ) : (
             <MetricCell
-              icon={<Layers className="h-3 w-3 text-sky-400" />}
+              icon={<SlidersHorizontal className="h-3 w-3 text-sky-400" />}
               value={knowledge.pages_tracked}
               label="Pages"
             />

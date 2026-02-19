@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Copy, Check, Sparkles, MessageSquareQuote, ArrowLeft, Search, Filter,
+  Copy, Check, Wand2, MessageSquareQuote, ArrowLeft, Search, Filter,
   ChevronDown, ChevronRight, Pencil, X, ExternalLink, Zap, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { useObjectionLibrary } from '@/hooks/useArtifacts';
@@ -204,7 +204,7 @@ function ObjectionCard({
     <Card className={cn('relative', isTopMatch && 'ring-2 ring-accent-signal/40 shadow-[0_0_12px_hsl(var(--accent-signal)/0.15)]')}>
       {objection.is_new_this_week && (
         <Badge className="absolute -top-2 -right-2 bg-accent-signal text-white gap-1">
-          <Sparkles className="h-3 w-3" />
+          <Wand2 className="h-3 w-3" />
           New
         </Badge>
       )}

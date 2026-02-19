@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageCircleQuestion, Mail, BookOpen, Bug, Lightbulb, ExternalLink } from 'lucide-react';
+import { LifeBuoy, Mail, ScrollText, Bug, FlaskConical, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -26,14 +26,14 @@ const supportLinks = [
     external: true,
   },
   {
-    icon: Lightbulb,
+    icon: FlaskConical,
     label: 'Feature Request',
     description: 'Suggest a new feature or improvement',
     href: 'mailto:support@signalplane.dev?subject=Feature%20Request',
     external: true,
   },
   {
-    icon: BookOpen,
+    icon: ScrollText,
     label: 'Documentation',
     description: 'Learn how to get the most from Control Plane',
     href: 'https://signalplane.dev',
@@ -48,7 +48,7 @@ export function SupportModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <SidebarMenuButton tooltip="Support">
-          <MessageCircleQuestion className="h-4 w-4" />
+          <LifeBuoy className="h-4 w-4" />
           <span>Support</span>
         </SidebarMenuButton>
       </DialogTrigger>

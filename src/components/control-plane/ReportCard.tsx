@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { IntelPacket, PacketStatus } from '@/types/report';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, Sparkles, HelpCircle, AlertTriangle, Brain, LayoutList, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Wand2, HelpCircle, AlertTriangle, Orbit, LayoutList, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { IconSignalRadio, IconSignalHorizon } from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 import { mergedPredictions, computeAccuracy, countMarketGaps } from '@/lib/packetUtils';
@@ -143,7 +143,7 @@ export const ReportCard = ({ report, onClick, isPersonalized = false, actionBoar
             )}
             {accuracyStat && (
               <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <Brain className="h-2.5 w-2.5" />
+                <Orbit className="h-2.5 w-2.5" />
                 {accuracyStat.accuracy}% accuracy
               </span>
             )}
@@ -168,7 +168,7 @@ export const ReportCard = ({ report, onClick, isPersonalized = false, actionBoar
                 variant="outline"
                 className="text-[10px] px-1.5 py-0 h-4 border-[hsl(var(--accent-signal)/0.2)] text-accent-signal/80 bg-[hsl(var(--accent-signal)/0.05)]"
               >
-                <Sparkles className="h-2.5 w-2.5 mr-0.5" />
+                <Wand2 className="h-2.5 w-2.5 mr-0.5" />
                 Personalized
               </Badge>
             )}

@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns';
-import { Copy, Check, ChevronDown, Sparkles } from 'lucide-react';
+import { Copy, Check, ChevronDown, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,7 +88,7 @@ export function ArtifactHeader({
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{title}</h2>
           {isLatest && (
             <Badge variant="outline" className="border-[hsl(var(--accent-signal)/0.4)] text-accent-signal text-[10px] font-mono uppercase tracking-wider gap-1 rounded-badge">
-              <Sparkles className="h-3 w-3" />
+              <Wand2 className="h-3 w-3" />
               Latest
             </Badge>
           )}
@@ -104,7 +104,7 @@ export function ArtifactHeader({
               </p>
               {newItemCount !== undefined && newItemCount > 0 && newItemLabel && (
                 <Badge className="bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)] text-[10px] font-mono uppercase tracking-wider gap-1 rounded-badge">
-                  <Sparkles className="h-3 w-3" />
+                  <Wand2 className="h-3 w-3" />
                   {newItemCount} new {newItemLabel} since last week
                 </Badge>
               )}

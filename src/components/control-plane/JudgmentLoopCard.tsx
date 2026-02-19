@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, CheckCircle2, XCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Orbit, CheckCircle2, XCircle, AlertTriangle, Clock } from 'lucide-react';
 import { JudgmentLoopData, Prediction } from '@/types/report';
 
 interface JudgmentLoopCardProps {
@@ -100,7 +100,7 @@ export function JudgmentLoopCard({ judgmentLoop, predictions }: JudgmentLoopCard
     <Card className="rounded-xl border border-border/50">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Brain className="h-4 w-4 text-violet-400" />
+          <Orbit className="h-4 w-4 text-violet-400" />
           Judgment Loop
         </CardTitle>
       </CardHeader>

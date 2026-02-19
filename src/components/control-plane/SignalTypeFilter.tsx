@@ -1,13 +1,13 @@
 import { Badge } from '@/components/ui/badge';
-import { 
-  DollarSign, 
-  Shield, 
-  Share2, 
-  Briefcase, 
-  TrendingDown, 
+import {
+  DollarSign,
+  ShieldCheck,
+  Share2,
+  Briefcase,
+  TrendingDown,
   FlaskConical,
   MessageSquare,
-  Target,
+  Scan,
   Package
 } from 'lucide-react';
 import { SignalType, SIGNAL_TYPE_CONFIG } from '@/types/controlPlane';
@@ -21,13 +21,13 @@ interface SignalTypeFilterProps {
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   DollarSign,
-  Shield,
+  Shield: ShieldCheck,
   Share2,
   Briefcase,
   TrendingDown,
   FlaskConical,
   MessageSquare,
-  Target,
+  Target: Scan,
   Package,
 };
 

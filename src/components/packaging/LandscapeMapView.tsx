@@ -3,7 +3,7 @@ import {
   Loader2,
   Map,
   Lock,
-  Sparkles,
+  Wand2,
   Building2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -92,7 +92,7 @@ function LandscapeCard({ entry }: { entry: PackagingLandscapeEntry }) {
         <div className="flex items-center gap-2">
           {entry.has_free_tier && (
             <Badge variant="outline" className="text-xs text-emerald-400 bg-emerald-500/10 border-transparent">
-              <Sparkles className="h-3 w-3 mr-1" />
+              <Wand2 className="h-3 w-3 mr-1" />
               Free Tier
             </Badge>
           )}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Target, Scale, Shield } from 'lucide-react';
+import { Scan, Scale, ShieldCheck } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Convergence, CorroborationScore, ConfidenceLevel } from '@/types/narrativeGraph';
 
@@ -28,7 +28,7 @@ export function ConvergenceAlert({ convergence }: { convergence: Convergence }) 
     <Card className="rounded-xl border border-amber-500/20 bg-amber-500/[0.03]">
       <CardContent className="p-4 flex items-start gap-3">
         <div className="p-1.5 rounded-md bg-amber-500/10 shrink-0 mt-0.5">
-          <Target className="h-3.5 w-3.5 text-amber-400" />
+          <Scan className="h-3.5 w-3.5 text-amber-400" />
         </div>
         <div className="min-w-0 space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
@@ -45,7 +45,7 @@ export function ConvergenceAlert({ convergence }: { convergence: Convergence }) 
           {/* Credibility row: corroboration + confidence + companies + severity */}
           <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
             <Badge variant="outline" className={`text-[10px] border ${corrob.cls}`}>
-              <Shield className="h-2.5 w-2.5 mr-1" />
+              <ShieldCheck className="h-2.5 w-2.5 mr-1" />
               {corrob.label}
             </Badge>
             <span className={`text-[10px] font-medium ${conf.cls}`}>

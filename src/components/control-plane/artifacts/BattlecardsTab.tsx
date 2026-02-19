@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Check, AlertTriangle, Trophy, ThumbsDown, Sparkles, ChevronRight, ChevronDown, Swords, ArrowLeft, Phone, PhoneOff, Pencil, ArrowRight } from 'lucide-react';
+import { Copy, Check, AlertTriangle, Trophy, ThumbsDown, Wand2, ChevronRight, ChevronDown, Swords, ArrowLeft, Phone, PhoneOff, Pencil, ArrowRight } from 'lucide-react';
 import { useBattlecards } from '@/hooks/useArtifacts';
 import { ArtifactHeader } from './ArtifactHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,7 +149,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
           <h3 className="text-xl font-bold text-foreground">{content.competitor_name}</h3>
           {hasChanges && (
             <Badge className="bg-[hsl(var(--accent-signal)/0.1)] text-accent-signal border-[hsl(var(--accent-signal)/0.2)] gap-1">
-              <Sparkles className="h-3 w-3" />
+              <Wand2 className="h-3 w-3" />
               Changes This Week
             </Badge>
           )}
@@ -165,7 +165,7 @@ function CompetitorBattlecard({ battlecard, callMode }: { battlecard: Battlecard
         <Card className="border-[hsl(var(--accent-signal)/0.3)] bg-[hsl(var(--accent-signal)/0.05)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-accent-signal" />
+              <Wand2 className="h-4 w-4 text-accent-signal" />
               What Changed This Week
             </CardTitle>
           </CardHeader>

@@ -35,7 +35,7 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Kanban, LogOut, FileStack, MessageCircleQuestion } from 'lucide-react';
+import { Columns3, LogOut, Layers2, LifeBuoy } from 'lucide-react';
 import { SupportModal } from './SupportModal';
 import {
   DropdownMenu,
@@ -55,7 +55,7 @@ const intelligenceItems = [
 
 const actionItems = [
   { to: '/control-plane/submit', label: 'Submit Signal', icon: IconSubmitSignal, flag: 'submit_signal' },
-  { to: '/control-plane/board', label: 'Action Board', icon: Kanban, flag: 'action_board' },
+  { to: '/control-plane/board', label: 'Action Board', icon: Columns3, flag: 'action_board' },
   { to: '/control-plane/deals', label: 'Deals', icon: IconDeals, flag: 'deal_logging' },
 ];
 
@@ -70,7 +70,7 @@ const pmmItems = [
 
 const workspaceItems = [
   { to: '/control-plane/team', label: 'Team', icon: IconTeam, flag: 'team_management' },
-  { to: '/my-pages', label: 'My Pages', icon: FileStack, flag: '' },
+  { to: '/my-pages', label: 'My Pages', icon: Layers2, flag: '' },
   { to: '/settings', label: 'Settings', icon: IconSettings, flag: '' },
 ];
 
@@ -240,7 +240,7 @@ export function AppSidebar() {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/my-pages')}>
-                  <FileStack className="mr-2 h-4 w-4" />
+                  <Layers2 className="mr-2 h-4 w-4" />
                   My Pages
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

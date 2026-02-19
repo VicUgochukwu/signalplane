@@ -21,7 +21,7 @@ import {
 import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDemo } from '@/contexts/DemoContext';
-import { Kanban, ArrowRight } from 'lucide-react';
+import { Columns3, ArrowRight } from 'lucide-react';
 
 export function DemoSidebar() {
   const location = useLocation();
@@ -33,7 +33,7 @@ export function DemoSidebar() {
     { to: `/demo/${slug}`, label: 'Intel Packets', icon: IconControlPlane },
     { to: `/demo/${slug}/artifacts`, label: 'Artifacts', icon: IconArtifacts },
     { to: `/demo/${slug}/signals`, label: 'Competitor Messaging', icon: IconDiffTracker },
-    { to: `/demo/${slug}/board`, label: 'Action Board', icon: Kanban },
+    { to: `/demo/${slug}/board`, label: 'Action Board', icon: Columns3 },
   ];
 
   const isActive = (path: string) =>

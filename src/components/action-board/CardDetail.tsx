@@ -10,7 +10,7 @@ import { useDemo } from '@/contexts/DemoContext';
 import { cn } from '@/lib/utils';
 import {
   Archive, ExternalLink, FileText, Clock, CheckCircle2,
-  Calendar, Inbox, Play, ArrowRight, Sparkles, Loader2,
+  Calendar, Inbox, Play, ArrowRight, Wand2, Loader2,
   ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
 
@@ -185,7 +185,7 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
             </div>
           ) : card.column_status !== 'inbox' && !demo?.isDemo ? (
             <div className="rounded-lg border border-dashed border-border/50 p-4 text-center space-y-3">
-              <Sparkles className="h-5 w-5 text-[hsl(var(--accent-signal)/0.40)] mx-auto" />
+              <Wand2 className="h-5 w-5 text-[hsl(var(--accent-signal)/0.40)] mx-auto" />
               <p className="text-xs text-muted-foreground">
                 {card.decision_type
                   ? `Generate a ${card.decision_type} execution kit with tailored materials`
@@ -197,13 +197,13 @@ export function CardDetail({ card, onClose, onUpdateNotes, onArchive, onMoveCard
                 onClick={() => generateKit(card.id)}
                 className="text-xs"
               >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                <Wand2 className="h-3.5 w-3.5 mr-1.5" />
                 Generate Execution Kit
               </Button>
             </div>
           ) : card.column_status === 'inbox' ? null : (
             <div className="rounded-lg border border-dashed border-border/50 p-4 text-center">
-              <Sparkles className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
+              <Wand2 className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">Execution kit preview (demo)</p>
             </div>
           )}

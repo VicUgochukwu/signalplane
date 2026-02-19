@@ -25,7 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
-  Sparkles,
+  Wand2,
 } from 'lucide-react';
 import { IconCompany, IconSignalICP } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
@@ -721,7 +721,7 @@ export function CompanyOnboardingWizard({ onComplete }: CompanyOnboardingWizardP
               {(isFetchingSuggestions || aiSuggestions.length > 0) && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <Wand2 className="h-3.5 w-3.5 text-amber-400" />
                     <Label className="text-muted-foreground text-sm">Suggested for you</Label>
                     {isFetchingSuggestions && (
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />

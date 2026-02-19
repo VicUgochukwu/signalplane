@@ -1,7 +1,7 @@
 import { useState, useMemo, type ReactNode } from 'react';
 import { ExecutionKit, KIT_TYPE_COLORS, KitDecisionType } from '@/types/actionBoard';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Copy, Check, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Check, Wand2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ExecutionKitPanelProps {
@@ -21,7 +21,7 @@ export function ExecutionKitPanel({ kit }: ExecutionKitPanelProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-accent-signal" />
+        <Wand2 className="h-4 w-4 text-accent-signal" />
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Execution Kit</p>
         <Badge variant="outline" className={cn(
           'text-[10px] border',

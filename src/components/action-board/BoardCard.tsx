@@ -2,7 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ActionBoardCard, KIT_TYPE_COLORS, PRIORITY_COLORS, KitDecisionType } from '@/types/actionBoard';
 import { cn } from '@/lib/utils';
-import { GripVertical, Archive, Sparkles, AlertTriangle } from 'lucide-react';
+import { GripVertical, Archive, Wand2, AlertTriangle } from 'lucide-react';
 
 interface BoardCardProps {
   card: ActionBoardCard;
@@ -101,7 +101,7 @@ export function BoardCard({ card, onClick, onArchive, isOverlay = false }: Board
           <div className="flex items-center gap-2 mt-1.5">
             {hasKit && (
               <span className="flex items-center gap-0.5 text-[10px] text-accent-signal">
-                <Sparkles className="h-3 w-3" />
+                <Wand2 className="h-3 w-3" />
                 Kit ready
               </span>
             )}

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Play, Zap, Target, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, Play, Crosshair, Waypoints, Telescope, Route } from "lucide-react";
 
 export function ProductHero() {
   return (
@@ -77,25 +77,25 @@ export function ProductHero() {
               <div className="space-y-2.5 text-sm">
                 {[
                   {
-                    icon: Zap,
+                    icon: Crosshair,
                     label: "EXECUTIVE SUMMARY",
                     desc: "3-7 key competitive shifts from this week",
                     severity: "high",
                   },
                   {
-                    icon: Target,
+                    icon: Waypoints,
                     label: "KEY SHIFTS",
                     desc: "Messaging, pricing, and ICP changes ranked by impact",
                     severity: "high",
                   },
                   {
-                    icon: TrendingUp,
+                    icon: Telescope,
                     label: "90-DAY HYPOTHESES",
                     desc: "Testable predictions with confidence levels",
                     severity: "medium",
                   },
                   {
-                    icon: Users,
+                    icon: Route,
                     label: "ACTION MAP",
                     desc: "Owner-assigned decisions with execution playbooks",
                     severity: "medium",

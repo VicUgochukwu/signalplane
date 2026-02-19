@@ -1,4 +1,4 @@
-import { AlertTriangle, Heart, MessageSquare, ListChecks, TrendingUp, TrendingDown, Activity, Loader2 } from 'lucide-react';
+import { AlertTriangle, Heart, MessageSquare, ListChecks, TrendingUp, TrendingDown, Gauge, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useVocResearch } from '@/hooks/useVocResearch';
@@ -27,7 +27,7 @@ export function VocOverview() {
   if (!overview) {
     return (
       <div className="text-center py-16 rounded-xl border border-border/50 bg-card">
-        <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+        <Gauge className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-1">No data yet</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           VoC entries will appear here once the classifier workflows extract buyer

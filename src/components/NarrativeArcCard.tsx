@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Scale, Shield } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Scale, ShieldCheck } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { NarrativeArc, ConfidenceLevel, CorroborationScore, EvidenceWeight } from '@/types/narrativeGraph';
 
@@ -66,7 +66,7 @@ export function NarrativeArcCard({ arc }: { arc: NarrativeArc }) {
         {/* Row 2: Corroboration + Confidence + Evidence stats */}
         <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className={`text-[10px] border ${corrob.cls}`}>
-            <Shield className="h-2.5 w-2.5 mr-1" />
+            <ShieldCheck className="h-2.5 w-2.5 mr-1" />
             {corrob.label}
           </Badge>
           <span className={`text-[10px] font-medium ${conf.cls}`}>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, FileText, ArrowRight, Kanban, Radio } from 'lucide-react';
+import { BarChart3, FileText, ArrowRight, Columns3, RadioTower } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Logo } from '@/components/Logo';
@@ -14,8 +14,8 @@ export function DemoNavigation() {
   const navItems = [
     { to: `/demo/${slug}`, label: 'Intel Packets', icon: BarChart3 },
     { to: `/demo/${slug}/artifacts`, label: 'Artifacts', icon: FileText },
-    { to: `/demo/${slug}/signals`, label: 'Competitor Messaging', icon: Radio },
-    { to: `/demo/${slug}/board`, label: 'Action Board', icon: Kanban },
+    { to: `/demo/${slug}/signals`, label: 'Competitor Messaging', icon: RadioTower },
+    { to: `/demo/${slug}/board`, label: 'Action Board', icon: Columns3 },
   ];
 
   return (

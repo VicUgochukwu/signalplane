@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, Shield, Activity, GitBranch, Wifi, Upload, BarChart3, DollarSign, HeartPulse, Globe, Radio } from 'lucide-react';
+import { LayoutDashboard, Users, ToggleLeft, ScrollText, ArrowLeft, ShieldCheck, Gauge, Network, Wifi, Upload, BarChart3, DollarSign, HeartPulse, Radar, RadioTower } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -13,15 +13,15 @@ const navItems = [
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/feature-flags', label: 'Feature Flags', icon: ToggleLeft },
   { to: '/admin/audit-log', label: 'Audit Log', icon: ScrollText },
-  { to: '/admin/system', label: 'System Overview', icon: Activity },
+  { to: '/admin/system', label: 'System Overview', icon: Gauge },
   { to: '/admin/system-health', label: 'System Health', icon: HeartPulse },
-  { to: '/admin/workflows', label: 'Workflows', icon: GitBranch },
+  { to: '/admin/workflows', label: 'Workflows', icon: Network },
   { to: '/admin/api-health', label: 'API Health', icon: Wifi },
   { to: '/admin/csv-upload', label: 'CSV Upload', icon: Upload },
   { to: '/admin/usage', label: 'Usage Reports', icon: BarChart3 },
   { to: '/admin/costs', label: 'Cost Dashboard', icon: DollarSign },
-  { to: '/admin/tracked-pages', label: 'Tracked Pages', icon: Globe },
-  { to: '/admin/social-intel', label: 'Social Intel', icon: Radio },
+  { to: '/admin/tracked-pages', label: 'Tracked Pages', icon: Radar },
+  { to: '/admin/social-intel', label: 'Social Intel', icon: RadioTower },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -42,7 +42,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         {/* Sidebar Header */}
         <div className="p-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-            <Shield className="h-5 w-5" />
+            <ShieldCheck className="h-5 w-5" />
             <span className="font-semibold">Admin Panel</span>
           </div>
         </div>

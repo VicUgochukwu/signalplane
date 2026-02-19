@@ -10,7 +10,7 @@ import { NarrativeArcCard } from '@/components/NarrativeArcCard';
 import { ConvergenceAlert } from '@/components/ConvergenceAlert';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Globe, User, Plus, AlertCircle, ArrowRight, ChevronDown, ChevronUp, GitBranch } from 'lucide-react';
+import { Radar, CircleUser, Plus, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Network } from 'lucide-react';
 import { IconSignalCount, IconPersonaRevenue, IconCompany } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
@@ -159,7 +159,7 @@ const Index = () => {
               className="flex items-center gap-2 w-full group"
             >
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <GitBranch className="h-4 w-4 text-accent-signal" />
+                <Network className="h-4 w-4 text-accent-signal" />
                 Narrative Intelligence
               </div>
               <div className="flex-1 h-px bg-border/50" />
@@ -203,7 +203,7 @@ const Index = () => {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <User className="h-3.5 w-3.5" />
+                  <CircleUser className="h-3.5 w-3.5" />
                   My Feed
                 </button>
                 <button
@@ -214,7 +214,7 @@ const Index = () => {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <Globe className="h-3.5 w-3.5" />
+                  <Radar className="h-3.5 w-3.5" />
                   All Pages
                 </button>
               </div>
@@ -306,7 +306,7 @@ const Index = () => {
                   onClick={() => setShowAllChanges(true)}
                   className="border-border/50 text-foreground hover:bg-muted/50 rounded-lg"
                 >
-                  <Globe className="h-4 w-4 mr-2" />
+                  <Radar className="h-4 w-4 mr-2" />
                   View All Pages
                 </Button>
               </div>
