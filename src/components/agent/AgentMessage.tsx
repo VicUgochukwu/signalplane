@@ -24,7 +24,7 @@ export function AgentMessage({ message }: Props) {
       {/* Subtle AI indicator */}
       <div className="flex items-center gap-1.5 mb-1.5">
         <SignalPlaneAIIcon className="h-3.5 w-3.5 text-primary/70" />
-        <span className="text-[11px] font-medium text-primary/60 uppercase tracking-wide">Signal Plane AI</span>
+        <span className="text-[11px] font-medium text-primary/60 uppercase tracking-wide">Control Plane Analyst</span>
       </div>
 
       {message.content ? (

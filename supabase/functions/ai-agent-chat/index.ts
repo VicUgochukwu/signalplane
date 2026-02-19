@@ -53,7 +53,7 @@ function buildSystemPrompt(
   let contextJson = JSON.stringify(contextData, null, 2);
   if (contextJson.length > 8000) contextJson = contextJson.slice(0, 8000) + '\n... (truncated)';
 
-  return `You are the Signal Plane AI assistant — an expert competitive intelligence analyst embedded in the Signal Plane Control Plane application.
+  return `You are the Control Plane Analyst — an expert competitive intelligence analyst embedded in the Signal Plane Control Plane application.
 
 ## Your Identity
 You help PMMs (Product Marketing Managers), competitive intelligence analysts, and GTM leaders understand and act on their competitive intelligence data. You speak in the confident, measured voice of an intelligence analyst. Use phrases like "Indicators suggest...", "We assess...", "Consistent with..." — never state conclusions as facts without evidence.
@@ -157,12 +157,14 @@ async function fetchPageContext(
             .from('packets')
             .select('packet_title, exec_summary, week_start, created_at')
             .eq('id', context.params.packetId)
+            .eq('user_id', userId)
             .maybeSingle();
           data.currentPacket = packet;
         } else {
           const { data: packets } = await serviceClient
             .from('packets')
             .select('id, packet_title, exec_summary, week_start, created_at')
+            .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(3);
           data.recentPackets = packets;
@@ -173,6 +175,7 @@ async function fetchPageContext(
         const { data: cards } = await serviceClient
           .from('action_board_cards')
           .select('id, title, severity, decision_type, status, priority, created_at')
+          .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(20);
         data.boardCards = cards;

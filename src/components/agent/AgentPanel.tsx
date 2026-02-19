@@ -63,7 +63,7 @@ const SUGGESTED_PROMPTS: Record<string, Array<{ label: string; prompt: string }>
 };
 
 const DEFAULT_PROMPTS = [
-  { label: 'What can you do?', prompt: 'What can you help me with in Signal Plane?' },
+  { label: 'What can you do?', prompt: 'What can you help me with in Control Plane?' },
   { label: 'Weekly overview', prompt: 'Give me a high-level weekly overview of my competitive landscape' },
   { label: 'Navigate', prompt: 'Help me find what I\'m looking for' },
 ];
@@ -86,7 +86,7 @@ function WelcomeState({
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 mb-4">
           <SignalPlaneAIIcon className="h-6 w-6 text-primary" />
         </div>
-        <h3 className="text-[15px] font-semibold text-foreground mb-1.5">Signal Plane AI</h3>
+        <h3 className="text-[15px] font-semibold text-foreground mb-1.5">Control Plane Analyst</h3>
         <p className="text-[13px] text-muted-foreground leading-relaxed text-center max-w-[260px]">
           Your competitive intelligence analyst. Ask me anything about your data, competitors, or how to use the platform.
         </p>
@@ -176,7 +176,7 @@ export function AgentPanel() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
             <div className="flex items-center gap-2">
               <SignalPlaneAIIcon className="h-4 w-4 text-primary" />
-              <span className="text-[13px] font-semibold text-foreground">Signal Plane AI</span>
+              <span className="text-[13px] font-semibold text-foreground">Control Plane Analyst</span>
               <span className="text-[11px] text-muted-foreground/50 font-normal">&middot;</span>
               <span className="text-[11px] text-muted-foreground/60">{pageContext.label}</span>
             </div>
@@ -266,9 +266,9 @@ export function AgentPanel() {
           </div>
 
           {/* Accessibility */}
-          <SheetPrimitive.Title className="sr-only">Signal Plane AI Assistant</SheetPrimitive.Title>
+          <SheetPrimitive.Title className="sr-only">Control Plane Analyst</SheetPrimitive.Title>
           <SheetPrimitive.Description className="sr-only">
-            Chat with the Signal Plane AI assistant for competitive intelligence analysis.
+            Chat with the Control Plane Analyst for competitive intelligence analysis.
           </SheetPrimitive.Description>
         </SheetPrimitive.Content>
       </SheetPortal>
