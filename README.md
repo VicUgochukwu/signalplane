@@ -113,14 +113,14 @@ Kanban-style execution tracker — every signal maps to a decision type, an owne
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────-┐
 │                    Control Plane UI                       │
 │              React 18 · TypeScript · Tailwind             │
-│                                                          │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐           │
-│  │  Weekly     │ │  Artifact  │ │  Win/Loss  │  + 6 more │
+│                                                           │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐             │
+│  │  Weekly     │ │  Artifact  │ │  Win/Loss  │  + 6 more  │
 │  │  Packets    │ │  Builders  │ │  Intel     │  modules   │
-│  └──────┬─────┘ └──────┬─────┘ └──────┬─────┘           │
+│  └──────┬─────┘ └──────┬─────┘ └──────┬─────┘             │
 │         │              │              │                   │
 │         └──────────────┼──────────────┘                   │
 │                        │                                  │
